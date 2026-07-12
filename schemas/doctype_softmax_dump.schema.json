@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/doctype_softmax_dump.schema.json",
+  "title": "DocumentTypeClassifier softmax dump",
+  "description": "Input contract produced by the Swift DocumentTypeClassifier test target running over the G8 corpus. Consumed by fit_temperature.py (Phase 3b). Pre-softmax logits are requested rather than post-softmax probabilities so the Python side can apply a learned temperature T numerically cleanly. Do not reimplement the classifier in Python to shortcut this dump.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "g8_corpus_seed",
+    "classes",
+    "documents"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the Swift test target that produced this dump (e.g., 'RedactionEngineTests.DoctypeSoftmaxDumpTests')."
+    },
+    "g8_corpus_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Seed of the G8 corpus this dump was produced from. Python side asserts this matches the corpus under --corpus."
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "description": "Class names in the order the logits array is indexed by.",
+      "items": {
+        "type": "string",
+        "enum": ["court", "medical", "financial", "foia", "generic"]
+      }
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per G8 document. Order is not constrained; Python joins by doc_id.",
+      "items": {
+        "type": "object",
+        "required": ["doc_id", "logits"],
+        "additionalProperties": false,
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "pattern": "^[a-z]+_[0-9]{6}$",
+            "description": "Matches the G8 document id (format <doctype>_<6-digit-index>)."
+          },
+          "logits": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "description": "Pre-softmax class logits in the order given by 'classes'. Unnormalised real numbers.",
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

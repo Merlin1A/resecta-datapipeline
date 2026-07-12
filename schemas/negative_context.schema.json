@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/negative_context.schema.json",
+  "title": "Negative-context gazetteer candidates",
+  "description": "Candidate list of keywords whose presence in the surrounding context is designed to suppress a structurally valid detector match. Precedence-weight floor is 0.25 per A1 (context alone never fully suppresses a checksum-validated match). This artifact is build-and-freeze in Phase 2; the installed negative_context.json is a hand-reviewed subset.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the shape changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility."
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Candidate entries in deterministic (keyword, category_scope, doctype_scope) order.",
+      "items": {
+        "type": "object",
+        "required": [
+          "keyword",
+          "category_scope",
+          "doctype_scope",
+          "precedence_weight",
+          "source_id",
+          "rationale"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The trigger phrase. Stored lowercased; matched against normalized context tokens at detection time."
+          },
+          "category_scope": {
+            "type": "string",
+            "enum": ["ssn", "npi", "dea", "name", "address", "dob"],
+            "description": "Detector category this entry is designed to modulate."
+          },
+          "doctype_scope": {
+            "type": "string",
+            "enum": ["court", "medical", "financial", "foia", "generic"],
+            "description": "Document class in which the suppression applies. Keeps financial vocabulary from leaking into court-doc detection, and vice versa."
+          },
+          "precedence_weight": {
+            "type": "number",
+            "minimum": 0.25,
+            "maximum": 1.0,
+            "description": "Suppression strength in [0.25, 1.0]. The 0.25 floor preserves the A1 invariant that context cannot fully override a checksum match."
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Which source corpus the keyword came from. Resolves to a row in SOURCES.md."
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One-line human-readable reason the keyword is designed to suppress this category in this doctype."
+          }
+        }
+      }
+    }
+  }
+}

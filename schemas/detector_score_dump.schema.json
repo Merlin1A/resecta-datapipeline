@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/detector_score_dump.schema.json",
+  "title": "PII detector raw score dump",
+  "description": "Input contract produced by the Swift PII detectors running over the G8 corpus. Consumed by sweep_thresholds.py (Phase 3b). One entry per candidate match (not one per ground-truth span) — Python joins candidates to ground truth by overlap against the G8 corpus annotations.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "g8_corpus_seed",
+    "categories",
+    "documents"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "g8_corpus_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "uniqueItems": true,
+      "description": "Detector categories present in the dump. Must match the canonical preset_thresholds category order.",
+      "items": {
+        "type": "string",
+        "enum": ["ssn", "npi", "dea", "dob", "address", "account", "mrn", "name", "routingNumber"]
+      }
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per G8 document. A document with zero candidates still appears with candidates: [].",
+      "items": {
+        "type": "object",
+        "required": ["doc_id", "candidates"],
+        "additionalProperties": false,
+        "properties": {
+          "doc_id": {
+            "type": "string",
+            "pattern": "^[a-z]+_[0-9]{6}$"
+          },
+          "candidates": {
+            "type": "array",
+            "description": "Detector-emitted candidates before thresholding. Each candidate is one (category, span) pair with its raw score.",
+            "items": {
+              "type": "object",
+              "required": ["category", "start", "end", "raw_score"],
+              "additionalProperties": false,
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": ["ssn", "npi", "dea", "dob", "address", "account", "mrn", "name", "routingNumber"]
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "raw_score": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Detector score in [0, 1] before prior composition and thresholding."
+                },
+                "doctype_prior_applied": {
+                  "type": "boolean",
+                  "description": "True if the Swift side already composed the A7 doctype prior into raw_score. When false, Python composes the prior. Default: false."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

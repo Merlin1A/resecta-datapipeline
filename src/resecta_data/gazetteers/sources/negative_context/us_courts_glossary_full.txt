@@ -1,0 +1,243 @@
+# US Courts glossary — scraped from uscourts.gov/glossary.
+# Jesse reviews and trims before this file replaces the bootstrap sample.
+acquittal
+administrative law judge
+administrative office of the united states courts (ao)
+admissible
+adversary proceeding
+affidavit
+affirmed
+alternate juror
+alternative dispute resolution (adr)
+amicus curiae
+answer
+appeal
+appellant
+appellate
+appellee
+arbitration
+arraignment
+article iii judge
+assets
+assume
+automatic stay
+bail
+bankruptcy
+bankruptcy administrator
+bankruptcy code
+bankruptcy court
+bankruptcy estate
+bankruptcy judge
+bankruptcy petition
+bench trial
+brief
+burden of proof
+business bankruptcy
+capital offense
+case ancillary to a foreign proceeding
+case file
+case law
+caseload
+cause of action
+chambers
+chapter 11
+chapter 12
+chapter 13
+chapter 13 trustee
+chapter 15
+chapter 7
+chapter 7 trustee
+chapter 9
+chief judge
+circuit executive
+claim
+class action
+clerk of court
+collateral
+common law
+community service
+complaint
+concurrent sentence
+confirmation
+consecutive sentence
+consumer bankruptcy
+consumer debtor
+consumer debts
+contested matter
+contingent claim
+contract
+conviction
+counsel
+count
+court
+court of international trade
+court reporter
+credit counseling
+creditor
+damages
+de facto
+de jure
+de novo
+debtor
+declaratory judgment
+default judgment
+defendant
+deposition
+discharge
+dischargeable debt
+disclosure statement
+discovery
+dismissal with prejudice
+dismissal without prejudice
+disposable income
+docket
+due process
+en banc
+equitable
+equity
+evidence
+ex parte
+exclusionary rule
+exculpatory evidence
+executory contracts
+exempt assets
+exemptions, exempt property
+family farmer
+federal public defender
+federal public defender organization
+federal question jurisdiction
+felony
+file
+financial management
+fraudulent transfer
+grand jury
+habeas corpus
+hearsay
+home confinement
+impeachment
+in camera
+in forma pauperis
+inculpatory evidence
+indictment
+information
+injunction
+insider (bankruptcy)
+interrogatories
+issue
+joint administration
+joint petition
+judge
+judgeship
+judgment
+judicial conference of the united states
+jurisdiction
+jurisprudence
+jury
+jury instructions
+lawsuit
+lien
+liquidated claim
+liquidation
+litigation
+magistrate judge
+means test
+mediation
+misdemeanor
+mistrial
+moot
+motion
+motion in limine
+motion to lift the automatic stay
+no-asset case
+nolo contendere
+nondischargeable debt
+nonexempt assets
+objection to discharge
+objection to dischargeability
+objection to exemptions
+opinion
+oral argument
+panel
+parole
+party
+party in interest
+per curiam
+peremptory challenge
+petit jury (or trial jury)
+petition
+petition preparer
+petty offense
+plaintiff
+plan
+plea
+pleadings
+postpetition transfer
+prebankruptcy planning
+precedent
+preference (bankruptcy)
+presentence report
+pretrial conference
+pretrial services
+priority
+priority claim
+pro se
+pro tem
+probation
+probation officer
+procedure
+proof of claim
+property of the estate
+prosecute
+reaffirmation agreement
+recalled judge
+record
+redemption
+remand
+reverse
+sanction
+schedules
+section 341 meeting
+secured creditor
+secured debt
+senior judge
+sentence
+sentencing guidelines
+sequester
+service of process
+settlement
+small business or subchapter v case
+standard of proof
+statement of financial affairs
+statement of intention
+statute
+statute of limitations
+sua sponte
+subordination
+subpoena
+subpoena duces tecum
+substantive consolidation
+summary judgment
+temporary restraining order
+testimony
+toll
+tort
+transcript
+transfer
+trustee
+u.s. attorney
+u.s. trustee
+undersecured claim
+undue hardship (bankruptcy)
+unlawful detainer action
+unliquidated claim
+unscheduled debt
+unsecured claim
+uphold
+venue
+verdict
+voir dire
+wage garnishment
+warrant
+witness
+writ
+writ of certiorari

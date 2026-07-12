@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/email_vectors.schema.json",
+  "title": "Email-address structural test vectors",
+  "description": "Deterministic fixture of email candidates paired with structural rejection reasons. Mirrors the Swift ``detectEmails`` regex at PIIDetector.swift:451 (pattern declared at :447-449) plus the inline RFC 5321 ``> 254 chars`` cap at :454-455.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one email candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["email", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email candidate. Valid vectors match the Swift email regex AND fall under the 254-character cap; invalid vectors deliberately deviate."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate is accepted by both the regex shape and the RFC 5321 length cap."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "leading_dot_local",
+              "consecutive_dot_local",
+              "domain_dot_anchor",
+              "no_tld",
+              "numeric_tld",
+              "length_cap_exceeded"
+            ],
+            "description": "Which structural rule rejects this email, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

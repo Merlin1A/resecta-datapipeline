@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/doctype_temperature.schema.json",
+  "title": "Fitted doctype-classifier temperature",
+  "description": "Scalar temperature T used to sharpen or soften the 5-class DocumentTypeClassifier softmax. Produced by Phase 3b fit_temperature.py via NLL minimisation on a 30% held-out G8 split. Consumed by DocumentTypeClassifier.swift.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "status",
+    "temperature",
+    "fit_metadata"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["placeholder", "calibrated"],
+      "description": "Phase 3b output is 'calibrated'. 'placeholder' is reserved for bring-up fixtures that bypass the real fit."
+    },
+    "temperature": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "T such that calibrated_softmax(x) = softmax(x / T). T > 1 softens (reduces confidence); T < 1 sharpens."
+    },
+    "fit_metadata": {
+      "type": "object",
+      "required": [
+        "split_size",
+        "nll_before",
+        "nll_after",
+        "optimizer",
+        "tolerance",
+        "iterations",
+        "input_dump_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "split_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of documents in the held-out calibration split the fit was performed on."
+        },
+        "nll_before": {
+          "type": "number",
+          "description": "Mean negative log-likelihood on the held-out split at T=1."
+        },
+        "nll_after": {
+          "type": "number",
+          "description": "Mean NLL at the fitted T. Must be <= nll_before."
+        },
+        "optimizer": {
+          "type": "string",
+          "enum": ["golden_section"],
+          "description": "Identifier of the 1D minimiser. Pure-Python stdlib (no scipy dep)."
+        },
+        "tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Optimiser stopping tolerance on T."
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Optimiser iterations actually run (bounded by a hard cap)."
+        },
+        "search_lower": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Lower end of the 1D search interval."
+        },
+        "search_upper": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Upper end of the 1D search interval."
+        },
+        "input_dump_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the Swift softmax dump this fit was run against."
+        },
+        "corpus_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seed of the G8 corpus the dump was produced from. Recorded for provenance."
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Mechanism-description language only."
+    }
+  }
+}

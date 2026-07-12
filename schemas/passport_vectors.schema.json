@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/passport_vectors.schema.json",
+  "title": "US passport structural test vectors",
+  "description": "Deterministic fixture of passport candidates paired with structural rejection reasons. Mirrors the Swift ``detectPassports`` regex at PIIDetector.swift:668 (pattern declared at :663-666).",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one passport candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["text", "passport_number", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Full candidate string (label + separator + number)."
+          },
+          "passport_number": {
+            "type": "string",
+            "description": "The number portion (regex capture group 1 for valid vectors)."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift passport regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "no_label",
+              "lowercase_letters",
+              "digits_too_few",
+              "digits_too_many",
+              "letter_prefix_too_long"
+            ],
+            "description": "Which structural rule rejects this passport, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

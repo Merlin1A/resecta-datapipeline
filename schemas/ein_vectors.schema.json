@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/ein_vectors.schema.json",
+  "title": "EIN structural test vectors",
+  "description": "Deterministic fixture of Employer Identification Number candidates paired with structural rejection reasons. Mirrors the Swift ``detectEINs`` regex ``\\d{2}-\\d{7}`` and its length/shape gate.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one EIN candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["ein", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "ein": {
+            "type": "string",
+            "description": "EIN candidate. Valid vectors match ``\\d{2}-\\d{7}``; invalid vectors deliberately deviate."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift EIN regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [null, "invalid_length", "invalid_shape"],
+            "description": "Which structural rule rejects this EIN, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "families": {
+    "account": {
+      "bias": -8.662341420954795e-16,
+      "feature_means": [
+        1.0,
+        0.0,
+        0.5729166666666667,
+        0.0,
+        9.5,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "feature_scales": [
+        1e-06,
+        1e-06,
+        0.2604166666666667,
+        1e-06,
+        0.5,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06,
+        1e-06
+      ],
+      "support": {
+        "redact": 200,
+        "suppress": 200
+      },
+      "w_family": 1.0,
+      "weights": [
+        0.0,
+        0.0,
+        2.821843836604714,
+        0.0,
+        2.821843836604714,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "ein": {
+      "bias": 0.0,
+      "feature_means": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_scales": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "support": {
+        "redact": 100,
+        "suppress": 0
+      },
+      "w_family": 0.0,
+      "weights": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "itin": {
+      "bias": 0.0,
+      "feature_means": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_scales": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "support": {
+        "redact": 0,
+        "suppress": 50
+      },
+      "w_family": 0.0,
+      "weights": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "mrn": {
+      "bias": 0.0,
+      "feature_means": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_scales": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "support": {
+        "redact": 250,
+        "suppress": 0
+      },
+      "w_family": 0.0,
+      "weights": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "phone": {
+      "bias": 1.3765760905735123,
+      "feature_means": [
+        0.5768277571251549,
+        0.061957868649318466,
+        0.4202878705606254,
+        0.06019385262551074,
+        10.0,
+        0.6592317224287485,
+        0.38104089219330856,
+        0.15489467162329615,
+        0.12329615861214374,
+        0.3500619578686493,
+        0.3097893432465923,
+        0.09293680297397769,
+        0.12391573729863693
+      ],
+      "feature_scales": [
+        0.4940622387261733,
+        0.2410790143537016,
+        0.3714176001952203,
+        0.21872309964856382,
+        1e-06,
+        0.4739675712244183,
+        0.48564259560898887,
+        0.36180424586509125,
+        0.32877684815636404,
+        0.4769890811347964,
+        0.46240664577559576,
+        0.29034385412292396,
+        0.32948539777715813
+      ],
+      "support": {
+        "redact": 999,
+        "suppress": 615
+      },
+      "w_family": 1.0,
+      "weights": [
+        -1.1993959579892326,
+        -1.0659147577872627,
+        4.9716804457348465,
+        -0.997677651218164,
+        0.0,
+        5.342550777903788,
+        -2.9138246403692425,
+        1.0019680834065066,
+        1.1093889920280202,
+        -0.8177691335462705,
+        -0.17348603642693225,
+        0.41565938358071713,
+        -0.04594291561309031
+      ]
+    }
+  },
+  "feature_order": [
+    "kw_positive_window",
+    "kw_negative_window",
+    "nearest_positive_distance",
+    "nearest_negative_distance",
+    "digit_run_length",
+    "has_separator",
+    "left_is_label",
+    "at_line_start",
+    "doctype_is_court",
+    "doctype_is_medical",
+    "doctype_is_financial",
+    "doctype_is_foia",
+    "doctype_is_generic"
+  ],
+  "generated_by": "resecta_data.classifier.context_scorer",
+  "notes": "Per-family logistic context false-positive-suppression term, additive in log-odds at the posterior seam. Decode by family name; feature_scales are loader-checked positive Swift-side. B04 candidates: each family with both classes present is fit by Newton-IRLS+L2 (bias unpenalized, stdlib only) and ships w_family 1 when its train negative-log-likelihood beats the base-rate model; a single-class family ships the identity block (w_family 0). The candidates are not auto-installed; the installed final stays the identity placeholder pending the harness verdict and sign-off.",
+  "seed": 20260416,
+  "status": "candidates",
+  "version": 1
+}

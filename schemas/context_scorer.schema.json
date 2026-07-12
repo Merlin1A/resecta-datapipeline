@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/context_scorer.schema.json",
+  "title": "Context scorer weights (C1 augment FP-suppression)",
+  "description": "Per-family logistic context false-positive-suppression weights consumed on-device by Detection/Scoring/ContextScorerWeights.swift as one additive log-odds term at the posterior seam. Decode by family name (never index). status 'placeholder' (B03) and 'candidates' (B04) stay in build/; promotion to 'calibrated' + install is Jesse-gated.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "status",
+    "feature_order",
+    "families"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["placeholder", "candidates", "calibrated"],
+      "description": "B03 ships 'placeholder' (every w_family 0, identity). B04 emits 'candidates' (trained, locked). 'calibrated' is the Jesse-gated installed final."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Human-readable provenance. Mechanism-description language only."
+    },
+    "feature_order": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "uniqueItems": true,
+      "description": "The canonical 13-feature order; index authority shared with ContextFeatureContract.featureOrder (Swift) and the File-5 fire dump.",
+      "items": { "type": "string" }
+    },
+    "families": {
+      "type": "object",
+      "required": ["account", "phone", "mrn", "ein", "itin"],
+      "additionalProperties": false,
+      "description": "One logistic block per scored family, keyed by PresetThresholdVector.wireName(for:). MRN's key is 'mrn' (its cell_category_key is 'medicalrecord' — D-5).",
+      "properties": {
+        "account": { "$ref": "#/$defs/family" },
+        "phone": { "$ref": "#/$defs/family" },
+        "mrn": { "$ref": "#/$defs/family" },
+        "ein": { "$ref": "#/$defs/family" },
+        "itin": { "$ref": "#/$defs/family" }
+      }
+    }
+  },
+  "$defs": {
+    "family": {
+      "type": "object",
+      "required": ["weights", "bias", "feature_means", "feature_scales", "w_family"],
+      "additionalProperties": false,
+      "properties": {
+        "weights": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "items": { "type": "number" }
+        },
+        "bias": { "type": "number" },
+        "feature_means": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "items": { "type": "number" }
+        },
+        "feature_scales": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "description": "Per-feature standardization scale; each strictly positive so Swift z = (f - mean)/scale never divides by zero.",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "w_family": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Per-family gate set post-hoc by the harness verdict. 0 ⇒ identity (this family contributes nothing); 1 ⇒ active. Fractional reserved as a future damping knob."
+        },
+        "support": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Training-locus counts. Provenance only; not consumed Swift-side.",
+          "properties": {
+            "redact": { "type": "integer", "minimum": 0 },
+            "suppress": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

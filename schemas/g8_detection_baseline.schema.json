@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_detection_baseline.schema.json",
+  "title": "G8 detection baseline (S3 eval)",
+  "description": "Committed-ready detection baseline derived by resecta_data.eval.baseline from the Swift harness's offset-overlap join cells (CONTRACT.md File 1). Carries precision / recall / F1 / adversarial-suppression FP-rate per cell and aggregated per-family, per-doctype, per-demographic, and grand-total. Dev/eval artifact: not installed to the Swift Resources path. A low_confidence flag marks (but does not drop) slices whose positive support is below the small-sample floor -- the demographic-fairness guardrail.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "metric",
+    "source_cells_sha256",
+    "per_family",
+    "per_doctype",
+    "per_demographic",
+    "per_cell",
+    "totals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Wire-format version. Bumped only on a breaking shape change."
+    },
+    "generated_by": {
+      "type": "string",
+      "const": "resecta_data.eval.baseline",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "metric": {
+      "type": "string",
+      "const": "g8_detection_baseline",
+      "description": "Stable metric identifier."
+    },
+    "source_cells_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the canonical-encoded input _cells.json payload. A hash of the build input (not a wall-clock), so the artifact stays determinism-safe."
+    },
+    "per_family": {
+      "type": "object",
+      "description": "Aggregate cell per category key (family). Keys are the PIICategory rawValues present in the join.",
+      "additionalProperties": { "$ref": "#/$defs/aggregateCell" }
+    },
+    "per_doctype": {
+      "type": "object",
+      "description": "Aggregate cell per doctype. All five doctypes always present.",
+      "additionalProperties": false,
+      "required": ["court", "medical", "financial", "foia", "generic"],
+      "properties": {
+        "court": { "$ref": "#/$defs/aggregateCell" },
+        "medical": { "$ref": "#/$defs/aggregateCell" },
+        "financial": { "$ref": "#/$defs/aggregateCell" },
+        "foia": { "$ref": "#/$defs/aggregateCell" },
+        "generic": { "$ref": "#/$defs/aggregateCell" }
+      }
+    },
+    "per_demographic": {
+      "type": "object",
+      "description": "Aggregate cell per Census demographic bucket. All five buckets always present.",
+      "additionalProperties": false,
+      "required": ["white", "black", "hispanic", "asian", "ai_an"],
+      "properties": {
+        "white": { "$ref": "#/$defs/aggregateCell" },
+        "black": { "$ref": "#/$defs/aggregateCell" },
+        "hispanic": { "$ref": "#/$defs/aggregateCell" },
+        "asian": { "$ref": "#/$defs/aggregateCell" },
+        "ai_an": { "$ref": "#/$defs/aggregateCell" }
+      }
+    },
+    "per_cell": {
+      "type": "object",
+      "description": "Aggregate cell per raw <category>_<doctype>_<bucket> join key.",
+      "additionalProperties": { "$ref": "#/$defs/aggregateCell" }
+    },
+    "totals": {
+      "$ref": "#/$defs/aggregateCell",
+      "description": "Grand-total aggregate over every cell."
+    }
+  },
+  "$defs": {
+    "aggregateCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "true_positives",
+        "false_positives",
+        "false_negatives",
+        "adversarial_suppress_total",
+        "adversarial_suppress_fired",
+        "suppressed_by_negative_context",
+        "support_n",
+        "detections_n",
+        "precision",
+        "recall",
+        "f1",
+        "adversarial_suppression_fp_rate",
+        "family_false_positive_count",
+        "precision_with_decoys",
+        "low_confidence"
+      ],
+      "properties": {
+        "true_positives": { "type": "integer", "minimum": 0 },
+        "false_positives": { "type": "integer", "minimum": 0 },
+        "false_negatives": { "type": "integer", "minimum": 0 },
+        "adversarial_suppress_total": { "type": "integer", "minimum": 0 },
+        "adversarial_suppress_fired": { "type": "integer", "minimum": 0 },
+        "suppressed_by_negative_context": { "type": "integer", "minimum": 0 },
+        "support_n": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Positive GT support (TP + FN); the recall denominator."
+        },
+        "detections_n": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Surfaced detections of this kind (TP + FP); the precision denominator."
+        },
+        "precision": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "adversarial_suppression_fp_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "GT-label-keyed decoy fire rate: adversarial_suppress_fired / adversarial_suppress_total."
+        },
+        "family_false_positive_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Combined FP count: false_positives + adversarial_suppress_fired."
+        },
+        "precision_with_decoys": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "TP / (TP + false_positives + adversarial_suppress_fired)."
+        },
+        "low_confidence": {
+          "type": "boolean",
+          "description": "True when support_n is below the small-sample floor (30). Advisory fairness flag; the slice is reported regardless."
+        }
+      }
+    }
+  }
+}

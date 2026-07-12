@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_bucket_recall.schema.json",
+  "title": "G8 bucket-stratified recall (V1 one-off)",
+  "description": "Per-bucket recall measurement of the surnames Bloom filter against the G8 synthetic corpus. V1 transparency-copy input replacing the 81.70 pt population-composition figure; per F-10 (option a) point estimate + sample size only, no confidence-interval band. V1.1+ W-K refines.",
+  "type": "object",
+  "required": [
+    "metric",
+    "version",
+    "generated_by",
+    "seed",
+    "bloom_version_sha256",
+    "buckets",
+    "ci_band",
+    "ci_band_note"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "metric": {
+      "type": "string",
+      "const": "g8_bucket_stratified_recall",
+      "description": "Stable metric identifier."
+    },
+    "version": {
+      "type": "string",
+      "const": "v1",
+      "description": "Artifact version. V1.1+ W-K refines this metric."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Recorded for uniformity; this builder is not randomized."
+    },
+    "bloom_version_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the surnames.bloom RSBF file the recall was measured against."
+    },
+    "buckets": {
+      "type": "object",
+      "description": "Per-Census-bucket recall measurement. Keys match the demographic_bucket field on G8 corpus documents.",
+      "additionalProperties": false,
+      "required": ["white", "black", "hispanic", "asian", "ai_an"],
+      "properties": {
+        "white": {"$ref": "#/$defs/bucket"},
+        "black": {"$ref": "#/$defs/bucket"},
+        "hispanic": {"$ref": "#/$defs/bucket"},
+        "asian": {"$ref": "#/$defs/bucket"},
+        "ai_an": {"$ref": "#/$defs/bucket"}
+      }
+    },
+    "ci_band": {
+      "type": "null",
+      "description": "Per F-10 ack option a: V1 ships point estimate + sample size only. Always null in V1; V1.1+ W-K may populate."
+    },
+    "ci_band_note": {
+      "type": "string",
+      "description": "Human-readable note explaining the V1 absence of a CI band."
+    }
+  },
+  "$defs": {
+    "bucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recall_pts", "sample_size"],
+      "properties": {
+        "recall_pts": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Recall as a percentage (hits / sample_size * 100). Two-decimal precision is conventional but the schema does not constrain precision."
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of surname trials measured (one per name pii_span in the G8 corpus, restricted to documents tagged with this bucket)."
+        }
+      }
+    }
+  }
+}

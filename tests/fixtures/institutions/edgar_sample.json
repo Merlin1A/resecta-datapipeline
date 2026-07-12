@@ -1,0 +1,16 @@
+{
+  "0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc."},
+  "1": {"cik_str": 789019, "ticker": "MSFT", "title": "MICROSOFT CORP"},
+  "2": {"cik_str": 34088, "ticker": "JPM", "title": "JPMorgan Chase & Co."},
+  "3": {"cik_str": 70858, "ticker": "BAC", "title": "Bank of America Corp"},
+  "4": {"cik_str": 72971, "ticker": "GS", "title": "Goldman Sachs Group Inc."},
+  "5": {"cik_str": 92122, "ticker": "WFC", "title": "Wells Fargo & Co"},
+  "6": {"cik_str": 200406, "ticker": "JNJ", "title": "Johnson & Johnson"},
+  "7": {"cik_str": 731642, "ticker": "V", "title": "Visa Inc."},
+  "8": {"cik_str": 2178, "ticker": "AIG", "title": "American International Group Inc."},
+  "9": {"cik_str": 1067491, "ticker": "BRK.A", "title": "Berkshire Hathaway Inc"},
+  "10": {"cik_str": 40533, "ticker": "GE", "title": "General Electric Co"},
+  "11": {"cik_str": 49196, "ticker": "IBM", "title": "International Business Machines Corp"},
+  "12": {"cik_str": 51143, "ticker": "C", "title": "Citigroup Inc."},
+  "13": {"cik_str": 78814, "ticker": "XOM", "title": "Exxon Mobil Corp"}
+}

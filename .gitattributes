@@ -1,0 +1,35 @@
+# Enforce LF line endings on all text files.
+# The pipeline's determinism guarantees depend on stable byte-for-byte output;
+# CRLF snuck in on Windows checkouts would defeat that.
+* text=auto eol=lf
+# Python
+*.py text eol=lf diff=python
+*.pyi text eol=lf diff=python
+# Shell
+*.sh text eol=lf
+# Config files
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+# Markdown and documentation
+*.md text eol=lf
+*.txt text eol=lf
+# Lockfiles must not be auto-converted.
+requirements.lock text eol=lf -diff
+asset_hashes.lock text eol=lf -diff
+# Binary outputs — never normalize.
+*.bloom binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.zip binary
+# Raw sources are immutable provenance artifacts — preserve bytes as-downloaded
+# (no EOL normalization) so SHA-256 entries in SOURCES.md keep matching.
+src/resecta_data/**/sources/** -text -diff
+# Generated files — opt out of export tarballs if this repo ever produces one.
+build/ export-ignore
+.venv/ export-ignore
+tests/ export-ignore

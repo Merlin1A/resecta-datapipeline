@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/passport_patterns.schema.json",
+  "title": "Per-country passport-number pattern gazetteer (D-14)",
+  "description": "Structural patterns (anchored regex + length + alphabet + sample) for the 11 shipping issuers. Promoted verbatim from src/resecta_data/gazetteers/passport_patterns/sources/passport_patterns_candidates.json after the candidates-file review workflow. Cuba (CU) is excluded entirely per F-37 OFAC sanctions posture; Guatemala (GT) is held as a V1.1+ swap candidate. Dominican Republic uses issuer_code DO (ISO 3166-1 alpha-2). The shipping row set is closed at the 11 enum values below. Row-level shape and audit-only fields (candidate_only, exclude_from_ship, exclusion_reason, ship_loose_vs_omit_analysis, format_attestation) are stripped by the builder before validation.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "generated_date",
+    "seed",
+    "source_briefs",
+    "rows"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the shape changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "generated_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Deterministic ISO date lifted verbatim from the candidates JSON. Wall-clock content is banned from payloads."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility. Unused by this builder (deterministic transcription), preserved for uniformity across artifacts."
+    },
+    "source_briefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Verbatim from candidates JSON. Each entry names a research brief (e.g. 'W-R-4 (2026-04-22)').",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 11,
+      "description": "Shipping rows in ascending issuer_code order. Fixed at 11 per F-36 scope decision.",
+      "items": {
+        "type": "object",
+        "required": [
+          "issuer_code",
+          "issuer_name",
+          "patterns",
+          "length",
+          "alphabet",
+          "check_digit_policy",
+          "sample",
+          "license_posture",
+          "license_notes",
+          "source_url",
+          "source_verified_date",
+          "confidence",
+          "recent_format_changes"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "issuer_code": {
+            "type": "string",
+            "enum": [
+              "CA",
+              "CN",
+              "DO",
+              "GB",
+              "IN",
+              "KR",
+              "MX",
+              "PH",
+              "SV",
+              "US",
+              "VN"
+            ],
+            "description": "ISO 3166-1 alpha-2 restricted to the 11 V1 shipping issuers. Cuba (CU) is omitted per F-37 sanctions posture; Guatemala (GT) is V1.1+ candidate-only."
+          },
+          "issuer_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "patterns": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "One or more anchored regex strings describing the passport-number shape. Unions may appear as a single string with alternation or as multiple array elements; preserved verbatim from the candidates file.",
+            "items": {
+              "type": "string",
+              "pattern": "^\\^.+\\$$"
+            }
+          },
+          "length": {
+            "description": "Fixed character length (integer) or a {min,max} range. All 11 V1 rows use an integer; the range variant is reserved for future issuers whose length is published as a band.",
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "object",
+                "required": ["min", "max"],
+                "additionalProperties": false,
+                "properties": {
+                  "min": {"type": "integer", "minimum": 1},
+                  "max": {"type": "integer", "minimum": 1}
+                }
+              }
+            ]
+          },
+          "alphabet": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human description of the character class (e.g. 'numeric', 'alpha-prefixed', 'alpha-numeric')."
+          },
+          "check_digit_policy": {
+            "type": "string",
+            "enum": ["none known"],
+            "description": "All 11 V1 rows use 'none known' per the cross-issuer ICAO Doc 9303 finding that no issuer publishes a book-level check digit (MRZ check-digits are a separate mechanism)."
+          },
+          "sample": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Synthetic example; not real PII."
+          },
+          "license_posture": {
+            "type": "string",
+            "enum": [
+              "§105 PD",
+              "gov-work (Feist)",
+              "needs-legal-review"
+            ],
+            "description": "Per-row legal posture. §105 PD applies to US State Department publications. Gov-work (Feist) covers factual publications by other national governments (format facts are uncopyrightable under Feist v. Rural Tel.). 'needs-legal-review' applies to GB (F-38 OGL v3.0 attribution posture pending Jesse + counsel)."
+          },
+          "license_notes": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Prose license rationale, source citations, and any caveats (e.g. the MEDIUM-confidence ceiling note for SV)."
+          },
+          "source_url": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Canonical publisher URL for the primary source."
+          },
+          "source_verified_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "ISO date the source was last verified."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "low-medium", "medium", "medium-high", "high"],
+            "description": "Per-row confidence. SV is capped at 'medium' pending corpus-sample / LAIP / DGME outreach (see post_v1_tasks)."
+          },
+          "recent_format_changes": {
+            "type": "array",
+            "description": "Format-transition events that sit inside the 10-year valid-passport window. Empty array for issuers with no recent transition.",
+            "items": {
+              "type": "object",
+              "required": [
+                "transition_date",
+                "legacy_pattern",
+                "current_pattern",
+                "coexistence_window_notes"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "transition_date": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Transition date. Usually ISO (YYYY-MM-DD) but may be year-only (e.g. US NGP '2021' had no single cutover date)."
+                },
+                "legacy_pattern": {
+                  "type": "string",
+                  "pattern": "^\\^.+\\$$"
+                },
+                "current_pattern": {
+                  "type": "string",
+                  "pattern": "^\\^.+\\$$"
+                },
+                "coexistence_window_notes": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "post_v1_task": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional single-task follow-up (CN carries an NIA policy-page / production-sentinel note)."
+          },
+          "post_v1_tasks": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Optional list of follow-up tasks. SV carries V-ES-1 / V-ES-2 / V-ES-3 per the MEDIUM-confidence ceiling rationale.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "ceiling_rationale": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional narrative of the per-row confidence ceiling. Present on SV."
+          },
+          "pending_decision_memo": {
+            "type": "object",
+            "required": [
+              "f_item",
+              "grounding_facts",
+              "options",
+              "precedents",
+              "default_recommendation",
+              "rationale"
+            ],
+            "additionalProperties": false,
+            "description": "Structured hand-off to Jesse + counsel for an F-item pending decision. Present on GB (F-38 OGL attribution A / B / C).",
+            "properties": {
+              "f_item": {
+                "type": "string",
+                "pattern": "^F-\\d+$"
+              },
+              "grounding_facts": {
+                "type": "array",
+                "minItems": 1,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "options": {
+                "type": "array",
+                "minItems": 2,
+                "items": {"type": "string", "minLength": 1}
+              },
+              "precedents": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1}
+              },
+              "default_recommendation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"issuer_code": {"const": "GB"}},
+              "required": ["issuer_code"]
+            },
+            "then": {
+              "required": ["pending_decision_memo"],
+              "properties": {
+                "license_posture": {"const": "needs-legal-review"}
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {"issuer_code": {"const": "SV"}},
+              "required": ["issuer_code"]
+            },
+            "then": {
+              "required": ["post_v1_tasks"],
+              "properties": {
+                "confidence": {"const": "medium"}
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

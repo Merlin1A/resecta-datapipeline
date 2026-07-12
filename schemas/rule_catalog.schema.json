@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/rule_catalog.schema.json",
+  "title": "PII detector rule-ID catalog (D-18 / A22)",
+  "description": "Closed catalog of dotted rule_ids emitted into MatchAuditRecord.ruleID by every Swift detector that produces a PII match. One row per (detector, variant) pair; each row pins (rule_id, family, detector, version, source_artifact, is_checksum_gated). Acceptance per spec §1.20: every Swift detector symbol that wires into MatchAuditRecord.ruleID maps to ≥ 1 catalog entry (W-I1 Done = test). Version-bump policy per F-8 (spec §7.7): bump the per-row `version` on behavior-changing edits to the underlying Swift detector; ties to §D13 = M3 engine-code-hash trigger. Major-version bumps roll the v-tag in `rule_id` (e.g., `pii.foo.v1` → `pii.foo.v2`). The D-36 addendum (`pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1` per F-42) lands in D-36's chain; this V1 baseline ships only currently-implemented detectors. Wrapper shape ({version, generated_by, seed, entries}) matches the established context_keywords / passport_patterns / institutions / address_components gazetteer precedent.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the wrapper shape or per-row required-field set changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility. Unused by this builder (deterministic transcription); preserved for uniformity across artifacts."
+    },
+    "entries": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Catalog rows in ascending rule_id order. The shipping set is closed at the V1 detector tree; D-36 adds `pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1` separately per F-42.",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "family", "detector", "version", "source_artifact", "is_checksum_gated"],
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "pattern": "^pii\\.[a-z_]+(\\.[a-z_]+)?\\.v[0-9]+$",
+            "description": "Dotted lowercase rule identifier emitted into MatchAuditRecord.ruleID. Shape: `pii.<category>(.<variant>)?.v<int>` — the variant segment is optional (used for algorithmic variants like `state_machine`, `luhn`, `checksum`). The major-version v-tag is required and rolls only on rule_id-breaking changes; minor edits bump the per-row `version` field instead."
+          },
+          "family": {
+            "type": "string",
+            "enum": ["pii"],
+            "description": "Top-level family namespace. V1 ships PII detection only; future families (e.g., `metadata`, `document_class`) would extend the enum."
+          },
+          "detector": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the Swift detector class or struct (matches a `<name>.swift` file under resecta/Packages/RedactionEngine/Sources/RedactionEngine/Detection/). Detectors implemented as PIIDetector instance methods carry `PIIDetector` here — disambiguation is the rule_id."
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$",
+            "description": "Per-row semver-style version. Bumps on behavior-changing edits to the underlying Swift detector per F-8 (spec §7.7) which ties to §D13 = M3 engine-code-hash trigger. V1 baseline = `1.0`."
+          },
+          "source_artifact": {
+            "type": ["string", "null"],
+            "description": "When the detector is gazetteer-backed, the relative filename under build/ that names the gazetteer (e.g., `dl_patterns.json`, `passport_patterns.json`). Null when the detector is regex-only or checksum-only with no external data dependency."
+          },
+          "is_checksum_gated": {
+            "type": "boolean",
+            "description": "True when the detector requires a structurally validated checksum to fire (Luhn, NPI Luhn-80840, DEA letter-checksum). False for state-machine, regex-only, NLTagger, or context-scored detectors. The SSN state-machine path is `false` per kickoff guidance — \"state machine isn't a checksum.\""
+          }
+        }
+      }
+    }
+  }
+}

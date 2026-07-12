@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/dea_test_vectors.schema.json",
+  "title": "DEA test vectors",
+  "description": "Deterministic fixture of DEA registration number candidates paired with category labels and validation verdicts. Designed to exercise the DEA position-weighted checksum algorithm in downstream Swift tests.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one DEA candidate with its expected classification.",
+      "items": {
+        "type": "object",
+        "required": ["dea", "valid", "category", "prefix", "expected_check_digit", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "dea": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]+$",
+            "description": "DEA candidate. Length is category-dependent: 9 chars for most categories, other lengths for invalid_length."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the DEA passes all structural checks (two-letter prefix, seven digits, checksum match)."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid_checksum",
+              "invalid_prefix_letter",
+              "invalid_length"
+            ],
+            "description": "Which detector edge case this vector exercises."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "The two-letter prefix portion of the candidate (first two characters), or a best-effort slice for non-conforming lengths."
+          },
+          "expected_check_digit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9,
+            "description": "The check digit computed from the first six digits. Matches the last digit of valid rows; differs for invalid_checksum rows."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Human note describing why this vector was included."
+          }
+        }
+      }
+    }
+  }
+}

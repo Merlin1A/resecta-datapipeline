@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/demographic_coverage.schema.json",
+  "title": "Demographic coverage report",
+  "description": "Per-filter breakdown of how many inserted keys are attributed to each demographic bucket (Census 2010 race/ethnicity columns, plurality-labeled). Baseline for the Phase 4 G2 CI gate that watches parity-gap regressions across releases.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "filters", "parity_gap_points", "generated_from_sources"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility."
+    },
+    "filters": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One record per Bloom filter built.",
+      "items": {
+        "type": "object",
+        "required": ["filter_name", "total_unique_keys", "buckets", "notes"],
+        "additionalProperties": false,
+        "properties": {
+          "filter_name": {
+            "type": "string",
+            "enum": ["surnames", "given-names"],
+            "description": "Matches a name in the gazetteer manifest."
+          },
+          "total_unique_keys": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of unique keys after NFKC-lowercase dedup."
+          },
+          "buckets": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "description": "Exactly six buckets: five Census race/ethnicity groups plus 'unlabeled' for rows without a plurality label.",
+            "items": {
+              "type": "object",
+              "required": ["label", "count", "share"],
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "enum": ["white", "black", "hispanic", "asian", "ai_an", "unlabeled"],
+                  "description": "Census race/ethnicity bucket the keys were attributed to."
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Number of unique keys in this bucket."
+                },
+                "share": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Share of total_unique_keys in this bucket; sums to 1.0 across all six buckets."
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note. Must comply with mechanism-description language rules."
+          }
+        }
+      }
+    },
+    "parity_gap_points": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Difference in percentage points between the highest-share and lowest-share labeled (non-unlabeled) bucket, across all filters. Phase 4 G2 CI gates this at <10 points; Phase 2 only reports the baseline."
+    },
+    "generated_from_sources": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Source corpora that contributed rows to the report.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

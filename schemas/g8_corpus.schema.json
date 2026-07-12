@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_corpus.schema.json",
+  "title": "G8 synthetic test corpus",
+  "description": "Ground-truth synthetic document corpus used by Swift test targets to measure classifier and detector performance (plan G8). Fully synthetic: Faker-generated text with explicit PII span annotations. Demographic buckets mirror the Phase 2 Bloom ingest labels (white / black / hispanic / asian / ai_an / unlabeled). This corpus is a test fixture, not a shipped resource.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "counts_by_doctype",
+    "counts_by_demographic",
+    "demographic_labels",
+    "documents"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "counts_by_doctype": {
+      "type": "object",
+      "required": ["court", "medical", "financial", "foia", "generic"],
+      "additionalProperties": false,
+      "properties": {
+        "court":     { "type": "integer", "minimum": 0 },
+        "medical":   { "type": "integer", "minimum": 0 },
+        "financial": { "type": "integer", "minimum": 0 },
+        "foia":      { "type": "integer", "minimum": 0 },
+        "generic":   { "type": "integer", "minimum": 0 }
+      }
+    },
+    "counts_by_demographic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "white":     { "type": "integer", "minimum": 0 },
+        "black":     { "type": "integer", "minimum": 0 },
+        "hispanic":  { "type": "integer", "minimum": 0 },
+        "asian":     { "type": "integer", "minimum": 0 },
+        "ai_an":     { "type": "integer", "minimum": 0 },
+        "unlabeled": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "demographic_labels": {
+      "type": "array",
+      "minItems": 5,
+      "description": "Ordered enum of demographic bucket names. Stable across rebuilds; Swift side should decode by value, not index.",
+      "items": {
+        "type": "string",
+        "enum": ["white", "black", "hispanic", "asian", "ai_an", "unlabeled"]
+      }
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Deterministic document order: by doctype then by id.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "doctype",
+          "demographic_bucket",
+          "text",
+          "pii_spans"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z]+_[0-9]{6}$",
+            "description": "Format: <doctype>_<6-digit-index>. Unique within the corpus."
+          },
+          "doctype": {
+            "type": "string",
+            "enum": ["court", "medical", "financial", "foia", "generic"]
+          },
+          "sub_template": {
+            "type": "string",
+            "enum": ["financial_tax"],
+            "description": "Alternate emitter shape sharing the doctype label. Absent for the doctype's default shape."
+          },
+          "demographic_bucket": {
+            "type": "string",
+            "enum": ["white", "black", "hispanic", "asian", "ai_an", "unlabeled"]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32768,
+            "description": "The synthetic document body. Plain text, UTF-8, no HTML."
+          },
+          "pii_spans": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Ground-truth PII annotations. Half-open [start, end) char offsets into text.",
+            "items": {
+              "type": "object",
+              "required": ["category", "start", "end", "value"],
+              "additionalProperties": false,
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "ssn",
+                    "npi",
+                    "dea",
+                    "dob",
+                    "address",
+                    "account",
+                    "mrn",
+                    "name",
+                    "phone",
+                    "email",
+                    "routingNumber",
+                    "ein"
+                  ]
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "value": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "adversarial": {
+                  "type": "boolean",
+                  "description": "Set on SSN-shaped case numbers, DOB-shaped filing dates, NPI-shaped phone numbers, ALL-CAPS header names, and similar decoys. These spans are designed to exercise suppression logic, not to be redacted."
+                },
+                "expected_outcome": {
+                  "type": "string",
+                  "enum": ["redact", "suppress", "flag"],
+                  "description": "How the engine is designed to act on this span. 'redact' for true PII; 'suppress' for adversarial decoys; 'flag' for uncertain cases routed to user review."
+                }
+              }
+            }
+          },
+          "adversarial_tags": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "string",
+              "enum": [
+                "ssn_shaped_case_number",
+                "dob_shaped_filing_date",
+                "npi_shaped_phone_number",
+                "all_caps_header_name",
+                "keyword_stuffing",
+                "invisible_text",
+                "column_header_label",
+                "none"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

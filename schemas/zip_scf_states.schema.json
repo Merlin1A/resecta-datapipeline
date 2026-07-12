@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/zip_scf_states.schema.json",
+  "title": "ZIP to SCF to state table",
+  "description": "Derived USPS Sectional Center Facility mapping. Primary table is 3-digit SCF prefix to two-letter state code; overrides map specific 5-digit ZIPs that resolve to a state different from their SCF's dominant state. ZIP keys are always strings to preserve leading zeros. Consumed by the Swift AddressDetector in Phase 3.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "source_sha256",
+    "source_retrieval_date",
+    "zip_key_type",
+    "scf_table",
+    "overrides"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility. The ZIP-to-SCF derivation is not itself randomized; this field is included for uniformity with other Phase 1 artifacts."
+    },
+    "source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the raw USPS source file this table was derived from."
+    },
+    "source_retrieval_date": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "ISO date on which the raw source was fetched."
+    },
+    "zip_key_type": {
+      "type": "string",
+      "const": "string",
+      "description": "Swift decoder contract: ZIP keys in scf_table and overrides are three-digit and five-digit strings respectively. Never parse them as integers (leading zeros are significant)."
+    },
+    "scf_table": {
+      "type": "object",
+      "description": "Map from 3-digit SCF prefix to two-letter USPS state code.",
+      "patternProperties": {
+        "^\\d{3}$": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overrides": {
+      "type": "object",
+      "description": "Map from 5-digit ZIP to two-letter USPS state code, for ZIPs whose state differs from the dominant state of their SCF prefix.",
+      "patternProperties": {
+        "^\\d{5}$": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional human note. Must comply with mechanism-description language rules."
+    }
+  }
+}

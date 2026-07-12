@@ -1,0 +1,34 @@
+# UBL (Universal Business Language) invoice and accounting vocabulary.
+# Lines starting with # are ignored. Terms here scope to financial doctype.
+invoice
+invoice number
+invoice date
+invoice no
+bill to
+ship to
+purchase order
+po number
+po no
+account number
+routing number
+line item
+unit price
+quantity
+subtotal
+tax id
+tax rate
+vat
+ein
+billing address
+shipping address
+payment terms
+net 30
+net 60
+due date
+amount due
+balance due
+total due
+remittance
+remit to
+supplier
+customer id

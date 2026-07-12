@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/preset_thresholds.schema.json",
+  "title": "Preset threshold vectors (candidates)",
+  "description": "Conservative / Balanced / Aggressive per-category threshold vectors consumed by SettingsState.swift. Phase 3 emits *_candidates.json only; final values come from the Phase 3b G9 sweep against Swift-side softmax dumps. Do not promote a candidates file to the shipped name without Jesse's review.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "status",
+    "categories",
+    "presets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["placeholder", "sweep_raw", "calibrated"],
+      "description": "Phase 3 artifacts carry 'placeholder' until the Phase 3b sweep replaces the vectors. The sweep writes 'sweep_raw' (an inspection artifact); the finalize step promotes it to 'calibrated'."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "Human-readable provenance. Mechanism-description language only."
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "The detector categories threshold vectors are indexed by. Order is canonical; Swift side decodes by name, not index.",
+      "items": {
+        "type": "string",
+        "enum": ["ssn", "npi", "dea", "dob", "address", "account", "mrn", "name", "routingNumber", "ein", "itin", "creditCard", "email", "phone", "driversLicense", "passport", "licensePlate"]
+      }
+    },
+    "presets": {
+      "type": "object",
+      "required": ["conservative", "balanced", "aggressive"],
+      "additionalProperties": false,
+      "description": "One threshold vector per preset. Each vector is a map from category to threshold in [0, 1]. A match is accepted when the calibrated posterior exceeds the threshold.",
+      "properties": {
+        "conservative": { "$ref": "#/$defs/preset_vector" },
+        "balanced": { "$ref": "#/$defs/preset_vector" },
+        "aggressive": { "$ref": "#/$defs/preset_vector" }
+      }
+    }
+  },
+  "$defs": {
+    "preset_vector": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "ssn":            { "$ref": "#/$defs/threshold" },
+        "npi":            { "$ref": "#/$defs/threshold" },
+        "dea":            { "$ref": "#/$defs/threshold" },
+        "dob":            { "$ref": "#/$defs/threshold" },
+        "address":        { "$ref": "#/$defs/threshold" },
+        "account":        { "$ref": "#/$defs/threshold" },
+        "mrn":            { "$ref": "#/$defs/threshold" },
+        "name":           { "$ref": "#/$defs/threshold" },
+        "routingNumber":  { "$ref": "#/$defs/threshold" },
+        "ein":            { "$ref": "#/$defs/threshold" },
+        "itin":           { "$ref": "#/$defs/threshold" },
+        "creditCard":     { "$ref": "#/$defs/threshold" },
+        "email":          { "$ref": "#/$defs/threshold" },
+        "phone":          { "$ref": "#/$defs/threshold" },
+        "driversLicense": { "$ref": "#/$defs/threshold" },
+        "passport":       { "$ref": "#/$defs/threshold" },
+        "licensePlate":   { "$ref": "#/$defs/threshold" }
+      }
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

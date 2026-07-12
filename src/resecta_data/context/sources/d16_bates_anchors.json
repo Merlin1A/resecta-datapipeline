@@ -1,0 +1,250 @@
+[
+  {
+    "aliases": [
+      "Bates label",
+      "BATES label"
+    ],
+    "category": "bates",
+    "confidence": "high",
+    "fp_neighbors": [
+      "mailing label",
+      "address label",
+      "warning label"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Industry-standard label for the per-page identifier stamped on documents during discovery production; named for the Bates Manufacturing Co. stamping device.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "bates label"
+  },
+  {
+    "aliases": [
+      "Bates No.",
+      "BATES NO.",
+      "Bates No"
+    ],
+    "category": "bates",
+    "confidence": "high",
+    "fp_neighbors": [
+      "serial no.",
+      "case no.",
+      "docket no."
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Abbreviated form of `Bates number`; typically appears as a column header or stamp legend on produced documents.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "bates no."
+  },
+  {
+    "aliases": [
+      "Bates Number",
+      "BATES NUMBER",
+      "bates-number"
+    ],
+    "category": "bates",
+    "confidence": "high",
+    "fp_neighbors": [
+      "serial number",
+      "case number",
+      "docket number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Per-page identifier stamped on documents during discovery production; the canonical anchor term.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "bates number"
+  },
+  {
+    "aliases": [
+      "Bates Stamp",
+      "BATES STAMP",
+      "bates-stamped"
+    ],
+    "category": "bates",
+    "confidence": "high",
+    "fp_neighbors": [
+      "date stamp",
+      "time stamp",
+      "rubber stamp"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Refers to the physical or electronic stamping of per-page Bates identifiers during production review.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "bates stamp"
+  },
+  {
+    "aliases": [
+      "Deposition Exhibit",
+      "depo exhibit",
+      "depo ex."
+    ],
+    "category": "bates",
+    "confidence": "high",
+    "fp_neighbors": [
+      "trial exhibit",
+      "hearing exhibit",
+      "exhibit list"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Exhibit identifier introduced during a deposition; commonly co-occurs with Bates-stamped pages in produced exhibits.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_30",
+    "term": "deposition exhibit"
+  },
+  {
+    "aliases": [
+      "Document No.",
+      "DOCUMENT NO.",
+      "Doc. No."
+    ],
+    "category": "bates",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "case no.",
+      "claim no.",
+      "policy no."
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Generic document numbering anchor; in `.legal` discovery context routinely refers to the Bates-style per-page identifier.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "document no."
+  },
+  {
+    "aliases": [
+      "Document Number",
+      "DOCUMENT NUMBER",
+      "doc number"
+    ],
+    "category": "bates",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "case number",
+      "claim number",
+      "policy number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Long form of `document no.`; same generic anchor with the same `.legal` scoping rationale.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "document number"
+  },
+  {
+    "aliases": [
+      "Page ID",
+      "PageID",
+      "PAGE ID"
+    ],
+    "category": "bates",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "user id",
+      "session id",
+      "transaction id"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Per-page identifier label often used in PACER and e-discovery review platforms as a synonym for the Bates page identifier.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "page id"
+  },
+  {
+    "aliases": [
+      "Production Number",
+      "PRODUCTION NUMBER",
+      "prod. no."
+    ],
+    "category": "bates",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "serial number",
+      "manufacturer number",
+      "model number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Discovery-production identifier; closely co-extensive with Bates numbering in legal-document review workflows.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "production number"
+  },
+  {
+    "aliases": [
+      "Production Stamp",
+      "PRODUCTION STAMP"
+    ],
+    "category": "bates",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "date stamp",
+      "approval stamp",
+      "official stamp"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Stamp applied during discovery production; the physical/electronic mark that yields the production number.",
+    "polarity": "positive",
+    "primary_source_type": "vocabulary-of-art",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_34",
+    "term": "production stamp"
+  }
+]

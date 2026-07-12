@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/bates_vectors.schema.json",
+  "title": "Bates-stamp structural test vectors",
+  "description": "Deterministic fixture of Bates-stamp candidates paired with structural rejection reasons. Mirrors the Swift ``detectBates`` regex at PIIDetector.swift:755 (pattern declared at :748-751).",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one Bates-stamp candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["stamp", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "stamp": {
+            "type": "string",
+            "description": "Bates-stamp candidate (prefix letters + optional separator + digits)."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift Bates regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "lowercase_prefix",
+              "prefix_too_long",
+              "digits_too_few",
+              "digits_too_many",
+              "invalid_separator"
+            ],
+            "description": "Which structural rule rejects this Bates stamp, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

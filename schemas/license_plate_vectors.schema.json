@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/license_plate_vectors.schema.json",
+  "title": "License-plate structural test vectors",
+  "description": "Deterministic fixture of license-plate candidates paired with structural rejection reasons. Mirrors the Swift ``detectLicensePlate`` regex at PIIDetector.swift:795 (pattern declared at :789-792).",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one license-plate candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["text", "plate", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Full candidate string (label + separator + plate value)."
+          },
+          "plate": {
+            "type": "string",
+            "description": "The plate portion (two alphanumeric segments with optional inner separator)."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift license-plate regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "no_label",
+              "first_segment_out_of_range",
+              "second_segment_out_of_range",
+              "invalid_inner_separator"
+            ],
+            "description": "Which structural rule rejects this plate, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

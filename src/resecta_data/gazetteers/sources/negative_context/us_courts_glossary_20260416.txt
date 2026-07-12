@@ -1,0 +1,49 @@
+# US Courts vocabulary — bootstrap sample. Lines starting with # are ignored.
+# These are court-doc-scope terms whose presence in the ±5-token window
+# around a detector hit is designed to dampen (not fully suppress) a match.
+case number
+docket
+docket number
+case no
+civil action
+criminal case
+indictment
+complaint
+plaintiff
+defendant
+pro se
+amicus curiae
+deposition
+subpoena
+affidavit
+motion to dismiss
+motion for summary judgment
+writ of habeas corpus
+judgment
+appellant
+appellee
+appellate
+arraignment
+bail
+bench trial
+bond
+brief
+chambers
+clerk of court
+court reporter
+exhibit
+grand jury
+hearing
+injunction
+jury trial
+magistrate judge
+minute order
+notice of appeal
+ruling
+sentencing
+stipulation
+transcript
+venue
+verdict
+voir dire
+warrant

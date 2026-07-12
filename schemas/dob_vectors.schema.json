@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/dob_vectors.schema.json",
+  "title": "DOB structural test vectors",
+  "description": "Deterministic fixture of Date-of-Birth candidates paired with label prefix and calendar-validity verdicts. Mirrors Swift ``detectDOBs`` (label prefix + M/D range) plus ``DOBDetector.isStructurallyValid`` (per-month day cap + Gregorian leap-year rule).",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one DOB candidate with its expected calendar-validity verdict.",
+      "items": {
+        "type": "object",
+        "required": ["text", "date_part", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Full candidate string with label prefix (e.g. ``DOB: 3/15/1985``)."
+          },
+          "date_part": {
+            "type": "string",
+            "description": "The date-only portion after the label prefix is stripped."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the date is a real Gregorian calendar date."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "invalid_month",
+              "invalid_day",
+              "month_day_overflow",
+              "non_leap_feb_29"
+            ],
+            "description": "Which structural rule rejects this date, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

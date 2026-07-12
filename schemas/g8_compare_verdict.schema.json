@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_compare_verdict.schema.json",
+  "title": "G8 compare verdict (eval before/after)",
+  "description": "Verdict produced by resecta_data.eval.compare from two derived g8_detection_baseline.json dicts (a BEFORE and an AFTER). Pure arithmetic over the frozen baseline cells: the four-clause §3 predicate per scorer family and over the grand-total aggregate, plus the per-doctype / per-demographic slice non-regression guard. Dev/eval artifact: not installed to the Swift Resources path, not produced by make build. Carries both input SHA-256 digests for provenance.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "metric",
+    "before_sha256",
+    "after_sha256",
+    "thresholds",
+    "regression",
+    "families",
+    "aggregate"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Wire-format version. Bumped only on a breaking shape change."
+    },
+    "generated_by": {
+      "type": "string",
+      "const": "resecta_data.eval.compare",
+      "description": "Identifier of the builder that produced this verdict."
+    },
+    "metric": {
+      "type": "string",
+      "const": "g8_compare_verdict",
+      "description": "Stable metric identifier."
+    },
+    "before_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the canonical-encoded BEFORE baseline dict. A hash of the comparator input, not a wall-clock, so the verdict stays determinism-safe."
+    },
+    "after_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the canonical-encoded AFTER baseline dict."
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delta_p", "delta_f_rel", "eps", "delta_slice"],
+      "description": "The predicate thresholds applied. delta_p and delta_slice are precision fractions (e.g. 0.05 for 5 points); eps and delta_f_rel are fractions throughout.",
+      "properties": {
+        "delta_p": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum precision uplift demanded by C1, as a fraction."
+        },
+        "delta_f_rel": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum relative family-FPR cut demanded by C2, as a fraction."
+        },
+        "eps": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Recall floor slack allowed by C3, as a fraction."
+        },
+        "delta_slice": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum tolerated per-slice precision drop in C4, as a fraction."
+        }
+      }
+    },
+    "regression": {
+      "type": "boolean",
+      "description": "True when any gating clause fails on any scorer family or on the aggregate. An aggregate pass does not excuse a per-family failure."
+    },
+    "families": {
+      "type": "array",
+      "description": "One verdict record per scorer family, in account/phone/mrn/ein/itin order. An absent family (e.g. ITIN off the G8 panel) is reported as a tolerated absence rather than evaluated.",
+      "items": { "$ref": "#/$defs/familyVerdict" }
+    },
+    "aggregate": {
+      "$ref": "#/$defs/aggregateVerdict",
+      "description": "The grand-total verdict: the four-clause predicate over totals plus the C4 slice non-regression guard."
+    }
+  },
+  "$defs": {
+    "clause": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["clause", "win", "regressed"],
+      "description": "One predicate clause result carrying two senses: win (the §3 improvement bar is met) and regressed (the metric got worse beyond tolerance). Failing to improve is not a regression. Extra numeric fields carry the before/after measured values and the clause-specific slack.",
+      "properties": {
+        "clause": {
+          "type": "string",
+          "enum": ["C1_precision", "C2_family_fpr", "C3_recall", "C4_slice_non_regression"],
+          "description": "Clause identifier."
+        },
+        "win": {
+          "type": "boolean",
+          "description": "True when this clause's improvement bar is satisfied (AFTER vs BEFORE)."
+        },
+        "regressed": {
+          "type": "boolean",
+          "description": "True when this clause's metric got worse beyond the float-noise tolerance."
+        }
+      }
+    },
+    "familyVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "regression"],
+      "description": "Per-family verdict. Either an evaluated family (carries clauses, win, regressed_clauses) or a tolerated absence (carries absent + note).",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Scorer family name (account, phone, mrn, ein, itin)."
+        },
+        "regression": {
+          "type": "boolean",
+          "description": "True when a gating clause regressed for this family. Always false for a tolerated absence."
+        },
+        "win": {
+          "type": "boolean",
+          "description": "True when this family clears its improvement bar: every gating clause's win sense for uplift-required families, or simply no-regression for a non-regression-only family."
+        },
+        "non_regression_only": {
+          "type": "boolean",
+          "description": "True for a family clean on G8 (MRN/EIN): the C1 precision clause does not gate (a precision drop with still-zero FP is not flagged), while the C2 FP-growth and C3 recall-drop clauses still gate."
+        },
+        "regressed_clauses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Identifiers of the gating clauses that regressed for this family."
+        },
+        "clauses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/clause" },
+          "description": "The evaluated clause results for this family."
+        },
+        "low_confidence": {
+          "type": "boolean",
+          "description": "Advisory: true when either side flags this family low-support. Reported, never gated."
+        },
+        "absent": {
+          "type": "boolean",
+          "description": "True when the family has no per_family entry in the baselines (off the G8 panel); the family is tolerated, not evaluated."
+        },
+        "note": {
+          "type": "string",
+          "description": "Mechanism-language operator note (e.g. an off-panel marker)."
+        }
+      }
+    },
+    "aggregateVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "regression", "clauses", "regressed_clauses"],
+      "description": "The grand-total verdict. Like a family verdict but its clause list also carries the C4 slice non-regression result.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The aggregate reporting name."
+        },
+        "regression": {
+          "type": "boolean",
+          "description": "True when a gating clause regressed on the aggregate (including the C4 slice guard)."
+        },
+        "win": {
+          "type": "boolean",
+          "description": "True when the aggregate clears every gating clause's improvement bar, including the C4 slice non-regression clause."
+        },
+        "non_regression_only": {
+          "type": "boolean",
+          "description": "Always false for the aggregate (the aggregate is gated on uplift like a scored family)."
+        },
+        "regressed_clauses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Identifiers of the gating clauses the aggregate regressed on."
+        },
+        "clauses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/clause" },
+          "description": "The aggregate clause results, including the C4 slice non-regression clause."
+        },
+        "low_confidence": {
+          "type": "boolean",
+          "description": "Advisory low-support flag carried from the totals cell."
+        }
+      }
+    }
+  }
+}

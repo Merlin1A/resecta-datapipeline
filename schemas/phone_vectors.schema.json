@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/phone_vectors.schema.json",
+  "title": "Phone-number structural test vectors",
+  "description": "Deterministic fixture of NANP phone-number candidates paired with structural rejection reasons. Mirrors the Swift ``detectPhones`` regex at PIIDetector.swift:491 (pattern declared at :468-470).",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one phone-number candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["phone", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "phone": {
+            "type": "string",
+            "description": "Phone-number candidate. Valid vectors match the Swift NANP regex; invalid vectors deliberately deviate."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift phone regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "unbalanced_parens",
+              "bare_plus_lead",
+              "wrong_group_length",
+              "non_digit"
+            ],
+            "description": "Which structural rule rejects this phone, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

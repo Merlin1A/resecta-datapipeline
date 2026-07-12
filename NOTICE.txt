@@ -1,0 +1,69 @@
+# NOTICE
+
+This file contains attribution and acknowledgement for third-party data sources used
+by the resecta-datapipeline build artifacts.
+
+Created 2026-04-26 as part of the D-05 closure (Disposition §1 substrate substitution
+to OpenAddresses CC0 + OpenStreetMap ODbL). Future attribution rows for other
+bundled data sources (e.g., Voter File CC-BY per D-31, when V1 release unblocks)
+will be added by Jesse in separate commits per CLAUDE.md §3.
+
+---
+
+## OpenStreetMap (ODbL 1.0)
+
+This product includes data derived from OpenStreetMap, © OpenStreetMap contributors,
+available under the Open Database License (ODbL) 1.0. See
+https://www.openstreetmap.org/copyright. Per ODbL §4.3, substantial use of
+OSM-derived data is acknowledged here; insubstantial fact-extraction (US
+street-suffix vocabulary frequency rank for the D-05 street_suffix gazetteer) is
+not share-alike-encumbered.
+
+---
+
+## OpenAddresses (CC0 1.0)
+
+This product includes data derived from OpenAddresses (https://openaddresses.io/),
+licensed under the Creative Commons CC0 1.0 Universal Public Domain Dedication. No
+attribution is required by license, but acknowledgement is provided for provenance
+audit.
+
+---
+
+## TODO(Jesse): none remaining — discharged below.
+
+## Third-party MIT-licensed inputs
+
+The name Bloom-filter and gazetteer artifacts produced by this pipeline are
+derived from the MIT-licensed inputs below. The person-name Bloom filters are
+membership-derived from the bltlab/paranames corpus; Faker (MIT) generates this
+project's synthetic evaluation corpus. The MIT permission notice is reproduced
+once and applies to each input.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+- [x] Faker (MIT) — synthetic evaluation-corpus generation.
+      Copyright (c) 2012 Daniele Faraglia and contributors.
+      (https://github.com/joke2k/faker)
+      Spanish-locale lists in use (es_MX, es_ES) preserve the inline
+      co-attribution: Source: Álvaro Mondéjar Rubio.
+- [x] bltlab/paranames (MIT) — person-name Bloom / gazetteer inputs.
+      Copyright (c) 2022 Jonne Sälevä and Constantine Lignos
+      (https://github.com/bltlab/paranames)
+      The Wikidata CC0 chain is discharged by this MIT compilation notice.

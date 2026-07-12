@@ -1,0 +1,167 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resecta-data"
+version = "0.1.0"
+description = "Build-time data pipeline for the Resecta iOS app"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Jesse Brookins" }]
+
+# Runtime dependencies for the build pipeline itself.
+# Any addition requires a note in the PR description and a rerun of scripts/freeze_deps.sh.
+dependencies = [
+    "click>=8.1.7,<9",
+    "pydantic>=2.7,<3",
+    "jsonschema>=4.22,<5",
+    "xxhash>=3.4,<4",
+    "reportlab>=4.2,<5",
+    "faker>=25.0,<26",
+    "mmh3>=5.0,<6",
+    # SEC-6 — Ed25519 signing for gazetteer_manifest.json (paired iOS PR).
+    # Chosen over PyNaCl: cryptography is already on the Apache-2.0-compatible
+    # allowlist, has stricter type stubs, and bundles the same audited
+    # Ed25519 primitive used by CryptoKit on the Swift side.
+    # Pin range covers the current LTS series; bump in the next major.
+    "cryptography>=42,<43",
+]
+
+[project.optional-dependencies]
+# Development dependencies. Installed by scripts/bootstrap.sh.
+dev = [
+    "pytest>=8.2,<9",
+    "pytest-socket>=0.7,<1",
+    "pytest-xdist>=3.6,<4",
+    "hypothesis>=6.100,<7",
+    "ruff>=0.4,<1",
+    "mypy>=1.10,<2",
+    "pip-tools>=7.4,<8",
+    "types-jsonschema>=4.22,<5",
+]
+
+[project.scripts]
+resecta-data = "resecta_data.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["resecta_data*"]
+
+# -----------------------------------------------------------------------------
+# Ruff
+# -----------------------------------------------------------------------------
+# Single source of style. Do not override per-file.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["build", ".venv", "src/resecta_data/*/sources"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "PL",  # pylint subset
+    "RUF", # ruff-specific
+    "TID", # tidy imports
+    "PTH", # use pathlib
+    "ANN", # flake8-annotations
+    "S",   # flake8-bandit (security)
+    "A",   # flake8-builtins
+    "C4",  # flake8-comprehensions
+    "ISC", # implicit string concat
+    "T20", # no print
+    "RET", # flake8-return
+    "ERA", # eradicate commented-out code
+]
+ignore = [
+    "ANN401",  # Allow Any in explicit positions (JSON deserialization)
+    "PLR0913", # Too many arguments (builders often have many)
+    "S101",    # assert is fine in tests
+    "ISC001",  # conflicts with formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "S101", "PLR2004"]
+"src/resecta_data/cli.py" = ["T20"]  # click.echo is permitted here
+
+[tool.ruff.lint.isort]
+known-first-party = ["resecta_data"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# -----------------------------------------------------------------------------
+# mypy
+# -----------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_return_any = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+files = ["src", "tests"]
+exclude = ["build/", "src/resecta_data/.*/sources/"]
+
+[[tool.mypy.overrides]]
+module = ["reportlab.*", "faker.*", "xxhash.*", "mmh3.*"]
+ignore_missing_imports = true
+
+# -----------------------------------------------------------------------------
+# pytest
+# -----------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--disable-socket",       # no network in tests
+    "--allow-hosts=127.0.0.1,::1",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "determinism: runs the builder twice and diffs outputs",
+    "schema: validates a generated artifact against its JSON schema",
+]
+# Note: PYTHONHASHSEED=0 is enforced at test-import time by tests/conftest.py.
+# We do not use pytest-env's [env] block because that pulls in another
+# dependency for a one-line invariant that conftest handles better.
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:faker.*",
+]
+
+# -----------------------------------------------------------------------------
+# Coverage (optional, configured for completeness)
+# -----------------------------------------------------------------------------
+
+[tool.coverage.run]
+source = ["resecta_data"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

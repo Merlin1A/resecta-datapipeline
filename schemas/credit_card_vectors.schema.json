@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/credit_card_vectors.schema.json",
+  "title": "Credit card test vectors",
+  "description": "Deterministic fixture of credit-card PAN candidates paired with brand labels and Luhn verdicts. Designed to exercise the Swift triple gate (regex, Luhn, prefix) across Visa, MasterCard, Amex, Discover, JCB, and UnionPay.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one PAN candidate with its expected triple-gate verdict.",
+      "items": {
+        "type": "object",
+        "required": ["pan", "valid", "card_brand", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "pan": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "PAN digit string, no separators. Length is 13-19 per Swift regex."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the PAN passes Luhn mod-10 and the brand prefix gate."
+          },
+          "card_brand": {
+            "type": "string",
+            "enum": ["visa", "mastercard", "amex", "discover", "jcb", "unionpay"],
+            "description": "Issuing brand, derived from the prefix dispatch in PIIDetector.hasValidCardPrefix."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [null, "luhn_failed", "invalid_prefix", "invalid_length"],
+            "description": "Which rule rejects this PAN, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

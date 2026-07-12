@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/context_keywords.schema.json",
+  "title": "Per-category positive context-keyword gazetteer (D-11 base + D-12 English + D-16 Bates `.legal` anchors / A21)",
+  "description": "Positive context keywords promoted into a single shipping gazetteer (D-11 + D-12 + D-16 in the V1 data requirements catalog, A21 surface). The artifact merges three candidate streams: (i) D-11's verbatim lift from per-detector Swift `*ContextKeywords.swift` files (45 rows: ssn, mrn, bates, licenseplate); (ii) D-12's authored English context-keyword candidates (142 rows: dob, name, npi, dea, itin; was 143 pre-Disposition §5 fix — F-50 Row 3 X12 `DMG*D8` literal dropped per legal-ref §10.3.1, regex ships engine-side); (iii) D-16's authored Bates `.legal`-scoped anchors (10 rows: bates, all `doctypes: [court]` after F-46 vocabulary translation). Total shipping count: 197 (10 ssn + 13 mrn + 21 bates + 11 licenseplate + 26 dob + 30 name + 29 npi + 29 dea + 28 itin). The 22 A19 honorifics carried in D-11 candidates (`proposed_status: 'engine-side, do not migrate'`) do NOT ship into A21 — they remain flagged engine-side per spec §4 #9. `polarity` is constant `positive`; the negative-context surface is governed by negative_context.schema.json. `confidence` is required on every row (D-11 rows backfilled to `high` since they are verbatim from production Swift). `detector_note` and `detector_requires_secondary` are optional engine-routing flags (F-52 windowed-matching for the DOB family; F-47 secondary-evidence gate for bare DEA). The D-16 engine-side baseline regex `^[A-Z]{1,4}[_-]?0*\\d{4,8}$` (spec §1.18) is the Swift-deferred half and is NOT represented here.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the shape changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility. Unused by this builder (deterministic transcription), preserved for uniformity across artifacts."
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 213,
+      "maxItems": 213,
+      "description": "Shipping rows in ascending (category, term) order. Pinned at the S3 D-11+D-12+D-16 promotion count: 15 ssn + 13 mrn + 11 bates + 11 licenseplate (D-11) + 26 dob + 35 name + 29 npi + 29 dea + 28 itin + 6 ein (D-12; S3 adds 5 ssn, 5 name, 6 ein IRS-vocabulary rows per design 02 §§2.1, 2.6; was 27 dob pre-Disposition §5 fix — X12 `DMG*D8` literal dropped per legal-ref §10.3.1) + 10 bates (D-16 `.legal`-scoped anchors per spec §1.18 + §4 #14).",
+      "items": {
+        "type": "object",
+        "required": ["category", "confidence", "doctypes", "locale", "polarity", "term"],
+        "additionalProperties": false,
+        "properties": {
+          "term": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The context keyword. Matched against normalized context tokens at detection time."
+          },
+          "category": {
+            "type": "string",
+            "enum": ["bates", "dea", "dob", "ein", "itin", "licenseplate", "mrn", "name", "npi", "ssn"],
+            "description": "Detector category this keyword is designed to bias toward. Ten S3 shipping categories: four from D-11 (bates, licenseplate, mrn, ssn) plus six from D-12 (dea, dob, ein, itin, name, npi). Honorifics stay engine-side and are not enumerated here. Category enum widening to add 'ein' is additive; version stays 1 per FORMAT_CONTRACTS §12 fence policy."
+          },
+          "polarity": {
+            "type": "string",
+            "const": "positive",
+            "description": "Positive context contributes evidence toward the category. Negative-context suppression lives in negative_context.schema.json."
+          },
+          "locale": {
+            "type": "string",
+            "const": "en",
+            "description": "BCP-47-style locale tag. V1 ships English only; later locales will bump `version`."
+          },
+          "doctypes": {
+            "type": "array",
+            "uniqueItems": true,
+            "description": "Document classes in which this keyword applies. Empty array means global-scoped (applies on every doctype). Constrained to the canonical five-class engine enum. Builder translates candidates-file `proposed_doctypes` (dotted vocabulary `.legal`/`.medical`/`.foia`/`.financial`/`.generic`) into wire vocabulary by stripping the leading `.` and mapping `legal` → `court`.",
+            "items": {
+              "type": "string",
+              "enum": ["court", "financial", "foia", "generic", "medical"]
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "low", "medium", "medium (flag)", "medium-high"],
+            "description": "Author-assigned confidence the term is a reliable positive signal. D-11 rows are uniformly `high` (backfilled — verbatim from production Swift). D-12 rows carry W-R-8 §3-§7 author-assigned values; `medium (flag)` is the F-51 IRSN literal."
+          },
+          "detector_note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional engine-routing instruction. F-52 DOB-family rows carry the windowed-matching head-noun requirement (`date of birth` family fires only when adjacent to a date-shaped token within N tokens). Absent on rows without engine-side qualification."
+          },
+          "detector_requires_secondary": {
+            "type": "boolean",
+            "description": "Optional gate. When `true`, the engine MUST observe a secondary evidence signal before firing on this term alone. F-47 bare `DEA` row carries this flag (the literal token is too FP-prone to fire without a co-occurring DEA-format pattern). Absent on rows that fire on the term alone."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4102 @@
+[
+  {
+    "aliases": [
+      "Date of Birth",
+      "DATE OF BIRTH",
+      "date-of-birth"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "date of service",
+      "date of death",
+      "date of injury",
+      "date of admission",
+      "date of diagnosis",
+      "invoice date",
+      "court date"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Explicit field label on W-7, SS-5, CMS claim guidance; highest-value generic anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Date of Birth: 1985-01-15 (synthetic)",
+    "term": "date of birth"
+  },
+  {
+    "aliases": [
+      "D.O.B.",
+      "d.o.b.",
+      "d/o/b",
+      "DoB"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "NYC Dept. of Buildings (DOB)",
+      "Dictionary of Biography",
+      "dob as slang verb"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SSA POMS RM 10210.295 uses 'DOB (Date of Birth)' inline.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://secure.ssa.gov/poms.nsf/lnx/0110210295",
+    "synthetic_sample": "DOB: 03/22/1972 (synthetic)",
+    "term": "DOB"
+  },
+  {
+    "aliases": [
+      "DOB",
+      "d.o.b."
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "initials of a person",
+      "NYC DOB",
+      "abbreviation lists"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Periodized variant on older forms and legal pleadings.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://secure.ssa.gov/poms.nsf/lnx/0110210295",
+    "synthetic_sample": "D.O.B. 03/22/1972 (synthetic)",
+    "term": "D.O.B."
+  },
+  {
+    "aliases": [
+      "Birth Date",
+      "birthdate",
+      "Birthdate",
+      "BIRTHDATE"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "admission date",
+      "discharge date",
+      "service date",
+      "date of death"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS IOM 100-04 Ch. 26 Item 3 'patient's 8-digit birth date'; UB-04 FL 10.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Patient's 8-digit birth date: 19850115 (synthetic)",
+    "term": "birth date"
+  },
+  {
+    "aliases": [
+      "Birthdate",
+      "BIRTHDATE"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "birthdate as non-person JSON key",
+      "column header in non-patient tables",
+      "birthdate as event"
+    ],
+    "license_posture": "cc0",
+    "locale": "en",
+    "notes": "FHIR/US Core search parameter.",
+    "polarity": "positive",
+    "primary_source_type": "industry-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://build.fhir.org/ig/HL7/US-Core/StructureDefinition-us-core-patient.html",
+    "synthetic_sample": "{\"birthdate\": \"1985-01-15\"} (synthetic FHIR fragment)",
+    "term": "birthdate"
+  },
+  {
+    "aliases": [
+      "birth_date",
+      "birth-date"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "JSON keys in non-person objects",
+      "birth_date column",
+      "birth-date hyphenated key"
+    ],
+    "license_posture": "cc0",
+    "locale": "en",
+    "notes": "FHIR Patient.birthDate element.",
+    "polarity": "positive",
+    "primary_source_type": "industry-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.hl7.org/fhir/patient.html",
+    "synthetic_sample": "{\"birthDate\": \"1985-01-15\"} (synthetic FHIR Patient fragment)",
+    "term": "birthDate"
+  },
+  {
+    "aliases": [
+      "Birthday",
+      "b-day",
+      "bday"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "birthday party",
+      "birthday cake",
+      "happy birthday",
+      "birthday wishes"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Colloquial; HIPAA §164.514 prose references 'birth dates'; lower-specificity.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".generic",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/cfr/text/45/164.514",
+    "synthetic_sample": "His birthday is March 22 (synthetic)",
+    "term": "birthday"
+  },
+  {
+    "aliases": [
+      "patient birth date",
+      "Patient's Birth Date"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "patient's admission date",
+      "patient's service date",
+      "patient's discharge date"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 Item 3 exact label.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Patient's Birth Date: 1985-01-15 (synthetic)",
+    "term": "patient's birth date"
+  },
+  {
+    "aliases": [
+      "Patient Birth Date"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "patient admission date",
+      "patient service date",
+      "patient discharge date"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "UB-04 FL 10 label.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c25.pdf",
+    "synthetic_sample": "Patient Birth Date 19850115 (synthetic UB-04 FL 10)",
+    "term": "patient birth date"
+  },
+  {
+    "aliases": [
+      "insured date of birth",
+      "Insured's DOB",
+      "subscriber date of birth"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "insured's effective date",
+      "insured's policy date",
+      "insured's enrollment date"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 Item 11a.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Insured's DOB: 03/22/1972 (synthetic CMS-1500 Item 11a)",
+    "term": "insured's date of birth"
+  },
+  {
+    "aliases": [
+      "subscriber DOB",
+      "Subscriber's Date of Birth"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "subscriber effective date",
+      "subscriber enrollment date",
+      "subscriber start date"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "UB-04/837I subscriber-loop DMG.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c25.pdf",
+    "synthetic_sample": "Subscriber DOB 19720322 (synthetic 837I subscriber DMG)",
+    "term": "subscriber date of birth"
+  },
+  {
+    "aliases": [
+      "DOB (MM/DD/YYYY)",
+      "date of birth (MM/DD/YYYY)"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "any mm/dd/yyyy prompt (service date)",
+      "expiration mm/dd/yyyy",
+      "issue date mm/dd/yyyy"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 Line 4 and SS-5 Item 4 exact print label.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".financial",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Date of Birth (mm/dd/yyyy): 01/15/1985 (synthetic W-7 Line 4)",
+    "term": "date of birth (mm/dd/yyyy)"
+  },
+  {
+    "aliases": [
+      "Birth Info",
+      "Birth Information"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "background information",
+      "contact information",
+      "employment information"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 section header grouping DOB + country of birth.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".financial",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Birth Information: DOB 01/15/1985, Country of Birth USA (synthetic W-7 grouping)",
+    "term": "birth information"
+  },
+  {
+    "aliases": [
+      "Born",
+      "BORN"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "born leader",
+      "firstborn",
+      "newborn",
+      "reborn",
+      "born-again"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Weak alone; stronger when followed by a date token.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".legal",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Born: 01/15/1985 (synthetic affidavit form)",
+    "term": "born"
+  },
+  {
+    "aliases": [
+      "born on the",
+      "was born on"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "born on the wrong side",
+      "born on third base",
+      "born on Tuesday"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Affidavits/depositions use 'born on [date] in [place]'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/ssnumber/ss5doc.htm",
+    "synthetic_sample": "Affiant states he was born on 01/15/1985 in Cook County (synthetic deposition)",
+    "term": "born on"
+  },
+  {
+    "aliases": [
+      "Place of Birth",
+      "POB",
+      "birthplace"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "place of service",
+      "place of residence",
+      "place of employment"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SS-5 Item 3; cross-category anchor (see W-R-8 §8).",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Place of Birth: Cook County, IL (synthetic SS-5 Item 3)",
+    "term": "place of birth"
+  },
+  {
+    "aliases": [
+      "Country of Birth",
+      "COB"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "country of citizenship",
+      "country of residence",
+      "country of origin"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 Line 4.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Country of Birth: United States (synthetic W-7 Line 4)",
+    "term": "country of birth"
+  },
+  {
+    "aliases": [
+      "Year of Birth",
+      "YOB",
+      "birth year"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "year of service",
+      "year of issuance",
+      "year of publication"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "HIPAA §164.514(b)(2)(i)(C) explicitly allows retaining year only for dates.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/cfr/text/45/164.514",
+    "synthetic_sample": "Year of Birth: 1985 (synthetic HIPAA Safe Harbor anchor)",
+    "term": "year of birth"
+  },
+  {
+    "aliases": [
+      "Age",
+      "AGE"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "page",
+      "cage",
+      "garage",
+      "age of majority",
+      "age of consent"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "HIPAA treats ages >89 as identifying; low specificity alone.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/cfr/text/45/164.514",
+    "synthetic_sample": "Patient age: 39 (synthetic)",
+    "term": "age"
+  },
+  {
+    "aliases": [
+      "age at DOS",
+      "age at date of service"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "age of majority",
+      "age of consent",
+      "age at admission"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Medicare claim denials/appeals calculating age from DOB.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Age on date of service: 39 (synthetic Medicare appeal)",
+    "term": "age on date of service"
+  },
+  {
+    "aliases": [
+      "DOB change",
+      "DOB correction"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "address change",
+      "name change",
+      "status change"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SSA POMS RM 10210.295 'Date of Birth Change on the Numident'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".foia",
+      ".legal",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://secure.ssa.gov/poms.nsf/lnx/0110210295",
+    "synthetic_sample": "Date of Birth Change on the Numident: 01/15/1985 -> 01/15/1986 (synthetic SSA POMS)",
+    "term": "date of birth change"
+  },
+  {
+    "aliases": [
+      "mother's DOB",
+      "Parent's date of birth"
+    ],
+    "category": "dob",
+    "confidence": "medium",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "mother's maiden name",
+      "mother's address",
+      "mother's name"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SS-5 Item 11 and SSA survivors forms; cross-category with KBA.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".foia",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Mother's date of birth: 03/22/1955 (synthetic SS-5 Item 11)",
+    "term": "mother's date of birth"
+  },
+  {
+    "aliases": [
+      "decedent's DOB",
+      "deceased date of birth"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require `birth` head-noun within the window; do NOT fire on `date of <other>` (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "date of death",
+      "decedent's address",
+      "decedent's SSN"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SSA-721 Item 4; probate/estate filings.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".legal",
+      ".foia",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ssa-721.pdf",
+    "synthetic_sample": "Decedent date of birth: 03/22/1955; Date of Death: 04/01/2024 (synthetic SSA-721 Item 4)",
+    "term": "decedent date of birth"
+  },
+  {
+    "aliases": [
+      "Birth Certificate",
+      "certified birth certificate"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "fp_neighbors": [
+      "certificate of deposit",
+      "marriage certificate",
+      "death certificate",
+      "certificate of completion"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 instructions, SS-5, SSA POMS cite as DOB-proof document.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".foia",
+      ".legal",
+      ".financial",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/instructions/iw7",
+    "synthetic_sample": "Birth Certificate (certified copy) attached (synthetic W-7 supporting doc)",
+    "term": "birth certificate"
+  },
+  {
+    "aliases": [
+      "full legal name",
+      "complete name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "full moon",
+      "full time",
+      "full stop",
+      "domain name",
+      "file name"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Universal ID/benefits/intake anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Full Name: Jane Q. Public (synthetic SS-5 Item 1)",
+    "term": "full name"
+  },
+  {
+    "aliases": [
+      "given first name",
+      "forename"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "first quarter",
+      "first visit",
+      "first pass",
+      "first class",
+      "first aid"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Strongest when paired in proximity with 'last name'/'middle initial'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "First Name: Jane (synthetic 1040 entry)",
+    "term": "first name"
+  },
+  {
+    "aliases": [
+      "surname",
+      "family (last) name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "last visit",
+      "last updated",
+      "last dose",
+      "last four (SSN)",
+      "last seen"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Universal; co-occurs with 'first name' in form layouts.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "Last Name: Public (synthetic 1040 entry)",
+    "term": "last name"
+  },
+  {
+    "aliases": [
+      "middle",
+      "second given name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "middle age",
+      "middle ear",
+      "Middle East",
+      "middle school"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Unambiguous; low FP on the full bigram.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Middle Name: Quinn (synthetic SS-5 Item 1)",
+    "term": "middle name"
+  },
+  {
+    "aliases": [
+      "MI",
+      "M.I.",
+      "middle init."
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "initial visit",
+      "initial dose",
+      "initial assessment",
+      "IPO"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Near-zero FP; anchors adjacent last-name token.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "Middle Initial: Q (synthetic 1040 entry)",
+    "term": "middle initial"
+  },
+  {
+    "aliases": [
+      "family name",
+      "last name (surname)"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "surname suffix",
+      "surcharge",
+      "surtax"
+    ],
+    "license_posture": "cc0",
+    "locale": "en",
+    "notes": "Distinctive; low FP, often on international forms.",
+    "polarity": "positive",
+    "primary_source_type": "industry-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.hl7.org/fhir/datatypes.html#HumanName",
+    "synthetic_sample": "{\"family\": \"Public\"} (synthetic FHIR HumanName fragment, surname=family)",
+    "term": "surname"
+  },
+  {
+    "aliases": [
+      "legal full name",
+      "name (legal)"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "legal counsel",
+      "legal aid",
+      "legal hold",
+      "legal guardian",
+      "legal tender"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "ID/benefits intake.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".legal",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Legal Name: Jane Q. Public (synthetic SS-5)",
+    "term": "legal name"
+  },
+  {
+    "aliases": [
+      "name before marriage",
+      "birth surname"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "maiden voyage",
+      "maiden flight",
+      "maiden speech"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Narrow, high-precision anchor (KYC, SS-5, background checks).",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Maiden Name: Smith (synthetic SS-5 KYC field)",
+    "term": "maiden name"
+  },
+  {
+    "aliases": [
+      "birth name",
+      "name given at birth"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "at birth weight",
+      "birth record",
+      "birth certificate"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 line 1b 'Name at birth if different'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "Name at birth (if different): Jane Smith (synthetic W-7 Line 1b)",
+    "term": "name at birth"
+  },
+  {
+    "aliases": [
+      "aliases",
+      "also known as",
+      "AKA"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "other uses",
+      "used car",
+      "used to be",
+      "used by"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SS-5 item 2; I-9 prior versions; background checks.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Other Names Used: Jane Q. Smith; J. Q. Public (synthetic SS-5 Item 2)",
+    "term": "other names used"
+  },
+  {
+    "aliases": [
+      "name of patient",
+      "patient's name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "patient portal",
+      "patient chart",
+      "patient ID",
+      "patient room",
+      "patient status"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Highest-yield medical anchor; CMS-1500 item 2, UB-04 FL 8b.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Patient Name: Jane Q. Public (synthetic CMS-1500 Item 2)",
+    "term": "patient name"
+  },
+  {
+    "aliases": [
+      "name of the patient",
+      "patient name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "patient's chart",
+      "patient's room",
+      "patient's ID",
+      "patient's history"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Possessive form appears verbatim on CMS-1500.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Patient's Name: Jane Q. Public (synthetic CMS-1500)",
+    "term": "patient's name"
+  },
+  {
+    "aliases": [
+      "name of insured",
+      "subscriber name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "insured's ID",
+      "insured's address",
+      "insured's group",
+      "insured's DOB"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 4, UB-04 FL 58.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Insured's Name: John Q. Public (synthetic CMS-1500 Item 4)",
+    "term": "insured's name"
+  },
+  {
+    "aliases": [
+      "subscriber's name",
+      "member name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "subscriber ID",
+      "subscribe to",
+      "newsletter subscriber"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Health-plan ID-card and eligibility context.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Subscriber Name: John Q. Public (synthetic eligibility record)",
+    "term": "subscriber name"
+  },
+  {
+    "aliases": [
+      "other insured name",
+      "name of other insured"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "other ID",
+      "other address",
+      "other coverage",
+      "other party"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 9 COB.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Other Insured's Name: Mary R. Public (synthetic CMS-1500 Item 9)",
+    "term": "other insured's name"
+  },
+  {
+    "aliases": [
+      "dependent name",
+      "dependents' names"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "dependent on",
+      "dependent variable",
+      "dependent clause"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "1040 Dependents block, W-4, benefits enrollment.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "Dependent's Name: Junior Q. Public (synthetic 1040 Dependents block)",
+    "term": "dependent's name"
+  },
+  {
+    "aliases": [
+      "spouse name",
+      "name of spouse"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "spouse's DOB",
+      "spouse's SSN",
+      "spousal support",
+      "spouse's income"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "1040 'spouse's first name and middle initial'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "Spouse's first name and middle initial: Mary R. (synthetic 1040)",
+    "term": "spouse's name"
+  },
+  {
+    "aliases": [
+      "name of taxpayer",
+      "name of the taxpayer"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "taxpayer ID",
+      "taxpayer advocate",
+      "taxpayer number (TIN)",
+      "taxpayer class"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-9 / Requester of W-9 instructions; TIN matching.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+    "synthetic_sample": "Taxpayer Name: Jane Q. Public (synthetic W-9)",
+    "term": "taxpayer name"
+  },
+  {
+    "aliases": [
+      "name as shown on tax return",
+      "name (as shown on return)"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "as shown on card",
+      "as shown above",
+      "as shown on ID"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-9 Line 1; very distinctive long string.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+    "synthetic_sample": "Name (as shown on your income tax return): Jane Q. Public (synthetic W-9 Line 1)",
+    "term": "name (as shown on your income tax return)"
+  },
+  {
+    "aliases": [
+      "applicant's name",
+      "name of applicant"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "applicant ID",
+      "applicant tracking",
+      "job applicant"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7, DEA 224 §1, FOIA requests, court petitions.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".legal",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "Applicant Name: Jane Q. Public (synthetic W-7 Line 1a)",
+    "term": "applicant name"
+  },
+  {
+    "aliases": [
+      "name of beneficiary",
+      "beneficiary's name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "beneficiary ID",
+      "beneficiary designation",
+      "primary beneficiary",
+      "contingent beneficiary"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Medicare, life insurance, retirement, estate.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Beneficiary Name: Mary R. Public (synthetic Medicare designation)",
+    "term": "beneficiary name"
+  },
+  {
+    "aliases": [
+      "name of employee",
+      "employee's name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "employee ID",
+      "employee handbook",
+      "employee of the month",
+      "employee portal"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-4, I-9, W-2.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/f1040.pdf",
+    "synthetic_sample": "Employee Name: Jane Q. Public (synthetic W-2)",
+    "term": "employee name"
+  },
+  {
+    "aliases": [
+      "print name",
+      "name (printed)",
+      "type or print name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "printed materials",
+      "printer",
+      "3D print",
+      "print job",
+      "print preview"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Signature-block anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical",
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/drugreg/reg_apps/224/224_instruct.pdf",
+    "synthetic_sample": "Printed Name: Jane Q. Public (synthetic signature block)",
+    "term": "printed name"
+  },
+  {
+    "aliases": [
+      "name shown on card",
+      "name on card"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "card number",
+      "on card (credit)",
+      "credit card name"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "SSA SS-5 item 1; SSA-specific distinctive string.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".foia",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ssa.gov/forms/ss-5.pdf",
+    "synthetic_sample": "Name to be shown on card: Jane Q. Public (synthetic SS-5 Item 1)",
+    "term": "name to be shown on card"
+  },
+  {
+    "aliases": [
+      "plaintiffs",
+      "Pla.",
+      "plaintiff(s)"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "cross_category": "docket_number_adjacency",
+    "fp_neighbors": [
+      "plaintiff's attorney",
+      "plaintiff's bar",
+      "plaintiff-friendly"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "FRCP Rule 10(a) Caption.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "Plaintiff: Jane Q. Public (synthetic FRCP Rule 10(a) caption)",
+    "term": "plaintiff"
+  },
+  {
+    "aliases": [
+      "defendants",
+      "Def.",
+      "dft"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "cross_category": "docket_number_adjacency",
+    "fp_neighbors": [
+      "defendant class",
+      "defendant's counsel",
+      "defendant firm"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "FRCP Rule 10(a).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "Defendant: John R. Public (synthetic FRCP Rule 10(a) caption)",
+    "term": "defendant"
+  },
+  {
+    "aliases": [
+      "petitioners",
+      "Pet."
+    ],
+    "category": "name",
+    "confidence": "high",
+    "cross_category": "docket_number_adjacency",
+    "fp_neighbors": [
+      "petition (verb)",
+      "petitioning",
+      "petition form",
+      "online petition"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Appellate/probate/family-court captions.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "Petitioner: Jane Q. Public (synthetic appellate caption)",
+    "term": "petitioner"
+  },
+  {
+    "aliases": [
+      "respondents",
+      "Resp."
+    ],
+    "category": "name",
+    "confidence": "high",
+    "cross_category": "docket_number_adjacency",
+    "fp_neighbors": [
+      "survey respondent",
+      "respondent burden",
+      "response time"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Family law, admin proceedings, appeals.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "Respondent: John R. Public (synthetic family-law caption)",
+    "term": "respondent"
+  },
+  {
+    "aliases": [
+      "deceased",
+      "the decedent"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "decedent's address",
+      "decedent's SSN",
+      "decedent estate"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "F-49 reinstatement: probate/estate captions, decedent-name field on SSA-721.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_25",
+    "synthetic_sample": "In the matter of the estate of Decedent Jane Q. Public (synthetic probate caption)",
+    "term": "decedent"
+  },
+  {
+    "aliases": [
+      "requester name",
+      "name of requestor",
+      "FOIA requester name"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "FOIA request",
+      "request ID",
+      "name of recipient",
+      "name of requestor (variant spelling)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "F-49 reinstatement: FOIA request forms; appears on agency-specific FOIA forms (e.g., DOJ Form OBD-118, IRS Form 4506).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".foia",
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.foia.gov/how-to.html",
+    "synthetic_sample": "Name of Requester: Jane Q. Public (synthetic FOIA request form)",
+    "term": "name of requester"
+  },
+  {
+    "aliases": [
+      "N.P.I.",
+      "NPI#"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "net promoter index",
+      "new product introduction",
+      "neuropsychiatric inventory"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Canonical acronym; require .medical scoping.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/administrative-simplification/nationalprovidentstand",
+    "synthetic_sample": "NPI: 1234567893 (synthetic checksum-valid)",
+    "term": "NPI"
+  },
+  {
+    "aliases": [
+      "NPI no.",
+      "NPI #"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "license number",
+      "patient ID number",
+      "phone number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Most common surface form on claims/EOBs/EHR.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://nppes.cms.hhs.gov/",
+    "synthetic_sample": "NPI Number: 1234567893 (synthetic)",
+    "term": "NPI Number"
+  },
+  {
+    "aliases": [
+      "NPI No.",
+      "NPI no"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "ID #",
+      "Phone #",
+      "Fax #"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 label; short anchor — pair with neighbor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "NPI # 1234567893 (synthetic CMS-1500 anchor)",
+    "term": "NPI #"
+  },
+  {
+    "aliases": [
+      "Nat'l Provider Identifier"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "national identifier",
+      "unique identifier",
+      "taxpayer identifier"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "45 CFR §162.406 statutory long form; highest-precision anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-162/subpart-D/section-162.406",
+    "synthetic_sample": "National Provider Identifier (NPI): 1234567893 (synthetic 45 CFR §162.406 anchor)",
+    "term": "National Provider Identifier"
+  },
+  {
+    "aliases": [
+      "Nat'l Provider ID"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "National Patient ID",
+      "national ID card",
+      "State Provider ID"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Common variant on printed forms.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "National Provider ID: 1234567893 (synthetic claim form variant)",
+    "term": "National Provider ID"
+  },
+  {
+    "aliases": [
+      "provider's NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "provider ID",
+      "provider number",
+      "provider taxonomy"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Generic-role qualifier; very frequent label.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Provider NPI: 1234567893 (synthetic)",
+    "term": "Provider NPI"
+  },
+  {
+    "aliases": [
+      "Rendering Physician NPI",
+      "Rendering NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "rendering services",
+      "rendering attorney",
+      "service rendered"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 24J; Loop 2310B.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Rendering Provider NPI (Item 24J): 1234567893 (synthetic CMS-1500)",
+    "term": "Rendering Provider NPI"
+  },
+  {
+    "aliases": [
+      "Billing NPI",
+      "Billing Prov NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "billing address",
+      "billing contact",
+      "biller ID"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 33a; UB-04 FL 56; Loop 2010AA.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Billing Provider NPI (Item 33a): 1234567893 (synthetic CMS-1500)",
+    "term": "Billing Provider NPI"
+  },
+  {
+    "aliases": [
+      "Attending Physician NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "attending counsel",
+      "attending event",
+      "attending school"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "UB-04 FL 76.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c25.pdf",
+    "synthetic_sample": "Attending Provider NPI (FL 76): 1234567893 (synthetic UB-04)",
+    "term": "Attending Provider NPI"
+  },
+  {
+    "aliases": [
+      "Operating Physician NPI",
+      "Operating Surgeon NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "operating system",
+      "operating officer",
+      "operating budget"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "UB-04 FL 77.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c25.pdf",
+    "synthetic_sample": "Operating Provider NPI (FL 77): 1234567893 (synthetic UB-04)",
+    "term": "Operating Provider NPI"
+  },
+  {
+    "aliases": [
+      "Other Physician NPI"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "other provider (cloud)",
+      "other party",
+      "other source"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "UB-04 FL 78–79 with DN/82/ZZ qualifiers.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c25.pdf",
+    "synthetic_sample": "Other Provider NPI (FL 78 DN qualifier): 1234567893 (synthetic UB-04)",
+    "term": "Other Provider NPI"
+  },
+  {
+    "aliases": [
+      "Referring Physician NPI",
+      "NPI of referring provider"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "referring URL",
+      "referring attorney",
+      "referring customer"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 17b; Loop 2310A.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Referring Provider NPI (Item 17b): 1234567893 (synthetic CMS-1500)",
+    "term": "Referring Provider NPI"
+  },
+  {
+    "aliases": [
+      "Ordering Physician NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "ordering online",
+      "ordering party",
+      "purchase order"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "DME/labs/imaging orders.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Ordering Provider NPI: 1234567893 (synthetic DME order)",
+    "term": "Ordering Provider NPI"
+  },
+  {
+    "aliases": [
+      "Prescribing Provider NPI",
+      "Prescribing NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "cross_category": "prescriber_dea",
+    "fp_neighbors": [
+      "prescriber info",
+      "subscriber",
+      "describer"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "45 CFR §162.410(b); e-Rx context; overlaps with DEA.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-162/subpart-D",
+    "synthetic_sample": "Prescriber NPI: 1234567893 (synthetic e-Rx); Prescriber DEA: AB1234567 (synthetic)",
+    "term": "Prescriber NPI"
+  },
+  {
+    "aliases": [
+      "Facility NPI",
+      "Service Location NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "facility manager",
+      "service facility (generic)",
+      "parking facility"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS-1500 item 32a, UB-04 FL 56.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Service Facility NPI (Item 32a): 1234567893 (synthetic CMS-1500)",
+    "term": "Service Facility NPI"
+  },
+  {
+    "aliases": [
+      "Group Practice NPI",
+      "Group/Organization NPI"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "group number",
+      "group policy",
+      "user group"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Synonym for Type 2 in group-practice billing.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c26.pdf",
+    "synthetic_sample": "Group NPI: 1234567893 (synthetic group practice billing)",
+    "term": "Group NPI"
+  },
+  {
+    "aliases": [
+      "Individual Provider NPI",
+      "Solo NPI"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "individual taxpayer",
+      "individual policy",
+      "individual account"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Contrast with organization/Type 2.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/priorities/key-initiatives/burden-reduction/administrative-simplification/unique-identifiers/faqs",
+    "synthetic_sample": "Individual NPI: 1234567893 (synthetic Type 1 anchor)",
+    "term": "Individual NPI"
+  },
+  {
+    "aliases": [
+      "NPI Type 1",
+      "NPI-1"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Type 1 diabetes",
+      "Type 1 error",
+      "Class 1"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Individual providers (clinicians, sole proprietors).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://nppes.cms.hhs.gov/help/faqs-help-page",
+    "synthetic_sample": "Type 1 NPI: 1234567893 (synthetic individual provider)",
+    "term": "Type 1 NPI"
+  },
+  {
+    "aliases": [
+      "NPI Type 2",
+      "NPI-2",
+      "Organizational NPI"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Type 2 diabetes",
+      "Type 2 error",
+      "Class 2"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Organizational/group providers.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://nppes.cms.hhs.gov/help/faqs-help-page",
+    "synthetic_sample": "Type 2 NPI: 1245319599 (synthetic organizational provider)",
+    "term": "Type 2 NPI"
+  },
+  {
+    "aliases": [
+      "NPPES ID",
+      "NPPES record"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "NPP (org abbrev)",
+      "NEPES",
+      "NPE"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "National Plan & Provider Enumeration System; distinctive.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://nppes.cms.hhs.gov/",
+    "synthetic_sample": "NPPES record updated 2024-01-15 (synthetic provider lookup)",
+    "term": "NPPES"
+  },
+  {
+    "aliases": [
+      "NPI Registry",
+      "NPI Lookup"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "npm registry",
+      "domain registry",
+      "gift registry"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Public lookup system.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://npiregistry.cms.hhs.gov/",
+    "synthetic_sample": "NPPES NPI Registry lookup for 1234567893 (synthetic)",
+    "term": "NPPES NPI Registry"
+  },
+  {
+    "aliases": [
+      "NPI Enumeration Date",
+      "date enumerated"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "enumeration (CS sense)",
+      "enumeration district (census)",
+      "enumeration of items"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Date field in NPPES record; strong NPI co-occurrence.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://npiregistry.cms.hhs.gov/registry/help-details",
+    "synthetic_sample": "Enumeration Date: 2007-05-23 (synthetic NPPES record)",
+    "term": "Enumeration Date"
+  },
+  {
+    "aliases": [
+      "NPI Enumerator"
+    ],
+    "category": "npi",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "enumerator (census worker)",
+      "enumerator (iterator in code)",
+      "enumerator pattern"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CMS contractor; low base-rate outside CMS docs.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/medicare/regulations-guidance/administrative-simplification/how-apply",
+    "synthetic_sample": "NPI Enumerator: NPPES Enumerator (synthetic CMS contractor reference)",
+    "term": "Enumerator"
+  },
+  {
+    "aliases": [
+      "NPI enumeration",
+      "NPI assignment"
+    ],
+    "category": "npi",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "product enumeration",
+      "port enumeration",
+      "feature enumeration"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "69 FR 3434 preamble.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.federalregister.gov/documents/2004/01/23/04-1149/hipaa-administrative-simplification-standard-unique-health-identifier-for-health-care-providers",
+    "synthetic_sample": "Provider Enumeration: 69 FR 3434 anchor (synthetic preamble reference)",
+    "term": "Provider Enumeration"
+  },
+  {
+    "aliases": [
+      "ten-digit NPI",
+      "10 position NPI"
+    ],
+    "category": "npi",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "10-digit phone",
+      "10-digit code",
+      "ten-digit string"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Phrasing from §162.406; right-context anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-162/subpart-D/section-162.406",
+    "synthetic_sample": "10-digit NPI: 1234567893 (synthetic per §162.406)",
+    "term": "10-digit NPI"
+  },
+  {
+    "aliases": [
+      "http://hl7.org/fhir/sid/us-npi"
+    ],
+    "category": "npi",
+    "confidence": "high",
+    "fp_neighbors": [
+      "us-en locale",
+      "US-NPS (generic)",
+      "NPI general"
+    ],
+    "license_posture": "cc0",
+    "locale": "en",
+    "notes": "FHIR canonical system URI; sentinel in FHIR/JSON exports.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://hl7.org/fhir/us/core/STU8/StructureDefinition-us-core-practitioner.html",
+    "synthetic_sample": "\"system\": \"http://hl7.org/fhir/sid/us-npi\", \"value\": \"1234567893\" (synthetic FHIR)",
+    "term": "us-npi"
+  },
+  {
+    "aliases": [
+      "FHIR Practitioner identifier"
+    ],
+    "category": "npi",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "Practitioner (legal/spiritual)",
+      "identifier (generic)",
+      "Practitioner.name"
+    ],
+    "license_posture": "cc0",
+    "locale": "en",
+    "notes": "Co-occurs with system=http://hl7.org/fhir/sid/us-npi.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://hl7.org/fhir/us/core/STU8/StructureDefinition-us-core-practitioner.html",
+    "synthetic_sample": "Practitioner.identifier: [{\"system\": \"http://hl7.org/fhir/sid/us-npi\", \"value\": \"1234567893\"}] (synthetic FHIR)",
+    "term": "Practitioner.identifier (NPI)"
+  },
+  {
+    "aliases": [
+      "Taxonomy Code",
+      "Healthcare Provider Taxonomy"
+    ],
+    "category": "npi",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "taxonomy (biology)",
+      "SEO taxonomy",
+      "document taxonomy"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Adjacent anchor — co-occurs with NPI in CMS-1500 24J shaded, UB-04 FL 81cc. Taxonomy list NUCC-maintained (industry-standard); the row's source_url cites CMS FAQ (PD).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.cms.gov/priorities/key-initiatives/burden-reduction/administrative-simplification/unique-identifiers/faqs",
+    "synthetic_sample": "Provider Taxonomy Code: 207Q00000X (synthetic family medicine)",
+    "term": "Provider Taxonomy Code"
+  },
+  {
+    "aliases": [
+      "Inactive NPI",
+      "Active NPI",
+      "NPI status"
+    ],
+    "category": "npi",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "active account",
+      "deactivated card",
+      "inactive user"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "NPPES status; deactivation on provider death/dissolution.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-162/subpart-D/section-162.408",
+    "synthetic_sample": "Deactivated NPI: 1234567893 (synthetic per §162.408 dissolution)",
+    "term": "Deactivated NPI"
+  },
+  {
+    "aliases": [
+      "D.E.A."
+    ],
+    "category": "dea",
+    "confidence": "low",
+    "detector_requires_secondary": true,
+    "fp_neighbors": [
+      "Dean (surname)",
+      "Dean's list",
+      "dean of students",
+      "Spanish \"dea\"/\"deá\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "F-47: Three-letter anchor; highest-FP keyword. Bare DEA must NEVER fire alone — engine requires secondary token (Number/#/No./Registration/Registrant/Form 224/222/363) or DEA-ID regex adjacency within narrow window. Documented in REDACTION_ENGINE.md per spec.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/drugreg/registration.html",
+    "synthetic_sample": "DEA Number: AB1234567 (synthetic Rx-pad anchor — bare DEA gated by detector)",
+    "term": "DEA"
+  },
+  {
+    "aliases": [
+      "DEA No.",
+      "DEA #"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "NPI number",
+      "license number",
+      "badge number",
+      "account number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Most productive single anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/GDP/(DEA-DC-046R1)(EO-DEA154R1)_Pharmacist's_Manual_DEA.pdf",
+    "synthetic_sample": "DEA Number: AB1234567 (synthetic, checksum-valid)",
+    "term": "DEA Number"
+  },
+  {
+    "aliases": [
+      "DEA#",
+      "DEA No."
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "Suite #",
+      "apt #",
+      "ref #"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Colloquial Rx-pad variant.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/drugreg/registration.html",
+    "synthetic_sample": "DEA # AB1234567 (synthetic Rx-pad)",
+    "term": "DEA #"
+  },
+  {
+    "aliases": [
+      "DEA no."
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "P.O. No.",
+      "invoice No.",
+      "case No.",
+      "Dean's office"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Paper Rx and EHR templates.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1306",
+    "synthetic_sample": "DEA No. AB1234567 (synthetic paper Rx)",
+    "term": "DEA No."
+  },
+  {
+    "aliases": [
+      "DEA Reg #",
+      "DEA Reg. No.",
+      "registration number of the practitioner"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "voter registration number",
+      "vehicle registration number",
+      "corporate registration number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "21 CFR §1306.05(a) verbatim phrase; highest-precision multiword anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1306/subject-group-ECFR1eb5bb3a23fddd0/section-1306.05",
+    "synthetic_sample": "DEA Registration Number: AB1234567 (synthetic per 21 CFR §1306.05)",
+    "term": "DEA Registration Number"
+  },
+  {
+    "aliases": [
+      "DEA-registered",
+      "registered with DEA"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "voter registration",
+      "vehicle registration",
+      "trademark registration",
+      "conference registration"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Dense in Pharmacist's/Practitioner's Manuals.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://deadiversion.usdoj.gov/drugreg/registration.html",
+    "synthetic_sample": "DEA Registration AB1234567 expires 2027-05-31 (synthetic)",
+    "term": "DEA Registration"
+  },
+  {
+    "aliases": [
+      "registrant",
+      "DEA-registered practitioner"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "domain registrant",
+      "trademark registrant",
+      "voter registrant"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Used across §§1305, 1306, 1307.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/GDP/(DEA-DC-046R1)(EO-DEA154R1)_Pharmacist's_Manual_DEA.pdf",
+    "synthetic_sample": "DEA Registrant: Dr. Jane Q. Public, AB1234567 (synthetic)",
+    "term": "DEA Registrant"
+  },
+  {
+    "aliases": [
+      "DEA registered",
+      "registered with the DEA"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "state-registered",
+      "federally-registered",
+      "registered nurse",
+      "registered trademark"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Rx-pad headers; hospital policy docs.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1301",
+    "synthetic_sample": "DEA-registered practitioner: Dr. Jane Q. Public (synthetic Rx-pad)",
+    "term": "DEA-registered"
+  },
+  {
+    "aliases": [
+      "CSR certificate",
+      "DEA certificate",
+      "DEA Form 223"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "birth certificate",
+      "marriage certificate",
+      "business registration certificate"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Form 223 is the issued certificate; low FP.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://deadiversion.usdoj.gov/drugreg/registration.html",
+    "synthetic_sample": "Controlled Substance Registration Certificate (DEA Form 223), Registration AB1234567 (synthetic)",
+    "term": "Controlled Substance Registration Certificate"
+  },
+  {
+    "aliases": [
+      "Form 224",
+      "DEA-224",
+      "224a (renewal)"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "IRS Form 1040",
+      "Form I-9",
+      "SBA Form 224",
+      "generic \"Form 224\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Retail pharmacy, hospital/clinic, practitioner, MLP. OMB 1117-0014.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/online_forms_apps.html",
+    "synthetic_sample": "DEA Form 224 application submitted 2024-01-15 (synthetic OMB 1117-0014)",
+    "term": "DEA Form 224"
+  },
+  {
+    "aliases": [
+      "Form 222",
+      "DEA-222",
+      "222 Order Form"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "IRS Form 1040",
+      "Form SS-4",
+      "ATF Form 4473"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Schedule I/II order form; single-sheet since Oct 30, 2021.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1305",
+    "synthetic_sample": "DEA Form 222 single-sheet order for Schedule II (synthetic post-2021 form)",
+    "term": "DEA Form 222"
+  },
+  {
+    "aliases": [
+      "Form 363",
+      "DEA-363",
+      "363a (renewal)"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Form 1099",
+      "generic \"363\" numerics",
+      "Form 363 (other agencies)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "NTP registration (OMB 1117-0015).",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.justice.gov/doj/resource/application-new-registration-under-narcotic-addict-treatment-act-1974",
+    "synthetic_sample": "DEA Form 363 NTP registration (synthetic OMB 1117-0015)",
+    "term": "DEA Form 363"
+  },
+  {
+    "aliases": [
+      "CSA",
+      "21 U.S.C. 801",
+      "CSA of 1970"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Clean Air Act",
+      "Fair Credit Reporting Act",
+      "any \"___ Act\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Core statutory anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1301",
+    "synthetic_sample": "Controlled Substances Act, 21 U.S.C. § 801 (synthetic statutory anchor)",
+    "term": "Controlled Substances Act"
+  },
+  {
+    "aliases": [
+      "CSA-registered",
+      "Controlled Substances Act registration"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "CSA (Community Supported Agriculture)",
+      "CSA (Confederate States of America)",
+      "CSA Travel insurance"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Require 'registration'/'registrant'/'Schedule' adjacency.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1301",
+    "synthetic_sample": "CSA registration AB1234567 valid through 2027-05-31 (synthetic)",
+    "term": "CSA registration"
+  },
+  {
+    "aliases": [
+      "Schedule 2",
+      "CII",
+      "Sch II",
+      "C-II"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Schedule A/B/C/D (IRS)",
+      "train schedule",
+      "school schedule",
+      "Schedule II (SEC Rule 204-2)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Roman-numeral form is the anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1308",
+    "synthetic_sample": "Schedule II controlled substance: oxycodone (synthetic Rx)",
+    "term": "Schedule II"
+  },
+  {
+    "aliases": [
+      "Schedule 3",
+      "CIII",
+      "Sch III",
+      "C-III"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Schedule III (tax)",
+      "event schedule",
+      "TV programming schedule"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Post-MAT-Act: enables buprenorphine prescribing.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1308",
+    "synthetic_sample": "Schedule III controlled substance: buprenorphine (synthetic post-MAT-Act Rx)",
+    "term": "Schedule III"
+  },
+  {
+    "aliases": [
+      "Schedule 4",
+      "CIV",
+      "Sch IV",
+      "C-IV"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "Schedule IV (civil procedure)",
+      "\"Schedule 4\" generic",
+      "IV (intravenous)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Benzodiazepine class. Watch 'IV'=intravenous collision in EHR text — anchor to 'controlled substance' or roman-numeral form.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1308",
+    "synthetic_sample": "Schedule IV controlled substance: alprazolam (synthetic Rx)",
+    "term": "Schedule IV"
+  },
+  {
+    "aliases": [
+      "Schedule 5",
+      "CV",
+      "Sch V",
+      "C-V"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "CV (curriculum vitae)",
+      "CV (coefficient of variation)",
+      "Roman V in lists"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "'CV' collision severe in HR/academic docs. Anchor to 'controlled substance'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1308",
+    "synthetic_sample": "Schedule V controlled substance: pregabalin (synthetic Rx)",
+    "term": "Schedule V"
+  },
+  {
+    "aliases": [
+      "controlled substances",
+      "CS"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "controlled environment",
+      "controlled experiment",
+      "controlled access",
+      "controlled burn"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "'CS' alias collides with computer science, customer service.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1306",
+    "synthetic_sample": "Controlled substance prescription, Schedule II (synthetic Rx)",
+    "term": "controlled substance"
+  },
+  {
+    "aliases": [
+      "prescribing DEA",
+      "physician DEA",
+      "prescriber's DEA number"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "cross_category": "prescriber_npi",
+    "fp_neighbors": [
+      "prescriber NPI",
+      "prescriber signature",
+      "prescriber name"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "21 CFR §1311.120 EPCS; cross-category with NPI.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1311/subpart-C",
+    "synthetic_sample": "Prescriber DEA: AB1234567 (synthetic EPCS); Prescriber NPI: 1234567893 (synthetic)",
+    "term": "prescriber DEA"
+  },
+  {
+    "aliases": [
+      "pharmacy's DEA",
+      "dispensing pharmacy DEA"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "pharmacy NPI",
+      "pharmacy NCPDP",
+      "pharmacy license",
+      "pharmacy hours"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Rx transfers, central-fill records.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1306/subject-group-ECFR1eb5bb3a23fddd0",
+    "synthetic_sample": "Pharmacy DEA: BB1234567 (synthetic Rx transfer record)",
+    "term": "pharmacy DEA"
+  },
+  {
+    "aliases": [
+      "MLP",
+      "midlevel practitioner"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "mid-level manager",
+      "mid-level employee",
+      "mid-level course"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "DEA 'M' prefix context anchor.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/GDP/(DEA-DC-046R1)(EO-DEA154R1)_Pharmacist's_Manual_DEA.pdf",
+    "synthetic_sample": "Mid-level practitioner DEA: MB1234567 (synthetic — DEA 'M' prefix)",
+    "term": "mid-level practitioner"
+  },
+  {
+    "aliases": [
+      "individual practitioner registration",
+      "institutional practitioner registration"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "teacher registration",
+      "legal practitioner",
+      "general practitioner (GP)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "21 CFR §1301.22.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1301",
+    "synthetic_sample": "Individual practitioner registration AB1234567 (synthetic per 21 CFR §1301.22)",
+    "term": "practitioner registration"
+  },
+  {
+    "aliases": [
+      "business activity",
+      "registrant business activity"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "NAICS code",
+      "SIC code",
+      "IRS business code",
+      "Schedule C business activity"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Form 224 field name.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/online_forms_apps.html",
+    "synthetic_sample": "DEA Form 224 Business Activity Code: A (synthetic — A=pharmacy)",
+    "term": "business activity code"
+  },
+  {
+    "aliases": [
+      "DEA expiration",
+      "DEA registration expiration"
+    ],
+    "category": "dea",
+    "confidence": "high",
+    "fp_neighbors": [
+      "passport expiration",
+      "license expiration",
+      "credit card expiration",
+      "warranty expiration"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "3-year cycle for Form 224/224a.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://deadiversion.usdoj.gov/drugreg/registration.html",
+    "synthetic_sample": "DEA Expiration Date: 2027-05-31 (synthetic 3-year cycle)",
+    "term": "DEA expiration date"
+  },
+  {
+    "aliases": [
+      "X waiver",
+      "DATA-Waiver",
+      "DATA 2000 waiver",
+      "X-DEA number"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "X-waiver (sports, rare)",
+      "waiver of liability",
+      "fee waiver"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Legacy anchor. Retired by §1262 Consolidated Appropriations Act 2023; still appears in pre-2023 records, audit/litigation.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.samhsa.gov/substance-use/treatment/statutes-regulations-guidelines/mat-act",
+    "synthetic_sample": "X-waiver (DATA-Waiver) AB1234567 — pre-2023 prescriber-of-buprenorphine record (synthetic legacy anchor)",
+    "term": "X-waiver"
+  },
+  {
+    "aliases": [
+      "NTP",
+      "opioid treatment program",
+      "OTP"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "addiction treatment program",
+      "narcotic (generic drug class)",
+      "treatment plan"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "NTPs carry separate DEA registration (Form 363).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".medical",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/GDP/(DEA-DC-056)(EO-DEA169)_NTP_manual_Final.pdf",
+    "synthetic_sample": "Narcotic Treatment Program registered under DEA Form 363 (synthetic NTP)",
+    "term": "narcotic treatment program"
+  },
+  {
+    "aliases": [
+      "DEA Diversion",
+      "Diversion Control Division"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "water diversion",
+      "traffic diversion",
+      "fund diversion",
+      "diversion program (criminal justice)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Agency letterhead, subpoenas, registrant correspondence.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.deadiversion.usdoj.gov/",
+    "synthetic_sample": "DEA Diversion Control Division correspondence (synthetic letterhead)",
+    "term": "diversion control"
+  },
+  {
+    "aliases": [
+      "electronic prescribing of controlled substances",
+      "e-prescribing controlled substances"
+    ],
+    "category": "dea",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "EPC (European Patent Convention)",
+      "EPCS (unrelated product code)",
+      "EPC (genome)"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Require 'DEA'/'Schedule'/'practitioner' adjacency.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".medical"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.ecfr.gov/current/title-21/chapter-II/part-1311/subpart-C",
+    "synthetic_sample": "EPCS (electronic prescribing of controlled substances) per 21 CFR §1311 Subpart C (synthetic)",
+    "term": "EPCS"
+  },
+  {
+    "aliases": [
+      "I.T.I.N.",
+      "itin"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "cryptocurrency \"itin\" token",
+      "brand names",
+      "typo of \"item\"/\"item#\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Highest-value anchor; clean acronym.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/forms-pubs/about-form-w-7",
+    "synthetic_sample": "ITIN: 9XX-7X-XXXX (synthetic — 9XX with 7-8 in middle)",
+    "term": "ITIN"
+  },
+  {
+    "aliases": [
+      "Individual Tax Identification Number (common misphrase)",
+      "IRS Individual Taxpayer Identification Number"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Taxpayer Identification Number (TIN, ambiguous)",
+      "individual taxpayer generic",
+      "ATIN"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Canonical full name.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Individual Taxpayer Identification Number: 9XX-7X-XXXX (synthetic W-7 anchor)",
+    "term": "Individual Taxpayer Identification Number"
+  },
+  {
+    "aliases": [
+      "ITIN No.",
+      "ITIN #",
+      "ITIN no"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "item number",
+      "inventory number",
+      "iteration number"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Colloquial redundant phrasing.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/tin/itin",
+    "synthetic_sample": "ITIN number: 9XX-7X-XXXX (synthetic)",
+    "term": "ITIN number"
+  },
+  {
+    "aliases": [
+      "W-7",
+      "W7",
+      "Form W7",
+      "IRS Form W-7"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Form W-2/W-4/W-9 siblings",
+      "W7 as model/part numbers (Mazda/Dell)",
+      "Warsaw-7"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Exclusively the ITIN application. Distinguish from W-7A (ATIN).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/forms-pubs/about-form-w-7",
+    "synthetic_sample": "Form W-7 Application for IRS ITIN (synthetic)",
+    "term": "Form W-7"
+  },
+  {
+    "aliases": [
+      "W-7 COA",
+      "Certificate of Accuracy"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "COA = certificate of authenticity",
+      "change of address",
+      "cost of attendance"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CAA-submitted Certificate of Accuracy.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/individuals/itin-acceptance-agent-program",
+    "synthetic_sample": "Form W-7 (COA) Certificate of Accuracy submitted by CAA (synthetic)",
+    "term": "Form W-7 (COA)"
+  },
+  {
+    "aliases": [
+      "Application for Individual Taxpayer Identification Number"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "generic \"application for identification number\"",
+      "EIN application (SS-4)",
+      "PTIN application"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Verbatim W-7 title.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Application for IRS Individual Taxpayer Identification Number (W-7 title verbatim) (synthetic)",
+    "term": "Application for IRS Individual Taxpayer Identification Number"
+  },
+  {
+    "aliases": [
+      "ITIN app",
+      "new ITIN application",
+      "ITIN renewal application"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "generic \"application\"",
+      "college application",
+      "job application"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Heavy co-occurrence with W-7.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/tin/itin/how-to-apply-for-an-itin",
+    "synthetic_sample": "ITIN application submitted via Form W-7 (synthetic)",
+    "term": "ITIN application"
+  },
+  {
+    "aliases": [
+      "renew ITIN",
+      "renew an ITIN"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "license renewal",
+      "passport renewal",
+      "subscription renewal"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 'Renew an existing ITIN' checkbox.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "Renew an existing ITIN — checkbox on Form W-7 (synthetic)",
+    "term": "ITIN renewal"
+  },
+  {
+    "aliases": [
+      "ITIN expired",
+      "ITIN has expired"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "expired passport",
+      "expired license",
+      "expired card"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "iw9: 'Expired ITINs must be renewed.'",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/instructions/iw9",
+    "synthetic_sample": "Expired ITINs must be renewed (synthetic per W-9 instructions)",
+    "term": "expired ITIN"
+  },
+  {
+    "aliases": [
+      "ITIN assigned",
+      "ITIN was assigned",
+      "assignment letter"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "\"assigned number\" generic",
+      "\"assigned to\" project",
+      "badge assigned"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "CP565 is the ITIN assignment notice.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/individuals/understanding-your-cp565-notice",
+    "synthetic_sample": "ITIN was assigned via Notice CP565 (synthetic)",
+    "term": "assigned ITIN"
+  },
+  {
+    "aliases": [
+      "CP 565",
+      "Notice CP565"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "CP-5 series numbers unrelated",
+      "postal codes",
+      "product SKUs"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "ITIN-assignment notice number.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/individuals/understanding-your-cp565-notice",
+    "synthetic_sample": "Notice CP565 — ITIN assignment notification (synthetic)",
+    "term": "CP565"
+  },
+  {
+    "aliases": [
+      "CP 566",
+      "Notice CP566"
+    ],
+    "category": "itin",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "CP-series unrelated",
+      "product SKUs",
+      "ZIP+4 codes"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "ITIN 'need more information' notice.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/individuals/understanding-your-cp566-notice",
+    "synthetic_sample": "Notice CP566 — additional information needed for W-7 (synthetic)",
+    "term": "CP566"
+  },
+  {
+    "aliases": [
+      "CP 567",
+      "Notice CP567"
+    ],
+    "category": "itin",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "CP-series unrelated",
+      "product SKUs",
+      "model numbers"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "ITIN-application rejection notice.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "Notice CP567 — W-7 application rejected (synthetic)",
+    "term": "CP567"
+  },
+  {
+    "aliases": [
+      "Pub 1915",
+      "Pub. 1915",
+      "IRS Pub 1915"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "Pub 17",
+      "Pub 519 (neighbor pubs)",
+      "generic \"publication 1915\" year reference"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Exclusively 'Understanding Your ITIN'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/p1915.pdf",
+    "synthetic_sample": "IRS Publication 1915 'Understanding Your IRS ITIN' (synthetic)",
+    "term": "Publication 1915"
+  },
+  {
+    "aliases": [
+      "holder of an ITIN",
+      "ITIN-holder"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "account holder",
+      "license holder",
+      "SSN holder"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "iw9: 'ITIN holder's tax return.' Strong SSN disambiguator.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/instructions/iw9",
+    "synthetic_sample": "ITIN holder's tax return for tax year 2024 (synthetic per iw9)",
+    "term": "ITIN holder"
+  },
+  {
+    "aliases": [
+      "applicant for an ITIN",
+      "W-7 applicant"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "job applicant",
+      "loan applicant",
+      "visa applicant"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "iw7 repeatedly.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "ITIN applicant: Jane Q. Public (synthetic W-7 record)",
+    "term": "ITIN applicant"
+  },
+  {
+    "aliases": [
+      "CAA",
+      "Certified Acceptance Agent"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "CAA = Clean Air Act",
+      "Civil Aviation Authority",
+      "\"certifying auditor\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Exclusively ITIN. CAA alias is FP-heavy — keep only as alias to the full phrase.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/individuals/itin-acceptance-agent-program",
+    "synthetic_sample": "Certifying Acceptance Agent (CAA) — submits Form W-7 (COA) (synthetic)",
+    "term": "Certifying Acceptance Agent"
+  },
+  {
+    "aliases": [
+      "NRA required to get an ITIN",
+      "treaty benefit ITIN"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "generic \"nonresident alien\"",
+      "\"alien\" extraterrestrial",
+      "nonresident state tax filer"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Verbatim W-7 box a.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Nonresident alien required to get an ITIN — W-7 box a (synthetic)",
+    "term": "Nonresident alien required to get an ITIN"
+  },
+  {
+    "aliases": [
+      "spouse of U.S. citizen/resident alien"
+    ],
+    "category": "itin",
+    "confidence": "medium-high",
+    "fp_neighbors": [
+      "immigration \"dependent\" outside tax",
+      "family law \"dependent\"",
+      "dependent variable"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 boxes d/e.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Dependent of U.S. citizen/resident alien — W-7 box d (synthetic)",
+    "term": "Dependent of U.S. citizen/resident alien"
+  },
+  {
+    "aliases": [
+      "foreign TIN",
+      "FTIN"
+    ],
+    "category": "itin",
+    "confidence": "medium",
+    "fp_neighbors": [
+      "foreign passport number",
+      "foreign national ID",
+      "FTIN on W-8BEN"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 line 6b; also on W-8BEN.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Foreign tax identification number: GB12345678 (synthetic W-7 line 6b)",
+    "term": "Foreign tax identification number"
+  },
+  {
+    "aliases": [
+      "countries of citizenship"
+    ],
+    "category": "itin",
+    "confidence": "low",
+    "fp_neighbors": [
+      "passport forms",
+      "visa applications",
+      "job applications",
+      "census"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 line 4; weak standalone.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Country of citizenship: Mexico (synthetic W-7 line 4)",
+    "term": "Country of citizenship"
+  },
+  {
+    "aliases": [
+      "IRS Individual Taxpayer Identification Number (distinct from ITIN)",
+      "IRS number"
+    ],
+    "category": "itin",
+    "confidence": "medium (flag)",
+    "fp_neighbors": [
+      "IRS number generic",
+      "generic IRS correspondence references",
+      "EIN"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "F-51: W-7 line 6f 'Previous ITIN/IRSN'. Distinct number type from ITIN; treat as ITIN-context evidence, not ITIN itself. Promote to separate `irsn` micro-category only if pilot data forces.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Previous ITIN/IRSN: 9XX-XX-XXXX (synthetic W-7 line 6f)",
+    "term": "IRSN"
+  },
+  {
+    "aliases": [
+      "Taxpayer Identification Number",
+      "Taxpayer ID",
+      "Taxpayer ID Number"
+    ],
+    "category": "itin",
+    "confidence": "low",
+    "fp_neighbors": [
+      "tin (metal)",
+      "tin can",
+      "tin foil",
+      "Tintin",
+      "tin-eared",
+      "Rin Tin Tin"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "LOW confidence standalone. Covers SSN/ITIN/ATIN/EIN — not disambiguating. Boost-only on ITIN co-occurrence.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/tin/taxpayer-identification-numbers-tin",
+    "synthetic_sample": "TIN: 9XX-7X-XXXX (synthetic — boost-only on ITIN co-occurrence)",
+    "term": "TIN"
+  },
+  {
+    "aliases": [
+      "Taxpayer ID Number",
+      "taxpayer identification"
+    ],
+    "category": "itin",
+    "confidence": "low",
+    "fp_neighbors": [
+      "taxpayer ID",
+      "EIN context",
+      "SSN context",
+      "ATIN"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Ambiguous umbrella; boost only with ITIN co-occurrence.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+    "synthetic_sample": "Taxpayer Identification Number: 9XX-7X-XXXX (synthetic W-9 anchor)",
+    "term": "Taxpayer Identification Number"
+  },
+  {
+    "aliases": [
+      "U.S. resident alien",
+      "resident alien based on days present in the United States",
+      "substantial presence test"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "immigration \"resident alien\" (LPR)",
+      "\"resident\" housing",
+      "generic \"alien\""
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "W-7 box c; tax-specific phrasing.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "U.S. resident alien based on substantial presence test — W-7 box c (synthetic)",
+    "term": "Resident alien for tax purposes"
+  },
+  {
+    "aliases": [
+      "nonresident",
+      "non-resident alien",
+      "NRA"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "generic \"alien\" (biology/film)",
+      "immigration \"nonresident\"",
+      "Form 1040-NR"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "4 of 8 W-7 reason boxes; strong ITIN co-occurrence.",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw7.pdf",
+    "synthetic_sample": "Nonresident alien filing Form 1040-NR (synthetic — 4 of 8 W-7 reason boxes)",
+    "term": "Nonresident alien"
+  },
+  {
+    "aliases": [
+      "Austin ITIN Operation"
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "\"operation\" generic",
+      "surgical operation",
+      "\"Operation X\" codenames"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "iw7 mailing address: 'Internal Revenue Service, ITIN Operation, Austin, TX'.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia",
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/iw7.pdf",
+    "synthetic_sample": "Internal Revenue Service, ITIN Operation, Austin, TX 73301-0066 (synthetic mailing address)",
+    "term": "ITIN Operation"
+  },
+  {
+    "aliases": [
+      "\"ITIN to be requested\""
+    ],
+    "category": "itin",
+    "confidence": "high",
+    "fp_neighbors": [
+      "none meaningful",
+      "ALL CAPS placeholder text",
+      "stamp-style annotation"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Verbatim IRS-instructed placeholder on 1040-ES/4868 vouchers when awaiting ITIN.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/instructions/iw7",
+    "synthetic_sample": "ITIN TO BE REQUESTED — placeholder on 1040-ES voucher (synthetic per iw7)",
+    "term": "ITIN TO BE REQUESTED"
+  },
+  {
+    "aliases": [
+      "Patient DOB",
+      "Pt DOB",
+      "Pt. DOB"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require birth head-noun within the window; do NOT fire on date of other (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "patient date of service",
+      "patient date of admission",
+      "patient date of discharge"
+    ],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored equivalent for NUCC patient-record label; dob is a universal abbreviation in clinical contexts. Replaces the F-50 residual needs-review row per design 02 §11 (D5).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Patient DOB: 01/15/1985 (synthetic)",
+    "term": "patient dob"
+  },
+  {
+    "aliases": [
+      "member DOB",
+      "Member's Birth Date"
+    ],
+    "category": "dob",
+    "confidence": "high",
+    "detector_note": "F-52: engine windowed-matching must require birth head-noun within the window; do NOT fire on date of other (service/death/admission/discharge/injury/diagnosis).",
+    "fp_neighbors": [
+      "member effective date",
+      "member enrollment date",
+      "member start date"
+    ],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored equivalent for payer/insurance member-record label. Replaces the F-50 residual needs-review row per design 02 §11 (D5).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Member Birth Date: 03/22/1972 (synthetic)",
+    "term": "member birth date"
+  },
+  {
+    "aliases": [],
+    "category": "ssn",
+    "confidence": "high",
+    "detector_note": "IRS W-2/1099/1040 label for the 9-digit SSN field",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial",
+      ".foia"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Taxpayer identification number: 123-45-6789 (synthetic)",
+    "term": "taxpayer identification number"
+  },
+  {
+    "aliases": [],
+    "category": "ssn",
+    "confidence": "high",
+    "detector_note": "1099-series box label; TIN = SSN for individuals",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Recipient's TIN: 123-45-6789 (synthetic)",
+    "term": "recipient's tin"
+  },
+  {
+    "aliases": [],
+    "category": "ssn",
+    "confidence": "high",
+    "detector_note": "1099 payer-side TIN box label",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Payer's TIN: 12-3456789 (synthetic)",
+    "term": "payer's tin"
+  },
+  {
+    "aliases": [],
+    "category": "ssn",
+    "confidence": "medium",
+    "detector_note": "Short-form TIN; medium confidence because abbreviation is ambiguous without doctype scope; financial-only",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "TIN: 123-45-6789 (synthetic)",
+    "term": "tin"
+  },
+  {
+    "aliases": [],
+    "category": "ssn",
+    "confidence": "high",
+    "detector_note": "W-2 box label (exact IRS language)",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Employee's social security number: 123-45-6789 (synthetic)",
+    "term": "employee's social security number"
+  },
+  {
+    "aliases": [],
+    "category": "name",
+    "confidence": "high",
+    "detector_note": "1099/W-2 box label; financial-only to avoid FOIA false-positive on 'payer'",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Payer's name: Acme Corp (synthetic)",
+    "term": "payer's name"
+  },
+  {
+    "aliases": [],
+    "category": "name",
+    "confidence": "high",
+    "detector_note": "1099-series box label",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Recipient's name: Jane Doe (synthetic)",
+    "term": "recipient's name"
+  },
+  {
+    "aliases": [],
+    "category": "name",
+    "confidence": "medium",
+    "detector_note": "Statement/account label; medium because 'account holder' can appear without a following name token",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Account holder: Jane Doe (synthetic)",
+    "term": "account holder"
+  },
+  {
+    "aliases": [],
+    "category": "name",
+    "confidence": "medium",
+    "detector_note": "Credit-card statement label",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Cardholder name: Jane Doe (synthetic)",
+    "term": "cardholder name"
+  },
+  {
+    "aliases": [],
+    "category": "name",
+    "confidence": "high",
+    "detector_note": "W-2 box c label (exact IRS language)",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Employer's name: Acme Corp (synthetic)",
+    "term": "employer's name"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "high",
+    "detector_note": "Primary IRS label for the 9-digit EIN field on W-2, 1099, and 1040 forms",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Employer identification number: 12-3456789 (synthetic)",
+    "term": "employer identification number"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "high",
+    "detector_note": "Federal employer identification number abbreviation used on tax forms",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "FEIN: 12-3456789 (synthetic)",
+    "term": "fein"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "high",
+    "detector_note": "IRS label on Form W-9 and 1099 for the federal tax identification number",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Federal tax id: 12-3456789 (synthetic)",
+    "term": "federal tax id"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "high",
+    "detector_note": "1099 box label for the payer EIN field",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Payer's EIN: 12-3456789 (synthetic)",
+    "term": "payer's ein"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "high",
+    "detector_note": "W-2 box b label for the employer EIN field",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Employer's EIN: 12-3456789 (synthetic)",
+    "term": "employer's ein"
+  },
+  {
+    "aliases": [],
+    "category": "ein",
+    "confidence": "medium",
+    "detector_note": "Short form; medium confidence because 'tax id' also appears in SSN context",
+    "fp_neighbors": [],
+    "license_posture": "internal",
+    "locale": "en",
+    "notes": "Self-authored from IRS publication vocabulary (public-domain factual label text).",
+    "polarity": "positive",
+    "primary_source_type": "irs_pub_factual",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "",
+    "synthetic_sample": "Tax id: 12-3456789 (synthetic)",
+    "term": "tax id"
+  }
+]

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/doctype_keywords.schema.json",
+  "title": "Document-type classifier keywords",
+  "description": "Five-class keyword dictionary consumed by DocumentTypeClassifier.swift. Classes are court, medical, financial, foia, generic. Per-class term caps enforce binary presence at the Swift side (plan A4 / G5 adversarial hardening — no frequency weighting, no keyword-stuffing leverage). Structural regex bonuses are declared here but applied in Swift; each pattern is pre-validated against the 200-char / nested-quantifier rule.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "term_cap_per_doc",
+    "classes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the shape changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility."
+    },
+    "term_cap_per_doc": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Global cap on keyword contributions per class per document. The Swift classifier counts each class's keyword hits up to this cap, then treats the class score as that capped count. Intended to bound keyword-stuffing leverage."
+    },
+    "classes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Exactly five classes, in canonical order (court, medical, financial, foia, generic). Array form preserves iteration order deterministically.",
+      "items": {
+        "type": "object",
+        "required": ["name", "keywords", "structural_bonuses"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": ["court", "medical", "financial", "foia", "generic"]
+          },
+          "keywords": {
+            "type": "array",
+            "minItems": 30,
+            "maxItems": 200,
+            "uniqueItems": true,
+            "description": "Lowercase ASCII keywords. Sorted lexicographically. Each keyword is matched as a whole word against NFKD-normalized, lowercased page text.",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9 '-]{1,63}$",
+              "minLength": 2,
+              "maxLength": 64
+            }
+          },
+          "structural_bonuses": {
+            "type": "array",
+            "maxItems": 8,
+            "description": "Regex patterns whose presence adds a small bonus to this class's raw score. Patterns are pre-validated against the 200-char cap and nested-quantifier heuristic (SEARCH_AND_REDACT.md §9.4). The Swift side applies the bonus as a fixed per-pattern increment; it is not frequency-weighted.",
+            "items": {
+              "type": "object",
+              "required": ["id", "pattern", "bonus", "rationale"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_]+$"
+                },
+                "pattern": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "ICU-compatible regex. Must survive Swift NSRegularExpression compilation."
+                },
+                "bonus": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

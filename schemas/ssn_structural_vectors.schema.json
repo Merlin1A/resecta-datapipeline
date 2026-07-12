@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/ssn_structural_vectors.schema.json",
+  "title": "SSN structural validation vectors",
+  "description": "Deterministic fixture of SSN candidates paired with SSA structural rejection reasons. Mirrors the rules in Swift SSNStructuralValidator and is consumed by downstream tests.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one SSN candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["ssn", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "ssn": {
+            "type": "string",
+            "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+            "description": "SSN candidate in AAA-GG-SSSS format. Always nine digits with two hyphens; rejection is content-based, not format-based."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate passes every SSA structural rule."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "area_000",
+              "area_666",
+              "area_900_999",
+              "group_00",
+              "serial_0000",
+              "literal_078_05_1120",
+              "all_same_digit"
+            ],
+            "description": "Which SSA rule rejects this SSN, or null if the SSN is valid. Mirrors Swift SSNStructuralValidator categories."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/negative_corpus.schema.json",
+  "title": "Negative-text corpus (false-positive-rate measurement)",
+  "description": "Deterministic corpus of realistic benign documents that contain no valid PII. Scored through the same PIIDetector.detect path as the G8 corpus; any surfaced detection is, by construction, a false positive. The content deliberately seeds the context-mandatory detector families' trigger-keywords (account, phone, MRN, EIN, ITIN, routing) in innocent non-PII contexts. Dev/eval fixture, not a shipped resource; read by the Swift baseline harness from Fixtures/corpus/negative_corpus.json. License-clean: no SSN-shaped strings, no standalone 9-digit numbers, no valid-checksum identifiers, phones (if any) only in the reserved 555-01xx range, RFC-2606 domains only, no real org/brand names, 100% printable ASCII, byte-deterministic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "generated_by",
+    "seed",
+    "documents"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "minimum": 1,
+      "description": "Wire-format version. V1 is the only version."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Recorded for uniformity; this builder is not randomized, so the documents are independent of the seed value."
+    },
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "description": "All-negative document set. No ground-truth PII spans: every document is benign prose, so any detection is a false positive.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "doctype",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^neg_[0-9]{6}$",
+            "description": "Stable document id, zero-padded to six digits (neg_000000 ...)."
+          },
+          "doctype": {
+            "type": "string",
+            "enum": [
+              "court",
+              "medical",
+              "financial",
+              "foia",
+              "generic"
+            ],
+            "description": "Document class; mirrors the G8 corpus / S3 contract doctype enum."
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Benign prose paragraph containing no valid PII."
+          }
+        }
+      }
+    }
+  }
+}

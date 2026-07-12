@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/cutover_diff.schema.json",
+  "title": "Builder cutover diff (legacy → rebuild)",
+  "description": "Advisory diff artifact emitted alongside a builder rewire under STRAT §10.4 row §D1 (= A1 1:1) or §D7 (G1 PARTIAL [BINDING]). Each diff covers one rebuilt artifact: legacy_only lists keys present only in the pre-rewire output, rebuild_only lists keys present only in the post-rewire output, and keyed_diff lists keys present in both with field-level differences. Summary counts mirror the array lengths and are surfaced verbatim in DONE-marker prose for PR review.",
+  "type": "object",
+  "required": [
+    "version",
+    "generated_by",
+    "artifact",
+    "summary",
+    "legacy_only",
+    "rebuild_only",
+    "keyed_diff"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the diff shape changes in a way readers must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the builder that produced the diff."
+    },
+    "artifact": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Build-relative path of the rebuilt artifact this diff covers (e.g., gazetteers/institutions.json)."
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "legacy_only_count",
+        "rebuild_only_count",
+        "keyed_diff_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "legacy_only_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of keys present in the legacy output only."
+        },
+        "rebuild_only_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of keys present in the rebuild output only."
+        },
+        "keyed_diff_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of keys present in both outputs with field-level differences."
+        }
+      }
+    },
+    "legacy_only": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Keys present only in the legacy (pre-rewire) output, sorted ascending for determinism.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "rebuild_only": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "Keys present only in the rebuild (post-rewire) output, sorted ascending for determinism.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "keyed_diff": {
+      "type": "array",
+      "description": "Entries present in both outputs but with field-level differences. Sorted by key for determinism.",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "legacy",
+          "rebuild"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The shared identifier between legacy and rebuild entries (e.g., institution name)."
+          },
+          "legacy": {
+            "description": "The legacy entry payload. Shape is determined by the artifact being diffed; the schema accepts any JSON value."
+          },
+          "rebuild": {
+            "description": "The rebuild entry payload. Shape is determined by the artifact being diffed; the schema accepts any JSON value."
+          }
+        }
+      }
+    }
+  }
+}

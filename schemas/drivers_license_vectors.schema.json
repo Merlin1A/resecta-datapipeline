@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/drivers_license_vectors.schema.json",
+  "title": "Driver's-license structural test vectors",
+  "description": "Deterministic fixture of generic driver's-license candidates paired with structural rejection reasons. Mirrors the Swift ``detectDriversLicenses`` regex at PIIDetector.swift:648 (pattern declared at :643-646). Per-state formats are out of scope.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one DL candidate with its expected structural verdict.",
+      "items": {
+        "type": "object",
+        "required": ["text", "license_number", "shape", "valid", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Full candidate string (label + separator + number)."
+          },
+          "license_number": {
+            "type": "string",
+            "description": "The number portion (regex capture group 1 for valid vectors)."
+          },
+          "shape": {
+            "type": "string",
+            "enum": ["letter_plus_digits", "pure_digits"],
+            "description": "Which alternation of the regex this number targets."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate matches the Swift DL regex shape."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [
+              null,
+              "no_label",
+              "pure_digits_too_short",
+              "letter_prefix_too_long",
+              "lowercase_prefix"
+            ],
+            "description": "Which structural rule rejects this DL, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

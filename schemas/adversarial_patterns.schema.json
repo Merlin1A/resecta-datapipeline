@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/adversarial_patterns.schema.json",
+  "title": "Adversarial pattern templates",
+  "description": "Test-fixture catalog of text fragments designed to probe detector false-positive behavior and classifier keyword-stuffing resistance (plan item G5). Records in the column_header_label category additionally carry a bbox_context array describing header/data row layout.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "patterns"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility."
+    },
+    "patterns": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of pattern records. Order is stable across rebuilds at a given seed.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "text",
+          "expected_detector",
+          "expected_outcome",
+          "source_plan_ref"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Stable identifier, unique across the artifact."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "detector_shape_fp",
+              "keyword_stuffing_g5",
+              "homoglyph",
+              "whitespace_injection",
+              "invisible_style",
+              "column_header_label",
+              "multiline_date_collision"
+            ],
+            "description": "Which kind of adversarial pressure this record applies."
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "The adversarial fragment itself."
+          },
+          "expected_detector": {
+            "type": "string",
+            "enum": ["ssn", "npi", "dea", "address", "none"],
+            "description": "Which detector this fragment is shaped to provoke, or 'none' for classifier-only fragments."
+          },
+          "expected_outcome": {
+            "type": "string",
+            "enum": ["redact", "suppress", "flag"],
+            "description": "Desired detector behavior: redact (act on it), suppress (explicitly do not redact despite shape match), or flag (route to review)."
+          },
+          "source_plan_ref": {
+            "type": "string",
+            "description": "Reference to the plan item that motivates this fragment, for example 'G5' or 'REDACTION_ENGINE.md 4.3'."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          },
+          "bbox_context": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Optional layout context for column_header_label records. Each item describes a header-row or data-row bounding box in PDF points relative to the page top-left. Present only on column_header_label entries.",
+            "items": {
+              "type": "object",
+              "required": ["x", "y", "w", "h", "role"],
+              "additionalProperties": false,
+              "properties": {
+                "x": {"type": "number"},
+                "y": {"type": "number"},
+                "w": {"type": "number", "exclusiveMinimum": 0},
+                "h": {"type": "number", "exclusiveMinimum": 0},
+                "role": {
+                  "type": "string",
+                  "enum": ["header", "data"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

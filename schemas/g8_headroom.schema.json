@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_headroom.schema.json",
+  "title": "G8 learned-term headroom (M9, S3 eval)",
+  "description": "Per-family learned-term headroom probe derived by resecta_data.eval.headroom from the Swift harness's raw match scores (CONTRACT.md File 2). For each family it quantifies the suppressible false-positive mass above/below the balanced cutoff (raw and posterior) and the score gap between the FP and TP masses, gating whether a learned scoring term has headroom. The posterior mirrors the engine seam CalibratedScorer.posterior(raw, priorMean = max(prior, floor)) with empty priors. Dev/eval artifact: not installed to the Swift Resources path.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "absorbing_state_floor",
+    "per_family"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Wire-format version. Bumped only on a breaking shape change."
+    },
+    "generated_by": {
+      "type": "string",
+      "const": "resecta_data.eval.headroom",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "absorbing_state_floor": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "The prior floor applied at the posterior seam (priorMean with empty priors)."
+    },
+    "per_family": {
+      "type": "object",
+      "description": "Headroom block per category key (family).",
+      "additionalProperties": { "$ref": "#/$defs/familyHeadroom" }
+    }
+  },
+  "$defs": {
+    "familyHeadroom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cutoff",
+        "fp_above_cutoff",
+        "fp_below_cutoff",
+        "tp_above",
+        "tp_below",
+        "suppressible_fp_mass",
+        "score_gap",
+        "positive_count",
+        "fp_count",
+        "posterior_summary",
+        "raw_percentiles"
+      ],
+      "properties": {
+        "cutoff": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "The family's balanced cutoff, or null if the harness defined none for this kind."
+        },
+        "fp_above_cutoff": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "FP-class rows (gt_class none|suppress) with raw >= cutoff. Zero when cutoff is null."
+        },
+        "fp_below_cutoff": { "type": "integer", "minimum": 0 },
+        "tp_above": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Positive-class rows with raw >= cutoff. Zero when cutoff is null."
+        },
+        "tp_below": { "type": "integer", "minimum": 0 },
+        "suppressible_fp_mass": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "FP-class rows currently clearing the cutoff (= fp_above_cutoff); the mass a learned term could remove."
+        },
+        "score_gap": {
+          "type": ["number", "null"],
+          "description": "min(positive raw) - max(FP raw). Positive => raw-separable (clean headroom); negative => overlapping. Null when either class is empty."
+        },
+        "positive_count": { "type": "integer", "minimum": 0 },
+        "fp_count": { "type": "integer", "minimum": 0 },
+        "posterior_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["floor", "cutoff_posterior", "positive", "false_positive"],
+          "properties": {
+            "floor": { "type": "number", "minimum": 0, "maximum": 1 },
+            "cutoff_posterior": {
+              "type": ["number", "null"],
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Posterior of the cutoff under the floor; null when cutoff is null."
+            },
+            "positive": { "$ref": "#/$defs/distSummary" },
+            "false_positive": { "$ref": "#/$defs/distSummary" }
+          }
+        },
+        "raw_percentiles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["positive", "false_positive"],
+          "properties": {
+            "positive": { "$ref": "#/$defs/percentileBlock" },
+            "false_positive": { "$ref": "#/$defs/percentileBlock" }
+          }
+        }
+      }
+    },
+    "distSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "min", "mean", "max"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "min": { "type": ["number", "null"] },
+        "mean": { "type": ["number", "null"] },
+        "max": { "type": ["number", "null"] }
+      }
+    },
+    "percentileBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["5", "25", "50", "75", "95"],
+      "properties": {
+        "5": { "type": ["number", "null"] },
+        "25": { "type": ["number", "null"] },
+        "50": { "type": ["number", "null"] },
+        "75": { "type": ["number", "null"] },
+        "95": { "type": ["number", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+wikidata_id	eng	label	language	type
+Q0001	Albert Einstein	Albert Einstein	en	PER
+Q0001	Albert Einstein	Albert Einstein	es	PER
+Q0001	Albert Einstein	Albert Einstein	fr	PER
+Q0001	Albert Einstein	Albert Einstein	de	PER
+Q0001	Albert Einstein	Albert Einstein	it	PER
+Q0002	Berlin	Berlin	en	LOC
+Q0002	Berlin	Berlín	es	LOC
+Q0002	Berlin	Berlin	fr	LOC
+Q0002	Berlin	Berlin	de	LOC
+Q0002	Berlin	Berlino	it	LOC
+Q0003	John Doe	John Doe	en	PER
+Q0003	John Doe	Juan Doe	es	PER
+Q0003	John Doe	Jean Doe	fr	PER
+Q0004	Maria Garcia	Maria Garcia	en	PER
+Q0004	Maria Garcia	María García	es	PER
+Q0004	Maria Garcia	Maria Garcia	fr	PER
+Q0004	Maria Garcia	Maria Garcia	de	PER
+Q0004	Maria Garcia	Maria Garcia	it	PER
+Q0005	Sample Person	Sample Person	en	PER
+Q0005	Sample Person	Sample Person	es	PER

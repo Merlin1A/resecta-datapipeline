@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/npi_test_vectors.schema.json",
+  "title": "NPI test vectors",
+  "description": "Deterministic fixture of National Provider Identifier candidates paired with category labels and validation verdicts. Designed to exercise the CMS Luhn-with-80840-prefix checksum algorithm in downstream Swift tests.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one NPI candidate with its expected classification.",
+      "items": {
+        "type": "object",
+        "required": ["npi", "valid", "category", "expected_luhn_remainder", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "npi": {
+            "type": "string",
+            "pattern": "^\\d+$",
+            "description": "NPI candidate as a digit string. Length is category-dependent: 10 for most categories, other lengths for invalid_length."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the NPI passes all NPI structural checks (prefix 1 or 2, 10 digits, CMS Luhn)."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "valid_individual",
+              "valid_organization",
+              "invalid_checksum",
+              "invalid_prefix",
+              "invalid_length",
+              "edge_all_same_digit"
+            ],
+            "description": "Which detector edge case this vector exercises."
+          },
+          "expected_luhn_remainder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9,
+            "description": "The remainder returned by cms_luhn(npi). Zero for valid NPIs; nonzero for invalid_checksum rows."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Human note describing why this vector was included."
+          }
+        }
+      }
+    }
+  }
+}

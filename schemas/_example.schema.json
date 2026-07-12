@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/_example.schema.json",
+  "title": "Example artifact schema",
+  "description": "Placeholder schema used as a template for Phase 1+ artifact schemas. Not routed to any real artifact. See DataPipeline/schemas/README.md.",
+  "type": "object",
+  "required": ["version", "generated_by"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Increment when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact. Typically 'resecta-data/<module>/<script>'."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional human notes. Must comply with mechanism-description language rules."
+    }
+  },
+  "additionalProperties": false
+}

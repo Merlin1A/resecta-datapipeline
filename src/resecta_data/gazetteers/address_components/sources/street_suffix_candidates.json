@@ -1,0 +1,240 @@
+[
+  {
+    "accepted_variants": [
+      "ALLEE",
+      "ALLY"
+    ],
+    "canonical": "ALLEY",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "ALY",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "AV",
+      "AVEN",
+      "AVENU",
+      "AVN",
+      "AVNUE"
+    ],
+    "canonical": "AVENUE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "AVE",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "BOUL",
+      "BOULV"
+    ],
+    "canonical": "BOULEVARD",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "BLVD",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "CIRC",
+      "CIRCL",
+      "CRCL",
+      "CRCLE"
+    ],
+    "canonical": "CIRCLE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "CIR",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "CRT"
+    ],
+    "canonical": "COURT",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "CT",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "CRSSNG"
+    ],
+    "canonical": "CROSSING",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "XING",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "DRIV",
+      "DRV"
+    ],
+    "canonical": "DRIVE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "DR",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "EXP",
+      "EXPR",
+      "EXPRESS",
+      "EXPW"
+    ],
+    "canonical": "EXPRESSWAY",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "EXPY",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "HIGHWY",
+      "HIWAY",
+      "HIWY",
+      "HWAY"
+    ],
+    "canonical": "HIGHWAY",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "HWY",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "LA"
+    ],
+    "canonical": "LANE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "LN",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "PARKWY",
+      "PKWAY",
+      "PKY"
+    ],
+    "canonical": "PARKWAY",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "PKWY",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "PIKES"
+    ],
+    "canonical": "PIKE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "PIKE",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [],
+    "canonical": "PLACE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "PL",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "PLZA"
+    ],
+    "canonical": "PLAZA",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "PLZ",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [],
+    "canonical": "ROAD",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "RD",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "SQR",
+      "SQRE",
+      "SQU"
+    ],
+    "canonical": "SQUARE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "SQ",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "STR",
+      "STRT"
+    ],
+    "canonical": "STREET",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "ST",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "TERR"
+    ],
+    "canonical": "TERRACE",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "TER",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "TRAILS",
+      "TRLS"
+    ],
+    "canonical": "TRAIL",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "TRL",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  },
+  {
+    "accepted_variants": [
+      "WY"
+    ],
+    "canonical": "WAY",
+    "confidence": "high",
+    "license_posture": "needs-review",
+    "primary_abbreviation": "WAY",
+    "source_url": "https://github.com/street-address-rb/street-address/blob/master/lib/street_address.rb",
+    "source_verified_date": "2026-04-25"
+  }
+]

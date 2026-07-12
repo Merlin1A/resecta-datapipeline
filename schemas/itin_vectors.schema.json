@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/itin_vectors.schema.json",
+  "title": "ITIN structural test vectors",
+  "description": "Deterministic fixture of Individual Taxpayer Identification Number candidates paired with IRS YY-bucket classifications. Mirrors the Swift ``detectITINs`` regex and the paired tightening that enforces YY in [50-65, 70-88, 90-92, 94-99].",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "vectors"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a Swift-side decoder update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed used to generate this artifact, recorded for reproducibility."
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Test vectors. Each record is one ITIN candidate with its expected YY-bucket verdict.",
+      "items": {
+        "type": "object",
+        "required": ["itin", "valid", "yy_bucket", "rejection_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "itin": {
+            "type": "string",
+            "pattern": "^9\\d{2}-\\d{2}-\\d{4}$",
+            "description": "ITIN candidate in ``9AA-YY-SSSS`` format. Area code always starts with 9."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the candidate passes the IRS YY-bucket gate."
+          },
+          "yy_bucket": {
+            "type": "string",
+            "enum": ["valid", "invalid"],
+            "description": "Whether YY falls in one of the IRS ranges [50-65, 70-88, 90-92, 94-99]."
+          },
+          "rejection_reason": {
+            "type": ["string", "null"],
+            "enum": [null, "yy_out_of_range"],
+            "description": "Which rule rejects this ITIN, or null if valid."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human note."
+          }
+        }
+      }
+    }
+  }
+}

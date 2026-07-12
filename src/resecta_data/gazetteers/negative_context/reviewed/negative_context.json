@@ -1,0 +1,1335 @@
+{
+  "entries": [
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "(b)(6)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption marker indicates redaction has already occurred; suppression context (1.md:63, 1.md:427).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "(b)(6)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption marker indicates redaction has already occurred; suppression context (1.md:63, 1.md:427).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "(b)(6)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption marker indicates redaction has already occurred; suppression context (1.md:63, 1.md:427).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "(b)(7)(c)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(7)(C) law-enforcement personal-privacy exemption (1.md:64, 1.md:428).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "(b)(7)(c)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(7)(C) law-enforcement personal-privacy exemption (1.md:64, 1.md:428).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "(b)(7)(c)",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(7)(C) law-enforcement personal-privacy exemption (1.md:64, 1.md:428).",
+      "source_id": "five_usc_552"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "abc corp.",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "accession number",
+      "precedence_weight": 0.5,
+      "rationale": "Lab specimen accession identifier per NUCC Box 23 CLIA context (1.md:121, 1.md:452).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "account number",
+      "precedence_weight": 0.7,
+      "rationale": "UBL cac:PayeeFinancialAccount/cbc:ID; checking account numbers commonly 9-12 digits, high SSN-shape confusable (1.md:91, 1.md:442).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "account number",
+      "precedence_weight": 0.65,
+      "rationale": "NUCC CMS-1500 Box 26 Patient's Account No.; institutional account ID. Distinct from the (ssn, financial) override on the same keyword (1.md:116, 1.md:451).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "account reference",
+      "precedence_weight": 0.4,
+      "rationale": "UBL BuyerReference / account-reference variant; sequential identifier (1.md:153, 1.md:465).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "admission date",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 18 admission date; HIPAA Safe Harbor (C) treats admission date as PHI but the label suppresses DOB-confusion only on medical doctype (1.md:131, 1.md:399).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "admission number",
+      "precedence_weight": 0.55,
+      "rationale": "UB-04 admission identifier per CMS Medicare Claims Processing Manual Pub. 100-04 Ch. 25 (1.md:119, 1.md:453).",
+      "source_id": "cms_iom_pub100_04_ch1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "amount due",
+      "precedence_weight": 0.4,
+      "rationale": "Amount-due labels on billing statements mark payment totals; adjacent numbers are account identifiers, not SSNs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "balance due",
+      "precedence_weight": 0.4,
+      "rationale": "Balance-due labels on billing statements mark outstanding totals; adjacent numbers are account identifiers, not SSNs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "barcode",
+      "precedence_weight": 0.3,
+      "rationale": "Numeric label barcodes on specimens; (npi) scope rejected as barcode contents pattern-defined by GS1/HIBC, not directly NPI confusable. Lowered from 0.45 per 1.md:137, 1.md:234.",
+      "source_id": "manual_medical"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "batch number",
+      "precedence_weight": 0.3,
+      "rationale": "Drug batch ID; near 10-digit string usually batch not NPI per 21 CFR Part 207. SSN fanout dropped (1.md:139, 1.md:254).",
+      "source_id": "fda_drug_label_21cfr201"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "bed number",
+      "precedence_weight": 0.3,
+      "rationale": "Bed identifiers are short numeric tokens; weak DOB-shape confusable on census sheets. Rescoped from (ssn,) per 1.md:136, 1.md:233.",
+      "source_id": "manual_medical"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "medical",
+      "keyword": "billing address",
+      "precedence_weight": 0.35,
+      "rationale": "NUCC CMS-1500 Box 33 billing-provider address; provider not patient address (1.md:269, 1.md:386).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "billing code",
+      "precedence_weight": 0.3,
+      "rationale": "CPT/HCPCS 5-digit not DEA-shaped; weak relevance. (ssn,npi) scope rejected as catastrophic FN risk per 1.md:128-129, 1.md:235.",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "booking number",
+      "precedence_weight": 0.45,
+      "rationale": "Travel/reservation identifier; variable-length sequential (1.md:151, 1.md:466).",
+      "source_id": "usps_pub199"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "branch",
+      "precedence_weight": 0.3,
+      "rationale": "Bank branch name in transaction blocks; not customer PII (1.md:249, 1.md:412).",
+      "source_id": "frb_routing_directory"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "financial",
+      "keyword": "branch address",
+      "precedence_weight": 0.4,
+      "rationale": "Bank branch address on receipts and statements; not customer PII (1.md:278, 1.md:380).",
+      "source_id": "frb_routing_directory"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "medical",
+      "keyword": "care plan",
+      "precedence_weight": 0.3,
+      "rationale": "Document-type label, not patient name (1.md:242, 1.md:416).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "court",
+      "keyword": "case number",
+      "precedence_weight": 0.7,
+      "rationale": "Court case-number format per 28 U.S.C. § 1914 and FRCP Rule 10; canonical 9-digit-shape confusable for SSN/NPI/DEA on federal court dockets (1.md:87, 1.md:437).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "court",
+      "keyword": "case number",
+      "precedence_weight": 0.7,
+      "rationale": "Court case-number format per 28 U.S.C. § 1914 and FRCP Rule 10; canonical 9-digit-shape confusable for SSN/NPI/DEA on federal court dockets (1.md:87, 1.md:437).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "court",
+      "keyword": "case number",
+      "precedence_weight": 0.7,
+      "rationale": "Court case-number format per 28 U.S.C. § 1914 and FRCP Rule 10; canonical 9-digit-shape confusable for SSN/NPI/DEA on federal court dockets (1.md:87, 1.md:437).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "chart number",
+      "precedence_weight": 0.55,
+      "rationale": "Variant of MRN per HIPAA Safe Harbor 45 CFR 164.514(b)(2)(i)(H) (1.md:115, 1.md:454).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "check number",
+      "precedence_weight": 0.55,
+      "rationale": "Check-number labels in bank statements hold sequential payment identifiers.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "claim number",
+      "precedence_weight": 0.55,
+      "rationale": "Claim-number labels in insurance statements hold case-tracking IDs, not SSNs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "claim number",
+      "precedence_weight": 0.65,
+      "rationale": "NUCC CMS-1500 Box 11b Other Claim ID; CMS ICN/DCN at UB-04 FL 37 (1.md:120, 1.md:455).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "court",
+      "keyword": "clerk of court",
+      "precedence_weight": 0.45,
+      "rationale": "c/o Clerk of Court address is a court office address, not a party-identifier address (1.md:262, 1.md:382).",
+      "source_id": "uscourts_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "confirmation number",
+      "precedence_weight": 0.45,
+      "rationale": "Confirmation-number labels in transaction records hold transaction-tracking codes.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "confirmation number",
+      "precedence_weight": 0.5,
+      "rationale": "Booking/order confirmation; variable-length sequential identifier (1.md:148, 1.md:467).",
+      "source_id": "usps_pub199"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "control number",
+      "precedence_weight": 0.5,
+      "rationale": "Control-number labels on W-2 (box d) hold the employer-assigned payroll ID, not the recipient SSN.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "court",
+      "keyword": "courthouse",
+      "precedence_weight": 0.4,
+      "rationale": "Federal courthouse addresses are public locations, not party PII (1.md:263, 1.md:383).",
+      "source_id": "uscourts_glossary"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "foia",
+      "keyword": "covered entity",
+      "precedence_weight": 0.35,
+      "rationale": "HHS OCR breach notices reference covered entity; 10-digit string in this context is typically entity-NPI cross-reference, but suppression weight reflects potential real NPI presence (1.md:198, 1.md:421).",
+      "source_id": "hhs_ocr_breach_portal"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "cpt",
+      "precedence_weight": 0.3,
+      "rationale": "CPT codes are 5-digit per NUCC Box 24D; weak 10-digit confusable but appears alongside NPI on CMS-1500 (1.md:190, 1.md:422).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "customer id",
+      "precedence_weight": 0.45,
+      "rationale": "Vendor-assigned customer identifier; variable-length. NPI fanout dropped per 1.md:152, 1.md:468.",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "dcn",
+      "precedence_weight": 0.5,
+      "rationale": "CMS Document Control Number; synonym for ICN at UB-04 FL 37 (1.md:179, 1.md:446).",
+      "source_id": "cms_iom_pub100_04_ch1"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "defendant",
+      "precedence_weight": 0.3,
+      "rationale": "Defendant captions are name-adjacent; FRCP 5.2 requires SSN already redacted in caption blocks (1.md:43).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "medical",
+      "keyword": "department of",
+      "precedence_weight": 0.35,
+      "rationale": "Department name in hospital letterhead; not patient name (1.md:241, 1.md:417).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "discharge date",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 18 discharge date; same scoping as admission date (1.md:132, 1.md:400).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "foia",
+      "keyword": "diversion control",
+      "precedence_weight": 0.3,
+      "rationale": "DEA Diversion Control Division FOIA Library publishes redacted MOAs and audit reports; suppression context (1.md:222, 1.md:389).",
+      "source_id": "dea_diversion_foia"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "court",
+      "keyword": "docket",
+      "precedence_weight": 0.5,
+      "rationale": "Standalone 'docket' token is weaker than 'docket number'; SSN-shape only per US Courts glossary (1.md:50, 1.md:438).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "court",
+      "keyword": "docket number",
+      "precedence_weight": 0.7,
+      "rationale": "Court docket number; canonical confusable for SSN/NPI/DEA on captions (1.md:88, 1.md:439).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "court",
+      "keyword": "docket number",
+      "precedence_weight": 0.7,
+      "rationale": "Court docket number; canonical confusable for SSN/NPI/DEA on captions (1.md:88, 1.md:439).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "court",
+      "keyword": "docket number",
+      "precedence_weight": 0.7,
+      "rationale": "Court docket number; canonical confusable for SSN/NPI/DEA on captions (1.md:88, 1.md:439).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "due date",
+      "precedence_weight": 0.45,
+      "rationale": "UBL cbc:DueDate is invoice payment due date, not DOB (1.md:302, 1.md:403).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "effective date",
+      "precedence_weight": 0.4,
+      "rationale": "Effective-date labels mark when account terms or policies begin.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "ein",
+      "precedence_weight": 0.55,
+      "rationale": "EIN format XX-XXXXXXX shares 9-digit shape with SSN; IRS Form W-9 Part I provides as alternative TIN (1.md:95, 1.md:440).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "employer's ein",
+      "precedence_weight": 0.7,
+      "rationale": "Employer's EIN label (W-2 box b) is adjacent to the SSN box (box a); the 9-digit EIN in that position is not an SSN.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "encounter id",
+      "precedence_weight": 0.55,
+      "rationale": "Encounter identifier per HIPAA Safe Harbor (J) account-numbers category (1.md:118, 1.md:456).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "encounter number",
+      "precedence_weight": 0.55,
+      "rationale": "Encounter identifier per HIPAA Safe Harbor (J) account-numbers category (1.md:118, 1.md:456).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "esq.",
+      "precedence_weight": 0.5,
+      "rationale": "Attorney signature blocks per FRCP and 28 U.S.C. § 1654; attorney names appear publicly in case captions (1.md:230, 1.md:408).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "estate of",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "ex-dividend date",
+      "precedence_weight": 0.55,
+      "rationale": "Ex-dividend-date labels appear in brokerage statements; very specific to equity distributions.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "exemption b6",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption; marking exists because PII has been redacted (1.md:63, 1.md:96).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "foia",
+      "keyword": "exemption b6",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption; marking exists because PII has been redacted (1.md:63, 1.md:96).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "exemption b6",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(6) personal-privacy exemption; marking exists because PII has been redacted (1.md:63, 1.md:96).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "exemption b7",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(7)(C) law-enforcement personal privacy (1.md:64, 1.md:97).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "exemption b7",
+      "precedence_weight": 0.5,
+      "rationale": "5 U.S.C. § 552(b)(7)(C) law-enforcement personal privacy (1.md:64, 1.md:97).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "expiration date",
+      "precedence_weight": 0.45,
+      "rationale": "Expiration-date labels appear on credit-card statements and benefits notices.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "feca number",
+      "precedence_weight": 0.5,
+      "rationale": "NUCC CMS-1500 Box 11; 9-character alphanumeric per 5 U.S.C. § 8101 federal-employee work-injury claims (1.md:180, 1.md:447).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "fiscal year",
+      "precedence_weight": 0.5,
+      "rationale": "Fiscal-year labels on financial statements mark the accounting period.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "foia",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "foia",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "foia",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "foia",
+      "keyword": "form 224",
+      "precedence_weight": 0.35,
+      "rationale": "DEA Form 224 registration application released through DEA FOIA carries DEA registration #; the form name signals suppression context (1.md:221, 1.md:390).",
+      "source_id": "dea_form_224"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "formulary",
+      "precedence_weight": 0.3,
+      "rationale": "Formulary IDs and codes adjacent to medication lists are non-DEA institutional codes (1.md:211, 1.md:391).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "freedom of information",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "freedom of information",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "freedom of information",
+      "precedence_weight": 0.4,
+      "rationale": "Source-default scoping for doj_legal_glossary: doctype=foia, weight=0.4.",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "generic",
+      "keyword": "from",
+      "precedence_weight": 0.3,
+      "rationale": "USPS Domestic Mail Manual sender block; letterhead From: addresses are typically business not natural-person PII (1.md:285, 1.md:384).",
+      "source_id": "usps_dmm"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "generic",
+      "keyword": "from:",
+      "precedence_weight": 0.3,
+      "rationale": "USPS Domestic Mail Manual From: block typically business not natural-person (1.md:256, 1.md:415).",
+      "source_id": "usps_dmm"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "fund name",
+      "precedence_weight": 0.45,
+      "rationale": "Fund-name labels on investment statements hold mutual fund or ETF names.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "group number",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 11 Insured's Policy, Group, or FECA Number (1.md:175, 1.md:457).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "hcpcs",
+      "precedence_weight": 0.3,
+      "rationale": "HCPCS codes per NUCC Box 24D; same 5-digit shape as CPT (1.md:191, 1.md:423).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "medical",
+      "keyword": "hospital",
+      "precedence_weight": 0.4,
+      "rationale": "Hospital name in letterhead; institution not patient PII (1.md:239, 1.md:418).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "icn",
+      "precedence_weight": 0.55,
+      "rationale": "CMS Internal Control Number; 13-digit Medicare claim ID at UB-04 FL 37 (1.md:178, 1.md:448).",
+      "source_id": "cms_iom_pub100_04_ch1"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "inc.",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "institution name",
+      "precedence_weight": 0.45,
+      "rationale": "Institution-name labels on financial forms identify the holding bank or brokerage.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "insured's i.d. number",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 1a; payer-assigned member ID, high SSN-shape confusable (1.md:172, 1.md:458).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "inventory",
+      "precedence_weight": 0.35,
+      "rationale": "21 CFR 1304.04 inventory line items are non-DEA codes; DEA registration # appears in the document header, not on the inventory line (1.md:212, 1.md:392).",
+      "source_id": "dea_21cfr_1304_04"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "inventory id",
+      "precedence_weight": 0.35,
+      "rationale": "21 CFR 1304.04 inventory identifier is institution-internal, not DEA registration #. Rescoped from (ssn,) per 1.md:138, 1.md:393.",
+      "source_id": "dea_21cfr_1304_04"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "financial",
+      "keyword": "invoice number",
+      "precedence_weight": 0.75,
+      "rationale": "UBL cbc:ID invoice identifier; canonical sequential-9-digit confusable for SSN (1.md:90, 1.md:443).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "invoice number",
+      "precedence_weight": 0.75,
+      "rationale": "UBL cbc:ID invoice identifier; canonical sequential-9-digit confusable for SSN (1.md:90, 1.md:443).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "issue date",
+      "precedence_weight": 0.35,
+      "rationale": "Issue-date labels on financial docs mark document or instrument generation date; weight is lighter because 'issue date' is also found near personal records.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "generic",
+      "keyword": "issue date",
+      "precedence_weight": 0.35,
+      "rationale": "Generic document issue date; date-shaped string near issue date label is overwhelmingly issue not DOB (1.md:310, 1.md:406).",
+      "source_id": "iso_8601_via_nist"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "issuer",
+      "precedence_weight": 0.35,
+      "rationale": "Issuer labels on bond/securities statements hold the issuing entity's name, not a personal name.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "law enforcement records",
+      "precedence_weight": 0.35,
+      "rationale": "Exemption 7 threshold language per DOJ FOIA Guide chapter on Exemption 7 (1.md:69, 1.md:431).",
+      "source_id": "doj_exemption_7c_guide"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "llc",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "llp",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "lmp",
+      "precedence_weight": 0.45,
+      "rationale": "NUCC CMS-1500 Box 14 last-menstrual-period date qualifier (1.md:294, 1.md:401).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "loan number",
+      "precedence_weight": 0.55,
+      "rationale": "Loan-number labels in mortgage and credit statements hold account identifiers, not SSNs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "lot #",
+      "precedence_weight": 0.4,
+      "rationale": "Drug lot numbers per 21 CFR 201.18 are alphanumeric pharmaceutical batch IDs. NPI fanout dropped — lot codes do not 10-digit-shape match NPIs (1.md:133, 1.md:230).",
+      "source_id": "fda_drug_label_21cfr201"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "lot number",
+      "precedence_weight": 0.4,
+      "rationale": "Drug lot numbers per 21 CFR 201.18 are alphanumeric pharmaceutical batch IDs. NPI fanout dropped — lot codes do not 10-digit-shape match NPIs (1.md:133, 1.md:230).",
+      "source_id": "fda_drug_label_21cfr201"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "maturity date",
+      "precedence_weight": 0.55,
+      "rationale": "Maturity-date labels appear in fixed-income and CD account statements.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "mbi",
+      "precedence_weight": 0.65,
+      "rationale": "Medicare Beneficiary Identifier; 11-char alphanumeric replacing SSN-based HICN since 2020-01-01 under MACRA 2015 SSNRI (1.md:177, 1.md:449).",
+      "source_id": "cms_mbi_format"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "medical",
+      "keyword": "medical center",
+      "precedence_weight": 0.4,
+      "rationale": "Medical center name; institution not patient PII (1.md:240, 1.md:419).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "medical record number",
+      "precedence_weight": 0.65,
+      "rationale": "Medical Record Number per HIPAA Safe Harbor 45 CFR 164.514(b)(2)(i)(H); per-institution 6-10 digit identifier with high SSN-shape confusable rate (1.md:114, 1.md:450).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "member id",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC v13 Item 1a/Item 6 reference; payer-assigned identifier (1.md:173, 1.md:459).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "member number",
+      "precedence_weight": 0.5,
+      "rationale": "Member-number labels in credit-union and insurance statements hold membership IDs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "merchant",
+      "precedence_weight": 0.3,
+      "rationale": "Merchant name on receipts; not customer PII (1.md:250, 1.md:413).",
+      "source_id": "frb_routing_directory"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "financial",
+      "keyword": "merchant address",
+      "precedence_weight": 0.4,
+      "rationale": "Merchant street address on receipts and 1099 PAYER address blocks; not customer PII (1.md:277, 1.md:381).",
+      "source_id": "irs_form_1099"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "model number",
+      "precedence_weight": 0.3,
+      "rationale": "Product model identifier; weaker shape match per HIPAA Safe Harbor (M) device serials (1.md:159, 1.md:469).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "mrn",
+      "precedence_weight": 0.65,
+      "rationale": "Medical Record Number per HIPAA Safe Harbor 45 CFR 164.514(b)(2)(i)(H); per-institution 6-10 digit identifier with high SSN-shape confusable rate (1.md:114, 1.md:450).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "n.a.",
+      "precedence_weight": 0.4,
+      "rationale": "Bank legal-name suffix per Federal Reserve MDRM (e.g., Wells Fargo Bank, N.A.); institution not customer name (1.md:248, 1.md:414).",
+      "source_id": "frb_mdrm_routing"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "ncpdp",
+      "precedence_weight": 0.5,
+      "rationale": "NCPDP pharmacy ID is 7-digit, format-distinct from DEA 9-char alphanumeric. Suppresses DEA-shape false positives near pharmacy provider blocks (1.md:210, 1.md:394).",
+      "source_id": "ncpdp_ref_via_dea"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "ndc",
+      "precedence_weight": 0.55,
+      "rationale": "10/11-digit NDC near 'NDC' is overwhelmingly NDC not NPI per FDA NDC Directory (1.md:134, 1.md:424).",
+      "source_id": "fda_ndc_directory"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "ndc code",
+      "precedence_weight": 0.55,
+      "rationale": "10/11-digit NDC near 'NDC' is overwhelmingly NDC not NPI per FDA NDC Directory (1.md:134, 1.md:424).",
+      "source_id": "fda_ndc_directory"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "foia",
+      "keyword": "oig audit",
+      "precedence_weight": 0.3,
+      "rationale": "DOJ OIG audit reports cite provider NPIs in published findings; partial confusable context (1.md:199, 1.md:420).",
+      "source_id": "doj_oig_reports"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "order id",
+      "precedence_weight": 0.45,
+      "rationale": "E-commerce sequential ID per UBL OrderReference (1.md:147, 1.md:470).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "order number",
+      "precedence_weight": 0.45,
+      "rationale": "Lab/imaging order number; institutional identifier. NPI fanout dropped per 1.md:123, 1.md:460.",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "medical",
+      "keyword": "payer",
+      "precedence_weight": 0.35,
+      "rationale": "Insurance company address in claim header; not patient PII (1.md:271, 1.md:387).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "personal privacy",
+      "precedence_weight": 0.4,
+      "rationale": "Exemption 6 and 7(C) statutory phrase per DOJ FOIA Guide (1.md:66, 1.md:432).",
+      "source_id": "doj_exemption_6_guide"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "pharmacy id",
+      "precedence_weight": 0.4,
+      "rationale": "NCPDP pharmacy ID confusable with DEA when shape overlaps; per DEA Pharmacist's Manual. Rescoped from (npi,) per 1.md:125, 1.md:395.",
+      "source_id": "ncpdp_ref_via_dea"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "physician id",
+      "precedence_weight": 0.3,
+      "rationale": "Generic physician ID label may legitimately co-occur with DEA registration number; low suppression weight to preserve recall. Rescoped from (npi,) per 1.md:126, 1.md:396.",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "plaintiff",
+      "precedence_weight": 0.3,
+      "rationale": "Plaintiff captions are name-adjacent; FRCP 5.2 requires SSN already redacted in caption blocks (1.md:44).",
+      "source_id": "us_courts_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "financial",
+      "keyword": "plan name",
+      "precedence_weight": 0.4,
+      "rationale": "Plan-name labels on 401k/403b statements hold the retirement plan sponsor name.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "po number",
+      "precedence_weight": 0.65,
+      "rationale": "UBL cac:OrderReference/cbc:ID; high SSN-shape confusable. NPI fanout dropped — UBL does not carry healthcare provider IDs (1.md:93, 1.md:441).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "policy number",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 9a, Box 11 (1.md:176, 1.md:461).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "prescription number",
+      "precedence_weight": 0.55,
+      "rationale": "Pharmacy fill ID near DEA-shaped string is overwhelmingly the pharmacy fill ID per 21 CFR 1306.05; not DEA registration. Rescoped from (ssn,npi) per 1.md:124, 1.md:397.",
+      "source_id": "dea_pharmacist_manual"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "provider id",
+      "precedence_weight": 0.3,
+      "rationale": "Generic provider ID label may co-occur with DEA; low weight preserves recall. Rescoped from (npi,) per 1.md:127, 1.md:398.",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "quote number",
+      "precedence_weight": 0.4,
+      "rationale": "Sequential quote identifier (1.md:154, 1.md:471).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "receipt number",
+      "precedence_weight": 0.45,
+      "rationale": "Variable-length point-of-sale identifier (1.md:149, 1.md:472).",
+      "source_id": "irs_form_1099"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "redacted",
+      "precedence_weight": 0.35,
+      "rationale": "Literal token 'redacted' indicates redaction metadata (1.md:65, 1.md:98, 1.md:433).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "foia",
+      "keyword": "redacted",
+      "precedence_weight": 0.35,
+      "rationale": "Literal token 'redacted' indicates redaction metadata (1.md:65, 1.md:98, 1.md:433).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "redacted",
+      "precedence_weight": 0.35,
+      "rationale": "Literal token 'redacted' indicates redaction metadata (1.md:65, 1.md:98, 1.md:433).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "redacted",
+      "precedence_weight": 0.35,
+      "rationale": "Literal token 'redacted' indicates redaction metadata (1.md:65, 1.md:98, 1.md:433).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "foia",
+      "keyword": "redaction",
+      "precedence_weight": 0.35,
+      "rationale": "DOJ FOIA Reference Guide §IX redaction marker; on real FOIA responses sits next to redacted PII (1.md Pool B narrowing).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "redaction",
+      "precedence_weight": 0.35,
+      "rationale": "DOJ FOIA Reference Guide §IX redaction marker; on real FOIA responses sits next to redacted PII (1.md Pool B narrowing).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "redaction",
+      "precedence_weight": 0.35,
+      "rationale": "DOJ FOIA Reference Guide §IX redaction marker; on real FOIA responses sits next to redacted PII (1.md Pool B narrowing).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "reference number",
+      "precedence_weight": 0.4,
+      "rationale": "Variable-length sequential identifier per UBL BuyerReference; common 9-digit shape. NPI fanout dropped per 1.md:145, 1.md:473.",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "request id",
+      "precedence_weight": 0.35,
+      "rationale": "API/system request identifier; variable-length (1.md:157, 1.md:474).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "reservation number",
+      "precedence_weight": 0.4,
+      "rationale": "Booking variant; variable-length sequential (1.md:160, 1.md:475).",
+      "source_id": "usps_pub199"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "foia",
+      "keyword": "responsive records",
+      "precedence_weight": 0.3,
+      "rationale": "DOJ FOIA Reference Guide §IV; document-context indicator with weak direct PII adjacency (1.md:68, 1.md:434).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "responsive records",
+      "precedence_weight": 0.3,
+      "rationale": "DOJ FOIA Reference Guide §IV; document-context indicator with weak direct PII adjacency (1.md:68, 1.md:434).",
+      "source_id": "doj_legal_glossary"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "generic",
+      "keyword": "return address",
+      "precedence_weight": 0.35,
+      "rationale": "Return address per USPS DMM is the sender block; commonly business address (1.md:284, 1.md:385).",
+      "source_id": "usps_dmm"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "room #",
+      "precedence_weight": 0.3,
+      "rationale": "Room numbers 3-4 digits; weak DOB-shape confusable (e.g. 'room 1234' looks like a DOB stem). Rescoped from (ssn,npi) per 1.md:135, 1.md:232.",
+      "source_id": "manual_medical"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "room number",
+      "precedence_weight": 0.3,
+      "rationale": "Room numbers 3-4 digits; weak DOB-shape confusable (e.g. 'room 1234' looks like a DOB stem). Rescoped from (ssn,npi) per 1.md:135, 1.md:232.",
+      "source_id": "manual_medical"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "routing number",
+      "precedence_weight": 0.8,
+      "rationale": "ABA RTN is exactly 9 digits with check digit per Federal Reserve E-Payments Routing Directory; very high shape confusable (1.md:92, 1.md:444).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "dea",
+      "doctype_scope": "medical",
+      "keyword": "rx number",
+      "precedence_weight": 0.55,
+      "rationale": "Pharmacy fill ID near DEA-shaped string is overwhelmingly the pharmacy fill ID per 21 CFR 1306.05; not DEA registration. Rescoped from (ssn,npi) per 1.md:124, 1.md:397.",
+      "source_id": "dea_pharmacist_manual"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "sbn",
+      "precedence_weight": 0.45,
+      "rationale": "State Bar Number following attorney name in caption block; non-PII identifier (1.md:231, 1.md:410).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "serial number",
+      "precedence_weight": 0.4,
+      "rationale": "Product serial number per HIPAA Safe Harbor (M) device serials category. NPI fanout dropped per 1.md:158, 1.md:476.",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "medical",
+      "keyword": "service date",
+      "precedence_weight": 0.55,
+      "rationale": "NUCC CMS-1500 Box 24A Date(s) of Service; date-shaped string near service-date label is overwhelmingly DOS not DOB. Scope strictly medical to avoid catastrophic FN on non-medical documents (1.md:130, 1.md:402).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "address",
+      "doctype_scope": "medical",
+      "keyword": "service facility",
+      "precedence_weight": 0.4,
+      "rationale": "NUCC CMS-1500 Box 32 service-facility address; not patient PII (1.md:270, 1.md:388).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "settlement date",
+      "precedence_weight": 0.55,
+      "rationale": "Settlement-date labels appear in brokerage and banking activity records.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "specimen id",
+      "precedence_weight": 0.45,
+      "rationale": "Lab specimen identifier; institutional non-PII per NUCC Box 23 CLIA context (1.md:122, 1.md:462).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "statement period",
+      "precedence_weight": 0.4,
+      "rationale": "Bank statement period dates per Regulation E; not DOB (1.md:301, 1.md:404).",
+      "source_id": "frb_reg_e"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "subscriber id",
+      "precedence_weight": 0.5,
+      "rationale": "Industry variant of NUCC CMS-1500 Box 1a Insured's I.D. Number (1.md:174, 1.md:463).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "support case",
+      "precedence_weight": 0.35,
+      "rationale": "Customer-support case identifier (1.md:156, 1.md:477).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "tax id",
+      "precedence_weight": 0.35,
+      "rationale": "TIN field per IRS Form W-9 Part I and NUCC CMS-1500 Box 25; SSN/EIN alternative shares 9-digit shape (1.md:94, 1.md:445). De-weighted 0.55 -> 0.35 at the S3 D1 gate (2026-06-11, Jesse-reviewed): a TIN field is the designated label for a sole proprietor's SSN, so at 0.55 the suppression dropped label-boosted SSNs below the balanced cutoff; 0.35 is the design 02 section-2.3 ambiguous-term weight (boosted SSNs surface, bare 9-digit shapes still drop at balanced).",
+      "source_id": "ubl_invoice_labels"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "tax year",
+      "precedence_weight": 0.5,
+      "rationale": "Tax-year labels on 1040/W-2/1099 forms are designed to mark the filing year, not birth year.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "ticket number",
+      "precedence_weight": 0.4,
+      "rationale": "Support-system identifier; variable-length sequential (1.md:155, 1.md:478).",
+      "source_id": "oasis_ubl_2_1"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "tracking number",
+      "precedence_weight": 0.5,
+      "rationale": "USPS IMpb 22-digit domestic / 13-char alphanumeric international per USPS Publication 199 (1.md:146, 1.md:479).",
+      "source_id": "usps_pub199"
+    },
+    {
+      "category_scope": "dob",
+      "doctype_scope": "financial",
+      "keyword": "transaction date",
+      "precedence_weight": 0.45,
+      "rationale": "Transaction date label per 1099 instructions; date-shaped string overwhelmingly transaction not DOB (1.md:300, 1.md:405).",
+      "source_id": "irs_form_1099"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "generic",
+      "keyword": "transaction id",
+      "precedence_weight": 0.45,
+      "rationale": "Variable-length transaction identifier; Regulation E electronic fund transfer context (1.md:150, 1.md:480).",
+      "source_id": "frb_reg_e"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "financial",
+      "keyword": "transit number",
+      "precedence_weight": 0.6,
+      "rationale": "Transit-number labels in banking hold ABA routing codes; 9-digit but not SSNs.",
+      "source_id": "self_authored_20260610"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "trust",
+      "precedence_weight": 0.35,
+      "rationale": "Legal-entity name suffixes per FRCP Rule 17 indicate corporate party not natural-person PII (1.md:232, 1.md:407, 1.md:409).",
+      "source_id": "frcp_rule_5_2"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "unit number",
+      "precedence_weight": 0.45,
+      "rationale": "Ward/unit IDs on hospital routing slips; A5 audit had no FN evidence either way, KEEP at current scope.",
+      "source_id": "manual_medical"
+    },
+    {
+      "category_scope": "npi",
+      "doctype_scope": "medical",
+      "keyword": "upin",
+      "precedence_weight": 0.45,
+      "rationale": "Legacy Unique Physician Identification Number per NUCC Box 17a qualifier 1G; appears on archival pre-2007 documents (1.md:192, 1.md:425).",
+      "source_id": "nucc_1500_v13"
+    },
+    {
+      "category_scope": "name",
+      "doctype_scope": "court",
+      "keyword": "v.",
+      "precedence_weight": 0.3,
+      "rationale": "Case caption v. (versus) separates public party names (1.md:233, 1.md:411).",
+      "source_id": "uscourts_glossary"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "medical",
+      "keyword": "visit number",
+      "precedence_weight": 0.55,
+      "rationale": "UB-04 visit identifier; HIPAA Safe Harbor 45 CFR 164.514(b)(2)(i)(J) account-numbers category (1.md:117, 1.md:464).",
+      "source_id": "hipaa_safe_harbor_45cfr_164_514"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "withheld in full",
+      "precedence_weight": 0.4,
+      "rationale": "DOJ FOIA Reference Guide §IX redaction notation (1.md:67, 1.md:435).",
+      "source_id": "doj_oip_reference_guide"
+    },
+    {
+      "category_scope": "ssn",
+      "doctype_scope": "foia",
+      "keyword": "withheld in part",
+      "precedence_weight": 0.4,
+      "rationale": "DOJ FOIA Reference Guide §IX redaction notation (1.md:67, 1.md:436).",
+      "source_id": "doj_oip_reference_guide"
+    }
+  ],
+  "generated_by": "resecta_data.gazetteers.negative_context.build",
+  "seed": 20260416,
+  "version": 1
+}

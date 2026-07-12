@@ -1,0 +1,35 @@
+# DOJ / federal legal vocabulary — bootstrap sample. Lines starting with # are ignored.
+# These are FOIA and court-adjacent terms used to scope suppression in
+# government and law-enforcement documents.
+foia
+freedom of information
+exemption b6
+exemption b7
+privacy act
+redaction
+redacted
+responsive records
+agency records
+federal register
+executive order
+department of justice
+us attorney
+assistant us attorney
+special agent
+federal bureau of investigation
+drug enforcement administration
+bureau of prisons
+immigration court
+administrative law judge
+notice of hearing
+notice of action
+agency appeal
+memorandum opinion
+attorney general
+solicitor general
+investigative file
+closed case
+referral
+subpoena duces tecum
+grand jury subpoena
+criminal referral

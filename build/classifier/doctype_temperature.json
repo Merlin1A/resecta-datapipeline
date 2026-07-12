@@ -1,0 +1,20 @@
+{
+  "fit_metadata": {
+    "corpus_seed": 20260416,
+    "input_dump_sha256": "dbec399cf2b4d71db7c9cd61da984a3b6e4f89e0bf11de2c1a46752b8362b2da",
+    "iterations": 34,
+    "nll_after": 2.8075918694291817e-12,
+    "nll_before": 0.0291210102100624,
+    "optimizer": "golden_section",
+    "search_lower": 0.1,
+    "search_upper": 10.0,
+    "split_size": 330,
+    "tolerance": 1e-06
+  },
+  "generated_by": "resecta_data.classifier.fit_temperature",
+  "notes": "Temperature fit by golden-section minimisation of mean negative log-likelihood on a 30% held-out G8 split stratified by (doctype, demographic_bucket). The pipeline is designed to be deterministic given a fixed dump and seed; re-running produces byte-identical output.",
+  "seed": 20260416,
+  "status": "calibrated",
+  "temperature": 0.10000038817309509,
+  "version": 1
+}
