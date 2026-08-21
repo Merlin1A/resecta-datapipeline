@@ -81,13 +81,6 @@ def _read_cmdline(pid: int) -> str:
     return raw.replace(b"\x00", b" ").decode("utf-8", errors="replace").strip()
 
 
-def _read_comm(pid: int) -> str:
-    try:
-        return Path(f"/proc/{pid}/comm").read_text().strip()
-    except (FileNotFoundError, ProcessLookupError, PermissionError):
-        return ""
-
-
 def _process_age_seconds(pid: int, btime: float) -> float | None:
     """Process age (seconds since fork). Reads ``/proc/<pid>/stat`` field 22."""
     try:

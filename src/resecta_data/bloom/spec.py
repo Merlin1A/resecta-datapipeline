@@ -29,14 +29,11 @@ HEADER_SIZE: Final[int] = 63
 SOURCE_HASH_SIZE: Final[int] = 32
 
 # Sizing defaults. A 0.1% FPR with k=10 requires m ≈ n * 14.378 bits.
-# For ~600 bootstrap names we use a conservative m of 65,536 bits (8 KiB) — far
-# more than needed, but keeps the bit array size stable while the bootstrap
-# corpora grow. Full corpora (see scripts/fetch_*.sh) target ~1.2 MiB per filter
-# at ~600K names. The builder sizes m dynamically from the actual n and the
-# target FPR; DEFAULT_M is only the floor.
+# The builder (cli.py _build_one_filter) computes m per corpus from the
+# actual row count and FPR_TARGET via optimal_bits(), then clamps the
+# result to a minimum of 8 bits for byte alignment.
 K_HASHES: Final[int] = 10
 FPR_TARGET: Final[float] = 0.001
-DEFAULT_M_FLOOR: Final[int] = 65_536
 
 HASH_ALGORITHM: Final[str] = "MurmurHash3_x64_128"
 MANIFEST_VERSION: Final[str] = "1.0.0"

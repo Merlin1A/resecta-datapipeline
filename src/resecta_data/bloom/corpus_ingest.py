@@ -395,35 +395,6 @@ def _emit_paranames_group(
         yield IngestedRow(normalized, source_id, "unlabeled")
 
 
-def parse_popnames(path: Path, source_id: str) -> list[IngestedRow]:
-    """Parse sigpwned/popular-names-by-country CSV.
-
-    Expected columns: ``country,type,name``. ``type`` is either ``given`` or
-    ``surname``; callers should pass only the file relevant to the filter
-    they're building (or we ingest the whole file and the merge step picks by
-    type tag — simpler: ingest everything; let the caller partition).
-    """
-    if not path.is_file():
-        raise MissingSourceError(f"PopNames file not found at {path}")
-    rows: list[IngestedRow] = []
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        header = reader.fieldnames or []
-        required = {"country", "type", "name"}
-        missing = required - set(header)
-        if missing:
-            raise PipelineError(f"{path}: missing columns {sorted(missing)}; header was {header!r}")
-        for lineno, raw in enumerate(reader, start=2):
-            name = (raw["name"] or "").strip()
-            if not name or name.startswith("#"):
-                continue
-            rtype = (raw["type"] or "").strip()
-            if rtype not in {"given", "surname"}:
-                raise PipelineError(f"{path}:{lineno}: unknown type {rtype!r}")
-            rows.append(IngestedRow(nfkc_lower(name), source_id, "unlabeled"))
-    return rows
-
-
 def parse_popnames_by_type(path: Path, source_id: str, name_type: str) -> list[IngestedRow]:
     """Parse PopNames and keep only rows with the given ``name_type``."""
     if name_type not in {"given", "surname"}:
