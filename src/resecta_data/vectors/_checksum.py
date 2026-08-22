@@ -135,25 +135,3 @@ def dea_check_digit(first_six: str) -> int:
     odd_sum = d[0] + d[2] + d[4]
     even_sum = d[1] + d[3] + d[5]
     return (odd_sum + 2 * even_sum) % 10
-
-
-def dea_is_valid(dea: str) -> bool:
-    """Return True when ``dea`` matches the DEA checksum contract.
-
-    Args:
-        dea: Candidate DEA. Expected form is two uppercase letters followed by
-            seven digits; any deviation returns False.
-
-    Returns:
-        True only when length is 9, first two characters are A-Z, remaining
-        seven are digits, and the seventh digit matches the check digit.
-    """
-    if len(dea) != 2 + _DEA_DIGIT_COUNT:
-        return False
-    prefix = dea[:2]
-    digits = dea[2:]
-    if not (prefix.isalpha() and prefix.isupper()):
-        return False
-    if not digits.isdigit():
-        return False
-    return dea_check_digit(digits[:6]) == int(digits[6])

@@ -19,7 +19,6 @@ from resecta_data.vectors._checksum import (
     cms_luhn,
     compute_npi_check_digit,
     dea_check_digit,
-    dea_is_valid,
 )
 
 # -----------------------------------------------------------------------------
@@ -69,33 +68,3 @@ def test_cms_luhn_rejects_non_digits() -> None:
 def test_dea_check_digit_in_range(first_six: str) -> None:
     check = dea_check_digit(first_six)
     assert 0 <= check <= 9
-
-
-@settings(deadline=None)
-@given(
-    prefix=st.from_regex(r"^[A-Z]{2}$", fullmatch=True),
-    first_six=st.from_regex(r"^\d{6}$", fullmatch=True),
-)
-def test_dea_is_valid_accepts_synthesized(prefix: str, first_six: str) -> None:
-    check = dea_check_digit(first_six)
-    dea = f"{prefix}{first_six}{check}"
-    assert dea_is_valid(dea)
-
-
-@settings(deadline=None)
-@given(
-    prefix=st.from_regex(r"^[A-Z]{2}$", fullmatch=True),
-    first_six=st.from_regex(r"^\d{6}$", fullmatch=True),
-)
-def test_dea_is_valid_rejects_wrong_check(prefix: str, first_six: str) -> None:
-    correct = dea_check_digit(first_six)
-    for off in range(1, 10):
-        wrong = (correct + off) % 10
-        assert not dea_is_valid(f"{prefix}{first_six}{wrong}")
-
-
-def test_dea_is_valid_requires_letter_prefix() -> None:
-    # Digit in first position: invalid.
-    assert not dea_is_valid("1B1234563")
-    # Length too short: invalid.
-    assert not dea_is_valid("AB12345")
