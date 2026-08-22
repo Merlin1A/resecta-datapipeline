@@ -47,12 +47,6 @@ def tmp_schemas_dir(tmp_path: Path) -> Iterator[Path]:
 
 
 @pytest.fixture
-def pipeline_root() -> Path:
-    """The actual DataPipeline/ directory. Read-only in tests."""
-    return Path(__file__).parent.parent
-
-
-@pytest.fixture
 def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Remove optional environment flags that affect pipeline behavior.
 

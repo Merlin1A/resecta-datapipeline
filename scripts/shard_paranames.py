@@ -28,7 +28,6 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
-import shutil
 import sys
 import tempfile
 from collections.abc import Iterator

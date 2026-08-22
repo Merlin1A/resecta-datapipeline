@@ -42,12 +42,3 @@ class MissingSourceError(PipelineError):
     missing a file that the builder requires. Fix by running ``make sources``
     (which may require Jesse to supply restricted datasets manually).
     """
-
-
-class UnsupervisedActionError(PipelineError):
-    """Raised when an automated action attempts to do something that requires Jesse.
-
-    See CONTRIBUTING.md's Hard stops section for the full list. This
-    exception exists to turn silent policy violations into loud, halting
-    failures.
-    """

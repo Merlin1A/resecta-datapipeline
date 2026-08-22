@@ -15,10 +15,7 @@ authors = [{ name = "Jesse Brookins" }]
 # Any addition requires a note in the PR description and a rerun of scripts/freeze_deps.sh.
 dependencies = [
     "click>=8.1.7,<9",
-    "pydantic>=2.7,<3",
     "jsonschema>=4.22,<5",
-    "xxhash>=3.4,<4",
-    "reportlab>=4.2,<5",
     "faker>=25.0,<26",
     "mmh3>=5.0,<6",
     # SEC-6 — Ed25519 signing for gazetteer_manifest.json (paired iOS PR).
@@ -120,7 +117,7 @@ files = ["src", "tests"]
 exclude = ["build/", "src/resecta_data/.*/sources/"]
 
 [[tool.mypy.overrides]]
-module = ["reportlab.*", "faker.*", "xxhash.*", "mmh3.*"]
+module = ["faker.*", "mmh3.*"]
 ignore_missing_imports = true
 
 # -----------------------------------------------------------------------------
@@ -140,7 +137,6 @@ addopts = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "determinism: runs the builder twice and diffs outputs",
-    "schema: validates a generated artifact against its JSON schema",
 ]
 # Note: PYTHONHASHSEED=0 is enforced at test-import time by tests/conftest.py.
 # We do not use pytest-env's [env] block because that pulls in another

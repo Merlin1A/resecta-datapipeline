@@ -62,11 +62,6 @@ _BOUNDARY_YY: Final[tuple[int, ...]] = (
 # forbids a three-digit YY anyway).
 
 
-def _is_boundary_sample(yy: int) -> bool:
-    """Whether ``yy`` is part of the boundary coverage set (0-99 only)."""
-    return yy in _BOUNDARY_YY and _YY_MIN <= yy <= _YY_MAX
-
-
 # Counts for the sampled-vector layers (in addition to boundary vectors).
 _SAMPLED_VALID_COUNT: Final[int] = 25
 _SAMPLED_INVALID_YY_COUNT: Final[int] = 15
