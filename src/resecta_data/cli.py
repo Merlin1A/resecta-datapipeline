@@ -94,6 +94,7 @@ from .corpus import build_g8_corpus, build_negative_corpus
 from .demographics import build as build_demographics
 from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
+from .eval import documents as eval_documents
 from .eval import run as eval_run
 from .fuzz import build as build_fuzz_redos
 from .gazetteers.address_components import build as build_address_components
@@ -1900,6 +1901,59 @@ def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Pa
         f"{len(baseline['per_family'])} families)"
     )
     click.echo(f"Wrote {written['headroom']}")
+
+
+@build_group.command("eval-documents")
+@click.option(
+    "--manifest",
+    "manifest_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to documents.manifest.json (the T1.4 document manifest).",
+)
+@click.option(
+    "--gt-root",
+    "gt_root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="Root that resolves the manifest's gt paths (a sample-doc checkout with variants/ built).",
+)
+@click.option(
+    "--hits-dir",
+    "hits_dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="DocumentHarnessTests output directory (RESECTA_DOCS_OUT).",
+)
+@click.option(
+    "--out-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    required=True,
+    help="Directory for documents_eval.json.",
+)
+def build_eval_documents_cmd(
+    manifest_path: Path, gt_root: Path, hits_dir: Path, out_dir: Path
+) -> None:
+    """Derive the document-level Site-B eval from the H1.2 harness JSONs.
+
+    Joins each document's hits (per leg, per run) against its draw-time ground
+    truth under the Option-C match rule, and writes ``documents_eval.json``
+    (per-document metrics + pooled micro/macro + Wilson/BCa intervals + miss
+    attribution) into ``--out-dir`` via the canonical JSON writer. Dev/eval
+    only -- the artifact is not installed to the Swift Resources path.
+    """
+    assert_hash_seed_pinned()
+    written = eval_documents.main(manifest_path, gt_root, hits_dir, out_dir)
+    payload = load_json(written["eval"])
+    click.echo(
+        f"Wrote {written['eval']} "
+        f"({len(payload['per_document'])} documents; site={payload['site']})"
+    )
+    for pool_name, pool in payload["pools"].items():
+        click.echo(
+            f"  pool {pool_name}: micro-F2 {pool['micro_f2']:.4f} "
+            f"over {len(pool['documents'])} documents"
+        )
 
 
 # Precision deltas at the CLI are expressed in POINTS (a 5 means 5 precision
