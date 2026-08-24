@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/pdf_mutations.schema.json",
+  "title": "Malformed-PDF fixture manifest",
+  "description": "Index of deterministically damaged copies of one source PDF, used to measure how the importer degrades on malformed input. Each row names a fixture file, records exactly what was damaged, and states a structural prior for whether a reader should be able to open it. The prior is what the file layout implies, not a measurement; the robustness runner records the observed outcome separately, and a disagreement between the two is a result to adjudicate rather than a defect in this artifact. Development-only: these fixtures are inputs to the test harness and are not installed into the app bundle.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "base_sha256", "base_bytes", "mutations"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the format changes in a way that requires a consumer update."
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Master PRNG seed. Every per-row seed is drawn from it, so the whole set is reproducible from this value plus the source bytes."
+    },
+    "base_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the undamaged source document, recorded so a fixture set can be traced back to the exact bytes it was derived from."
+    },
+    "base_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Size of the undamaged source document in bytes."
+    },
+    "mutations": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of fixtures, grouped by family. Order is stable across rebuilds at a given seed and source.",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "seed", "expected", "path", "sha256", "bytes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Stable identifier, unique across the artifact. Also the fixture file's stem."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["byte_flip", "truncation", "xref_damage", "bad_length"],
+            "description": "Which family of damage was applied. byte_flip inverts a single bit; truncation cuts the file short; xref_damage corrupts the cross-reference machinery; bad_length misstates a stream length."
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Per-row seed drawn from the master seed, recorded for traceability."
+          },
+          "expected": {
+            "type": "string",
+            "enum": ["open", "reject"],
+            "description": "Structural prior for the import outcome, derived from what the damage does to the file layout. Not a measurement and not ground truth."
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+/[a-z0-9_]+\\.pdf$",
+            "description": "Fixture file location, relative to the directory holding this manifest."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Lowercase hex SHA-256 of the fixture file's bytes."
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Size of the fixture file in bytes. Equal to base_bytes for every family except truncation."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional human-readable statement of what was damaged and why the prior is what it is."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Optional family-specific parameters, recorded so a fixture can be reasoned about without diffing bytes. Which keys are present depends on kind.",
+            "properties": {
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Byte offset the edit was applied at."
+              },
+              "bit": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 7,
+                "description": "Which bit of the byte at offset was inverted."
+              },
+              "region": {
+                "type": "string",
+                "enum": ["signature", "version", "body", "xref_table", "trailer"],
+                "description": "byte_flip only: which region of the document the offset falls in. The signature is the %PDF- token a reader keys on; the version is the advisory digits that follow it."
+              },
+              "kept_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "truncation only: how many leading bytes survived the cut."
+              },
+              "original_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "truncation only: the source document's size, for reading kept_bytes as a fraction."
+              },
+              "target": {
+                "type": "string",
+                "enum": ["startxref_offset", "xref_entry_offset", "xref_keyword"],
+                "description": "xref_damage only: which piece of the cross-reference machinery was corrupted."
+              },
+              "entry_index": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "xref_damage only: which cross-reference entry was corrupted, when the target is an entry."
+              },
+              "original_value": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The numeric value that was overwritten."
+              },
+              "replacement_value": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "The numeric value written in its place. Padded to the original digit width, so no byte offset in the document shifts."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

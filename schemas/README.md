@@ -26,6 +26,7 @@ test suite to exercise the validator.
 - `ssn_structural_vectors.schema.json` — SSA structural rejection vectors (mirrors Swift SSNStructuralValidator)
 - `zip_scf_states.schema.json` — USPS SCF-prefix → state table with 5-digit overrides
 - `redos_payloads.schema.json` — attacker-shaped strings for the Swift-side regex fuzz harness
+- `pdf_mutations.schema.json` — index of deterministically damaged copies of one source PDF, for measuring importer degradation (H4.2); development-only, schema-routed but never installed
 - `adversarial_patterns.schema.json` — detector false-positive and classifier-stuffing fragments
 
 ## Phase 2 (landed)

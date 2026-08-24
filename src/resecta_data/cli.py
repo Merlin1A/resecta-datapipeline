@@ -96,6 +96,7 @@ from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
 from .eval import documents as eval_documents
 from .eval import run as eval_run
+from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
 from .gazetteers.address_components import build as build_address_components
 from .gazetteers.address_components import (
@@ -166,6 +167,11 @@ SCHEMA_ROUTES: dict[str, str] = {
     "vectors/routing_number_vectors.json": "routing_number_vectors",
     "gazetteers/zip_scf_states.json": "zip_scf_states",
     "fuzz/redos_payloads.json": "redos_payloads",
+    # T4.3 malformed-PDF fixtures. Schema-routed but deliberately absent from
+    # INSTALL_ROUTES: the set is a development input to the H4.2 robustness
+    # runner and never ships in the app bundle (same posture as
+    # g8_detection_baseline / g8_headroom).
+    "fuzz/pdf_mutations.json": "pdf_mutations",
     "adversarial/adversarial_patterns.json": "adversarial_patterns",
     # Phase 2
     "gazetteers/gazetteer_manifest.json": "gazetteer_manifest",
@@ -1149,7 +1155,7 @@ def build_zip_scf_cmd(
 
 
 @build_group.command("fuzz")
-@click.argument("kind", type=click.Choice(["redos"]))
+@click.argument("kind", type=click.Choice(["redos", "pdf-mutations"]))
 @click.option(
     "--build-dir",
     type=click.Path(file_okay=False, path_type=Path),
@@ -1161,7 +1167,32 @@ def build_zip_scf_cmd(
     default=CANONICAL_SEED,
     show_default=True,
 )
-def build_fuzz_cmd(kind: str, build_dir: Path, seed: int) -> None:
+@click.option(
+    "--packet",
+    "packet_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Source PDF the pdf-mutations kind damages (a sample-doc checkout's "
+        "packet.pdf). Required for that kind; ignored otherwise. Nothing binary "
+        "is committed here -- the base is read at build time and its sha256 is "
+        "recorded in the manifest."
+    ),
+)
+@click.option(
+    "--count",
+    type=int,
+    default=DEFAULT_MUTATION_COUNT,
+    show_default=True,
+    help="How many pdf-mutations fixtures to emit, split evenly across the four families.",
+)
+def build_fuzz_cmd(
+    kind: str,
+    build_dir: Path,
+    seed: int,
+    packet_path: Path | None,
+    count: int,
+) -> None:
     """Build fuzz payload catalogs."""
     assert_hash_seed_pinned()
     if kind == "redos":
@@ -1169,6 +1200,21 @@ def build_fuzz_cmd(kind: str, build_dir: Path, seed: int) -> None:
         dest = build_dir / "fuzz" / "redos_payloads.json"
         dump_canonical_json(payload, dest)
         click.echo(f"Wrote {dest} ({len(payload['payloads'])} payloads)")
+        return
+
+    if packet_path is None:
+        raise click.UsageError("--packet is required for `build fuzz pdf-mutations`.")
+    mutation_set = build_pdf_mutations(seed, source=packet_path.read_bytes(), count=count)
+    fuzz_dir = build_dir / "fuzz"
+    for rel, data in mutation_set.files:
+        atomic_write_bytes(fuzz_dir / rel, data)
+    dest = fuzz_dir / "pdf_mutations.json"
+    dump_canonical_json(mutation_set.manifest, dest)
+    click.echo(
+        f"Wrote {dest} ({len(mutation_set.files)} fixtures under "
+        f"{fuzz_dir / MUTATIONS_DIRNAME}/; base sha256 "
+        f"{mutation_set.manifest['base_sha256'][:12]}...)"
+    )
 
 
 @build_group.command("adversarial")

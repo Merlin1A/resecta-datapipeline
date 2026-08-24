@@ -66,6 +66,18 @@ OUT_OF_BAND_PREFIXES: Final[tuple[str, ...]] = (
     # ran schema-check-only, never full `gmake verify`.
     "corpus/g8_fire_features.json",
     "corpus/negative_corpus.json",
+    # T4.3 malformed-PDF fixtures — built on demand by
+    # `build fuzz pdf-mutations --packet <sample-doc>/packet.pdf`, never by
+    # `make build`: the base document lives in a sibling repo, so the build has
+    # nothing to damage. Same committed-not-rebuilt shape as the calibration
+    # dumps above — present under build/ but outside the rebuild scope, so they
+    # break the determinism rebuild-and-diff and the hash-lock bijection unless
+    # classified out-of-band. Their determinism is still verified, by
+    # tests/test_pdf_mutations_determinism.py double-building and comparing
+    # every fixture byte for byte. They are also development-only: excluding
+    # them keeps the bundle-size probe honest, since none of them ships.
+    "fuzz/pdf_mutations.json",
+    "fuzz/pdf_mutations/",
 )
 """Build-relative paths produced by stages other than ``make build``.
 
