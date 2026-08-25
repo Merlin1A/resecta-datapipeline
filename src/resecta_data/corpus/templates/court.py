@@ -12,12 +12,17 @@ from typing import Any
 
 from resecta_data.corpus._names import NameSampler, Person
 from resecta_data.corpus._pii import (
+    generate_business_registration,
     generate_case_number,
+    generate_dl_label,
     generate_dob,
+    generate_drivers_license,
     generate_email_local,
     generate_filing_date,
+    generate_license_plate,
     generate_localized_address,
     generate_phone,
+    generate_plate_label,
     generate_ssn,
     generate_ssn_shaped_decoy,
 )
@@ -29,6 +34,8 @@ from resecta_data.corpus._spans import (
 
 _ADVERSARIAL_PROBABILITY = 0.30
 _ALL_CAPS_PROBABILITY = 0.20
+# 1.2 T1.1: the plate-label decoy rides its own unconditional draw.
+_PLATE_DECOY_PROBABILITY = 0.30
 
 
 def _append_caption(
@@ -168,5 +175,46 @@ def emit(
     sb.append_pii(dob, "dob")
     sb.append(", testified under oath.\n")
 
+    _append_vehicle_and_license(sb, rng, tags)
+
     text, spans = sb.finalize()
     return text, spans, tags
+
+
+def _append_vehicle_and_license(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
+    """1.2 T1.1 (C12-25): driversLicense + licensePlate + the plate-label decoy.
+
+    Every draw here happens AFTER the last pre-existing draw and the text is
+    appended at the END of the document, so every pre-existing span, offset
+    and rng draw is byte-preserved. Draws are unconditional (the decoy roll
+    is taken even when nothing is emitted) so the stream stays a pure
+    function of the seed.
+    """
+    plate_label = generate_plate_label(rng)
+    plate = generate_license_plate(rng)
+    dl_label = generate_dl_label(rng)
+    dl = generate_drivers_license(rng)
+    include_plate_decoy = rng.random() < _PLATE_DECOY_PROBABILITY
+    registration = generate_business_registration(rng)
+
+    # "vehicle" sits inside the plate profile's +-5-token window -> fed (must).
+    sb.append("\nThe vehicle bearing ")
+    sb.append(plate_label)
+    sb.append_pii(plate, "licensePlate")
+    sb.append(" is registered to the defendant as owner.\n")
+    sb.append("Defendant identification on file -- ")
+    sb.append(dl_label)
+    sb.append_pii(dl, "driversLicense")
+    sb.append(".\n")
+    if include_plate_decoy:
+        # A corporate registration id behind the "Registration #" label the
+        # plate regex accepts: not PII, so a fire is a label collision.
+        sb.append("Plaintiff is a corporation, Business Registration # ")
+        sb.append_pii(
+            registration,
+            "licensePlate",
+            adversarial=True,
+            expected_outcome="suppress",
+        )
+        sb.append(" on file with the secretary of state.\n")
+        tags.append("business_registration_plate_label")

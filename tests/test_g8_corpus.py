@@ -19,7 +19,9 @@ from resecta_data.common.schema import validate_file
 from resecta_data.corpus import build_g8_corpus
 from resecta_data.corpus._spans import REDACTED_NAME_PLACEHOLDER
 from resecta_data.corpus.generate import _MAX_BUILD_WORKERS
+from resecta_data.vectors._checksum import luhn_mod10
 from resecta_data.vectors.ein import _VALID_EIN_PREFIXES
+from resecta_data.vectors.itin import _yy_is_valid
 from resecta_data.vectors.routing_number import _aba_checksum, _is_valid_prefix
 
 _SCHEMAS = Path(__file__).parent.parent / "schemas"
@@ -34,8 +36,12 @@ _MIN_COUNTS = {
     "generic": 5,
 }
 
+# Enough documents per doctype for every 50/50 branch and every 25-30 % decoy
+# roll to be taken at least once (used by the 17/17 coverage tests).
+_COVERAGE_COUNTS = dict.fromkeys(_MIN_COUNTS, 40)
+
 _MIN_SPANS = 5
-_MAX_SPANS = 15
+_MAX_SPANS = 18
 
 
 def test_schema_validates_small(tmp_build_dir: Path) -> None:
@@ -315,3 +321,151 @@ def test_corpus_build_respects_pytest_xdist_env(
     )
     payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, parallel=True)
     assert len(payload["documents"]) == sum(_MIN_COUNTS.values())
+
+
+# ---- 1.2 T1.1 (C12-25): the five added categories + the tier bridge ------
+
+_ALL_17_CATEGORIES = {
+    "ssn",
+    "npi",
+    "dea",
+    "dob",
+    "address",
+    "account",
+    "mrn",
+    "name",
+    "phone",
+    "email",
+    "routingNumber",
+    "ein",
+    "itin",
+    "creditCard",
+    "driversLicense",
+    "passport",
+    "licensePlate",
+}
+_NEW_DECOY_TAGS = {
+    "luhn_failed_card_number",
+    "itin_yy_out_of_range",
+    "dl_shape_no_jurisdiction",
+    "passport_shape_no_issuer",
+    "business_registration_plate_label",
+}
+_TIERS = {"must", "should", "watch", "must_not"}
+_CARD_PREFIX_OK = re.compile(r"^(?:4|5[1-5]|6011)")
+# The engine's ITIN profile positives (PIIDetector.itinProfile) and the plate
+# profile positives (LicensePlateContextKeywords.profile); the scorer matches
+# SUBSTRINGS, so the window text is checked the same way.
+_ITIN_KEYWORDS = (
+    "itin",
+    "individual taxpayer identification",
+    "individual taxpayer id",
+    "tax identification number",
+    "w-7",
+    "taxpayer identification",
+    "tin",
+)
+_PLATE_KEYWORDS = (
+    "vehicle",
+    "car",
+    "truck",
+    "motorcycle",
+    "dmv",
+    "registration",
+    "vin",
+    "make",
+    "model",
+    "driver",
+    "owner",
+)
+
+
+def _all_spans(payload: dict[str, Any]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    return [(doc, span) for doc in payload["documents"] for span in doc["pii_spans"]]
+
+
+def test_all_seventeen_categories_have_span_ground_truth() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    seen = {span["category"] for _, span in _all_spans(payload)}
+    assert seen == _ALL_17_CATEGORIES
+    tags = {tag for doc in payload["documents"] for tag in doc.get("adversarial_tags", [])}
+    assert tags >= _NEW_DECOY_TAGS
+    # Every added category also has its negative twin (a must_not span).
+    decoyed = {span["category"] for _, span in _all_spans(payload) if span["tier"] == "must_not"}
+    assert decoyed >= {"itin", "creditCard", "driversLicense", "passport", "licensePlate"}
+
+
+def test_coverage_counts_schema_validates(tmp_build_dir: Path) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    dest = tmp_build_dir / "g8_corpus_coverage.json"
+    dump_canonical_json(payload, dest)
+    validate_file(dest, _SCHEMAS, "g8_corpus")
+
+
+def test_tier_bridge_is_total_and_consistent() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    for _, span in _all_spans(payload):
+        tier = span["tier"]
+        assert tier in _TIERS
+        assert (tier == "must_not") == (span["expected_outcome"] == "suppress")
+        assert (tier == "watch") == (span["expected_outcome"] == "flag")
+        if tier == "should":
+            assert span["expected_outcome"] == "redact"
+            assert span["adversarial"] is False
+    tiers = {span["tier"] for _, span in _all_spans(payload)}
+    # No template emits a `flag` outcome today, so `watch` is legitimately absent.
+    assert {"must", "should", "must_not"} <= tiers
+
+
+def test_new_category_values_structurally_valid() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    for _, span in _all_spans(payload):
+        category, value = span["category"], span["value"]
+        decoy = span["expected_outcome"] == "suppress"
+        if category == "itin":
+            assert re.fullmatch(r"9\d{2}-\d{2}-\d{4}", value)
+            # Valid YY group iff not the out-of-range decoy.
+            assert _yy_is_valid(int(value[4:6])) is not decoy
+        elif category == "creditCard":
+            assert re.fullmatch(r"\d{4}( \d{4}){3}", value)
+            digits = value.replace(" ", "")
+            assert _CARD_PREFIX_OK.match(digits)
+            assert luhn_mod10(digits) is not decoy
+        elif category == "driversLicense":
+            assert re.fullmatch(r"[A-Z]\d{14}" if decoy else r"[A-Z]\d{7,8}", value)
+        elif category == "passport":
+            assert re.fullmatch(r"[A-Z]\d{6}" if decoy else r"[A-Z]\d{8}", value)
+        elif category == "licensePlate":
+            assert re.fullmatch(r"\d{4}-[A-Z]{2}-\d{5}" if decoy else r"[A-Z]{3}[- ]?\d{4}", value)
+
+
+def _window_text(text: str, start: int, end: int, radius: int) -> str:
+    """The +-radius whitespace tokens around [start, end), joined and lowercased."""
+    before = text[:start].split()
+    after = text[end:].split()
+    return " ".join(before[-radius:] + after[:radius]).lower()
+
+
+def test_should_tier_surfaces_are_keyword_starved() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    should = [(doc, span) for doc, span in _all_spans(payload) if span["tier"] == "should"]
+    assert should
+    for doc, span in should:
+        if span["category"] == "itin":
+            window = _window_text(doc["text"], span["start"], span["end"], radius=8)
+            assert not any(kw in window for kw in _ITIN_KEYWORDS), doc["id"]
+            # The +-100-char reading of the window must be starved too.
+            chars = doc["text"][max(0, span["start"] - 100) : span["end"] + 100].lower()
+            assert not any(kw in chars for kw in _ITIN_KEYWORDS), doc["id"]
+        elif span["category"] == "licensePlate":
+            window = _window_text(doc["text"], span["start"], span["end"], radius=5)
+            assert not any(kw in window for kw in _PLATE_KEYWORDS), doc["id"]
+        else:
+            raise AssertionError(f"unexpected should-tier category {span['category']}")
+    assert {span["category"] for _, span in should} == {"itin", "licensePlate"}
+
+
+def test_span_cap_still_binds_all_templates() -> None:
+    """The 15 -> 18 ceiling is tight: no document exceeds it at coverage counts."""
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    assert max(len(doc["pii_spans"]) for doc in payload["documents"]) <= _MAX_SPANS

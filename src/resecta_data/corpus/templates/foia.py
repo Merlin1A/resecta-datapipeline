@@ -13,8 +13,13 @@ from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
     generate_dob,
     generate_email_local,
+    generate_license_plate,
     generate_localized_address,
+    generate_passport,
+    generate_passport_label,
+    generate_passport_shaped_no_issuer,
     generate_phone,
+    generate_plate_label,
     generate_request_id,
     generate_ssn,
 )
@@ -22,6 +27,9 @@ from resecta_data.corpus._spans import (
     SpanBuilder,
     append_name_or_placeholder,
 )
+
+# 1.2 T1.1: the no-issuer passport decoy rides its own unconditional draw.
+_PASSPORT_DECOY_PROBABILITY = 0.25
 
 
 def emit(
@@ -80,5 +88,45 @@ def emit(
     append_name_or_placeholder(sb, requester.full_name, name_sparse=name_sparse)
     sb.append("\n")
 
+    tags: list[str] = []
+    _append_passport_and_plate(sb, rng, tags)
+
     text, spans = sb.finalize()
-    return text, spans, []
+    return text, spans, tags
+
+
+def _append_passport_and_plate(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
+    """1.2 T1.1 (C12-25): passport + a keyword-STARVED licensePlate + the decoy.
+
+    Append-only after the last pre-existing draw (see court.py for the
+    byte-preservation rule); every draw is unconditional.
+    """
+    passport_label = generate_passport_label(rng)
+    passport = generate_passport(rng)
+    plate_label = generate_plate_label(rng, keyword_free=True)
+    plate = generate_license_plate(rng)
+    include_passport_decoy = rng.random() < _PASSPORT_DECOY_PROBABILITY
+    passport_decoy = generate_passport_shaped_no_issuer(rng)
+
+    sb.append("\nScope: travel records associated with ")
+    sb.append(passport_label)
+    sb.append_pii(passport, "passport")
+    sb.append(", and the incident report referencing ")
+    sb.append(plate_label)
+    # No plate context keyword within +-5 tokens: the engine's own profile
+    # scores this surface at its 0.55 base, under the 0.65 balanced cutoff,
+    # so it is designed-marginal -> should.
+    sb.append_pii(plate, "licensePlate", tier="should")
+    sb.append(".\n")
+    if include_passport_decoy:
+        # 1L+6D: the passport shape no issuer row accepts (gazetteer suppresses).
+        sb.append("Prior ")
+        sb.append(passport_label)
+        sb.append_pii(
+            passport_decoy,
+            "passport",
+            adversarial=True,
+            expected_outcome="suppress",
+        )
+        sb.append(" (expired, for cross-reference).\n")
+        tags.append("passport_shape_no_issuer")

@@ -12,13 +12,20 @@ from typing import Any
 
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
+    generate_credit_card,
     generate_dea,
+    generate_dl_label,
+    generate_dl_shaped_no_jurisdiction,
     generate_dob,
+    generate_drivers_license,
     generate_email_local,
     generate_localized_address,
     generate_mrn,
     generate_npi,
     generate_npi_shaped_phone,
+    generate_passport,
+    generate_passport_label,
+    generate_passport_shaped_no_issuer,
     generate_phone,
     generate_ssn,
 )
@@ -28,6 +35,9 @@ from resecta_data.corpus._spans import (
 )
 
 _ADVERSARIAL_PROBABILITY = 0.25
+# 1.2 T1.1: the identity document verified at intake is a passport half the
+# time and a driver's license otherwise.
+_PASSPORT_ID_PROBABILITY = 0.50
 
 
 def emit(
@@ -105,16 +115,76 @@ def emit(
     )
 
     if include_adversarial:
-        decoy = generate_npi_shaped_phone(rng)
-        sb.append("Callback line (patient services): ")
-        sb.append_pii(
-            decoy,
-            "npi",
-            adversarial=True,
-            expected_outcome="suppress",
-        )
-        sb.append(".\n")
-        tags.append("npi_shaped_phone_number")
+        _append_callback_decoy(sb, rng, tags)
+
+    _append_identity_and_card(sb, rng, tags)
 
     text, spans = sb.finalize()
     return text, spans, tags
+
+
+def _append_callback_decoy(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
+    """The NPI-shaped phone-number decoy (drawn only when emitted, as before)."""
+    decoy = generate_npi_shaped_phone(rng)
+    sb.append("Callback line (patient services): ")
+    sb.append_pii(
+        decoy,
+        "npi",
+        adversarial=True,
+        expected_outcome="suppress",
+    )
+    sb.append(".\n")
+    tags.append("npi_shaped_phone_number")
+
+
+def _append_identity_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
+    """1.2 T1.1 (C12-25): driversLicense / passport at intake + creditCard.
+
+    Append-only after the last pre-existing draw (see court.py for the
+    byte-preservation rule); every draw is unconditional.
+    """
+    id_is_passport = rng.random() < _PASSPORT_ID_PROBABILITY
+    dl_label = generate_dl_label(rng)
+    dl = generate_drivers_license(rng)
+    passport_label = generate_passport_label(rng)
+    passport = generate_passport(rng)
+    card = generate_credit_card(rng)
+    include_id_decoy = rng.random() < _ADVERSARIAL_PROBABILITY
+    dl_decoy = generate_dl_shaped_no_jurisdiction(rng)
+    passport_decoy = generate_passport_shaped_no_issuer(rng)
+
+    sb.append("\nIdentity verified at intake -- ")
+    if id_is_passport:
+        sb.append(passport_label)
+        sb.append_pii(passport, "passport")
+    else:
+        sb.append(dl_label)
+        sb.append_pii(dl, "driversLicense")
+    sb.append(".\nCopay card on file: ")
+    sb.append_pii(card, "creditCard")
+    sb.append(".\n")
+    if include_id_decoy:
+        # The packet's must-not-fire classes: a passport shape no issuer row
+        # accepts (1L+6D) / a DL shape longer than every jurisdiction row
+        # (1L+14D) -- the pattern gazetteers suppress both.
+        if id_is_passport:
+            sb.append("Prior ")
+            sb.append(passport_label)
+            sb.append_pii(
+                passport_decoy,
+                "passport",
+                adversarial=True,
+                expected_outcome="suppress",
+            )
+            tags.append("passport_shape_no_issuer")
+        else:
+            sb.append("Secondary ID on file -- ")
+            sb.append(dl_label)
+            sb.append_pii(
+                dl_decoy,
+                "driversLicense",
+                adversarial=True,
+                expected_outcome="suppress",
+            )
+            tags.append("dl_shape_no_jurisdiction")
+        sb.append(" (superseded).\n")

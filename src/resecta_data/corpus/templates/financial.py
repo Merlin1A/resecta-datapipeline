@@ -13,9 +13,12 @@ from typing import Any
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
     generate_account_number,
+    generate_credit_card,
     generate_email_local,
     generate_invoice_number,
+    generate_itin,
     generate_localized_address,
+    generate_luhn_failed_card,
     generate_phone,
     generate_routing_number,
     generate_ssn,
@@ -24,6 +27,9 @@ from resecta_data.corpus._spans import (
     SpanBuilder,
     append_name_or_placeholder,
 )
+
+# 1.2 T1.1: the Luhn-broken card decoy rides its own unconditional draw.
+_CARD_DECOY_PROBABILITY = 0.25
 
 
 def emit(
@@ -90,5 +96,37 @@ def emit(
     sb.append_pii(email, "email")
     sb.append("\n")
 
+    tags: list[str] = []
+    _append_itin_and_card(sb, rng, tags)
+
     text, spans = sb.finalize()
-    return text, spans, []
+    return text, spans, tags
+
+
+def _append_itin_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
+    """1.2 T1.1 (C12-25): itin + creditCard + the Luhn-broken card decoy.
+
+    Append-only after the last pre-existing draw (see court.py for the
+    byte-preservation rule); every draw is unconditional.
+    """
+    itin = generate_itin(rng)
+    card = generate_credit_card(rng)
+    include_card_decoy = rng.random() < _CARD_DECOY_PROBABILITY
+    card_decoy = generate_luhn_failed_card(rng)
+
+    sb.append("\nVendor ITIN (Form W-9 on file): ")
+    sb.append_pii(itin, "itin")
+    sb.append("\nPaid by card: ")
+    sb.append_pii(card, "creditCard")
+    sb.append("\n")
+    if include_card_decoy:
+        # Accepted IIN, 16 digits, Luhn check broken: the triple gate rejects it.
+        sb.append("Card declined at checkout, number as keyed: ")
+        sb.append_pii(
+            card_decoy,
+            "creditCard",
+            adversarial=True,
+            expected_outcome="suppress",
+        )
+        sb.append("\n")
+        tags.append("luhn_failed_card_number")
