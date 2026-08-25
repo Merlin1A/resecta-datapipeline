@@ -96,6 +96,7 @@ from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
 from .eval import documents as eval_documents
 from .eval import run as eval_run
+from .eval.sitegap import build_site_gap
 from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
 from .gazetteers.address_components import build as build_address_components
@@ -211,6 +212,9 @@ SCHEMA_ROUTES: dict[str, str] = {
     # (not shipped), like g8_bucket_recall / negative_corpus.
     "eval/g8_detection_baseline.json": "g8_detection_baseline",
     "eval/g8_headroom.json": "g8_headroom",
+    # 1.2 P1.10 — the Site-B minus detector-site join of two derived
+    # baselines (M12-02 arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
+    "eval/g8_site_gap.json": "g8_site_gap",
     # Phase 3b (produced only when Swift-side dumps are present under
     # build/calibration/).
     "classifier/doctype_temperature.json": "doctype_temperature",
@@ -2093,6 +2097,51 @@ def build_eval_compare_cmd(
         f"Wrote {out_path} (verdict={overall}; "
         f"families={len(verdict['families'])}, "
         f"aggregate regression={verdict['aggregate']['regression']})"
+    )
+
+
+@build_group.command("eval-sitegap")
+@click.option(
+    "--detector",
+    "detector_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Derived g8_detection_baseline.json of the detector-site trio (NOT _cells.json).",
+)
+@click.option(
+    "--siteb",
+    "siteb_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Derived g8_detection_baseline.json of the Site-B trio (NOT _cells.json).",
+)
+@click.option(
+    "--out",
+    "out_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="Path for the g8_site_gap.json output.",
+)
+def build_eval_sitegap_cmd(detector_path: Path, siteb_path: Path, out_path: Path) -> None:
+    """Join the detector-site and Site-B derived baselines into the site gap.
+
+    Reads the two derived ``g8_detection_baseline.json`` dicts and writes
+    ``g8_site_gap.json`` (per family + grand total: both sides' headline
+    numbers, intervals and packet-tier block, and Site B minus detector on
+    every differenced field) to ``--out`` via the canonical JSON writer. Pure
+    arithmetic over the frozen baselines; dev/eval only.
+    """
+    assert_hash_seed_pinned()
+    detector = load_json(detector_path)
+    siteb = load_json(siteb_path)
+    gap = build_site_gap(detector, siteb)
+    dump_canonical_json(gap, out_path)
+    total = gap["totals"]["delta_siteb_minus_detector"]
+    click.echo(
+        f"Wrote {out_path} (grand-total Site B minus detector: "
+        f"precision {total['precision']:+.4f} recall {total['recall']:+.4f} "
+        f"f2 {total['f2']:+.4f}; families with a gap: "
+        f"{len(gap['families_with_gap'])} of {len(gap['families'])})"
     )
 
 
