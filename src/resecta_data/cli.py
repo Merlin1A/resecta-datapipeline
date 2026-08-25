@@ -96,6 +96,7 @@ from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
 from .eval import documents as eval_documents
 from .eval import run as eval_run
+from .eval.compare_documents import build_compare_documents
 from .eval.sitegap import build_site_gap
 from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
@@ -215,6 +216,8 @@ SCHEMA_ROUTES: dict[str, str] = {
     # 1.2 P1.10 — the Site-B minus detector-site join of two derived
     # baselines (M12-02 arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
     "eval/g8_site_gap.json": "g8_site_gap",
+    # 1.2 P0.5 — the four-clause comparator over documents_eval.json rows.
+    "eval/g8_compare_documents_verdict.json": "g8_compare_documents",
     # Phase 3b (produced only when Swift-side dumps are present under
     # build/calibration/).
     "classifier/doctype_temperature.json": "doctype_temperature",
@@ -2096,6 +2099,86 @@ def build_eval_compare_cmd(
     click.echo(
         f"Wrote {out_path} (verdict={overall}; "
         f"families={len(verdict['families'])}, "
+        f"aggregate regression={verdict['aggregate']['regression']})"
+    )
+
+
+@build_group.command("eval-compare-documents")
+@click.option(
+    "--before",
+    "before_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to the BEFORE documents_eval.json (the H1.3 document-level eval).",
+)
+@click.option(
+    "--after",
+    "after_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to the AFTER documents_eval.json.",
+)
+@click.option(
+    "--delta-p", type=float, default=5.0, show_default=True, help="C1 uplift, precision POINTS."
+)
+@click.option(
+    "--delta-f-rel",
+    type=float,
+    default=0.30,
+    show_default=True,
+    help="C2 relative FPR cut, fraction.",
+)
+@click.option(
+    "--eps", type=float, default=0.01, show_default=True, help="C3 recall floor slack, fraction."
+)
+@click.option(
+    "--delta-slice",
+    type=float,
+    default=3.0,
+    show_default=True,
+    help="C4 max per-category (row) / per-leg (aggregate) strict-precision drop, precision POINTS.",
+)
+@click.option(
+    "--out",
+    "out_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="Path for the g8_compare_documents_verdict.json output.",
+)
+def build_eval_compare_documents_cmd(
+    before_path: Path,
+    after_path: Path,
+    delta_p: float,
+    delta_f_rel: float,
+    eps: float,
+    delta_slice: float,
+    out_path: Path,
+) -> None:
+    """Decide the four-clause before/after predicate over document rows.
+
+    Reads two ``documents_eval.json`` dicts and applies the G8 comparator's
+    C1 / C2 / C3 to every ``(document, leg)`` row present on both sides (C4
+    over the row's per-category strict precision) and to the pooled aggregate
+    (C4 over the leg kinds). Writes the verdict to ``--out`` via the canonical
+    JSON writer. Same units as ``eval-compare``: ``--delta-p`` /
+    ``--delta-slice`` in precision POINTS, ``--eps`` / ``--delta-f-rel`` as
+    fractions. Pure arithmetic; dev/eval only.
+    """
+    assert_hash_seed_pinned()
+    before = load_json(before_path)
+    after = load_json(after_path)
+    thresholds = {
+        "delta_p": delta_p * _POINTS_TO_FRACTION,
+        "delta_f_rel": delta_f_rel,
+        "eps": eps,
+        "delta_slice": delta_slice * _POINTS_TO_FRACTION,
+    }
+    verdict = build_compare_documents(before, after, thresholds)
+    dump_canonical_json(verdict, out_path)
+    overall = "REGRESSION" if verdict["regression"] else "no-regression"
+    click.echo(
+        f"Wrote {out_path} (verdict={overall}; rows={len(verdict['rows'])}, "
+        f"skipped={len(verdict['rows_skipped'])}, "
         f"aggregate regression={verdict['aggregate']['regression']})"
     )
 
