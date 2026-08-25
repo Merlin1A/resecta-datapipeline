@@ -13,7 +13,33 @@ from typing import Any, Final, Literal
 
 ExpectedOutcome = Literal["redact", "suppress", "flag"]
 
+# Packet-tier vocabulary (the sample-doc ground truth's must_fire / should_fire
+# / watch / must_not_fire, spelled without the ``_fire`` suffix). Every G8 span
+# carries one so the corpus runner can score per tier alongside the document
+# harness; see ``bridge_tier`` for the default mapping from the older
+# ``expected_outcome`` field.
+Tier = Literal["must", "should", "watch", "must_not"]
+
 _DEFAULT_OUTCOME: Final[ExpectedOutcome] = "redact"
+
+# The G8 -> packet tier bridge. ``redact`` spans are designed to fire (the
+# mechanism and its score clear the balanced cutoff by construction);
+# ``flag`` spans are routed to user review (record-only); ``suppress`` spans
+# are decoys the engine is designed to reject. ``should`` is never derived --
+# a template assigns it explicitly to a surface it DESIGNED to be marginal
+# (a context-scored family drawn outside its keyword window, so the engine's
+# own profile scores it below the cutoff).
+_TIER_BY_OUTCOME: Final[dict[str, Tier]] = {
+    "redact": "must",
+    "flag": "watch",
+    "suppress": "must_not",
+}
+
+
+def bridge_tier(expected_outcome: ExpectedOutcome) -> Tier:
+    """Return the packet tier an ``expected_outcome`` maps to by default."""
+    return _TIER_BY_OUTCOME[expected_outcome]
+
 
 # Placeholder templates substitute for person names in name-sparse
 # documents. Plain text, never recorded as a span.
@@ -52,10 +78,24 @@ class SpanBuilder:
         *,
         adversarial: bool = False,
         expected_outcome: ExpectedOutcome = _DEFAULT_OUTCOME,
+        tier: Tier | None = None,
     ) -> None:
-        """Append PII-tagged text and record its span."""
+        """Append PII-tagged text and record its span.
+
+        ``tier`` defaults to :func:`bridge_tier` of ``expected_outcome``; a
+        template passes ``tier="should"`` only for a designed-marginal
+        surface. A ``suppress`` span is always ``must_not`` and a ``flag``
+        span always ``watch`` -- an explicit tier that contradicts the
+        outcome is a template bug and raises.
+        """
         if not text:
             return
+        resolved_tier = bridge_tier(expected_outcome) if tier is None else tier
+        if expected_outcome != "redact" and resolved_tier != bridge_tier(expected_outcome):
+            raise ValueError(
+                f"tier {resolved_tier!r} contradicts expected_outcome {expected_outcome!r} "
+                f"for a {category} span"
+            )
         start = self._length
         self._parts.append(text)
         self._length += len(text)
@@ -67,6 +107,7 @@ class SpanBuilder:
                 "value": text,
                 "adversarial": adversarial,
                 "expected_outcome": expected_outcome,
+                "tier": resolved_tier,
             }
         )
 

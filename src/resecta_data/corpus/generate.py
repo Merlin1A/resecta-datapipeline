@@ -58,9 +58,12 @@ _DOCTYPE_ORDER: Final[tuple[str, ...]] = (
     "generic",
 )
 
-# Ground-truth schema limits on PII spans per document.
+# Ground-truth limits on PII spans per document. The ceiling rose 15 -> 18
+# with the 17/17 category extension (1.2 T1.1): an adversarial court document
+# carries 13 pre-existing spans plus a driver's license, a plate and the
+# plate-label decoy.
 _MIN_SPANS_PER_DOC: Final[int] = 5
-_MAX_SPANS_PER_DOC: Final[int] = 15
+_MAX_SPANS_PER_DOC: Final[int] = 18
 
 _ADVERSARIAL_TAG_UNIVERSE: Final[frozenset[str]] = frozenset(
     {
@@ -72,6 +75,12 @@ _ADVERSARIAL_TAG_UNIVERSE: Final[frozenset[str]] = frozenset(
         "invisible_text",
         "column_header_label",
         "none",
+        # 1.2 T1.1 negative twins of the five added categories.
+        "luhn_failed_card_number",
+        "itin_yy_out_of_range",
+        "dl_shape_no_jurisdiction",
+        "passport_shape_no_issuer",
+        "business_registration_plate_label",
     }
 )
 
