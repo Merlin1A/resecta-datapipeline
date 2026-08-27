@@ -1,5 +1,8 @@
 # Resecta Data Pipeline
 
+[![ci](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml)
+[![verify](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml)
+
 Build-time Python tooling that produces the data assets shipped inside the Resecta iOS app — name Bloom filters, gazetteers, classifier keyword dictionaries, test corpora, and CI fixtures.
 
 This directory is independent of the Xcode project. Nothing here is linked into the iOS binary; the pipeline's only coupling to the app is the `make install-assets` step that copies generated files into `../resecta/Packages/RedactionEngine/Sources/RedactionEngine/Resources/` (the sibling `resecta` iOS repository).
@@ -91,7 +94,7 @@ The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed
 
 ## Verification
 
-There is no remote CI runner. `make verify` (use `gmake` on macOS) is the gate: it runs `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, hash-lock verification, and a determinism rebuild. `scripts/ci_verify.sh` runs the same sequence as a local smoke check. All `make build` targets make zero network calls; only `make sources` fetches raw inputs, and it validates every file's SHA-256 against `SOURCES.md`.
+Every pull request runs a hermetic gate on a hosted runner (`ci.yml`): `ruff check`, `ruff format --check`, `mypy`, `pytest`, the pure-code builders, schema validation, and a hash check of everything built. A weekly `verify.yml` run hydrates the large fetched sources (SHA-256-validated, cached) and runs the full verify sequence, and `security.yml` audits the locked dependency set. Locally, `make verify` (use `gmake` on macOS) remains the gate: it runs `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, hash-lock verification, and a determinism rebuild; `scripts/ci_verify.sh` runs the same sequence as a local smoke check. All `make build` targets make zero network calls; only `make sources` fetches raw inputs, and it validates every file's SHA-256 against `SOURCES.md`.
 
 ---
 

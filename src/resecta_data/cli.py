@@ -703,13 +703,28 @@ def verify_determinism_cmd(
     type=click.Path(dir_okay=False, path_type=Path),
     required=True,
 )
-def verify_hashes_cmd(build_dir: Path, lockfile: Path) -> None:
+@click.option(
+    "--built-only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Verify only artifacts present in the build tree; lockfile entries "
+        "with no built file are reported as skipped instead of failing. "
+        "Hash mismatches and unlisted artifacts still fail."
+    ),
+)
+def verify_hashes_cmd(build_dir: Path, lockfile: Path, built_only: bool) -> None:
     """Verify every build artifact matches its lockfile entry.
 
     Fails if:
-      - A lockfile entry has no corresponding file.
+      - A lockfile entry has no corresponding file (unless --built-only).
       - A file has no lockfile entry.
       - A file's hash does not match the lockfile.
+
+    With --built-only, lockfile entries absent from the build tree are
+    listed as skipped and do not fail the check — for hosts that build a
+    subset of the artifacts (a fresh checkout without the large fetched
+    sources) while still proving every built byte matches the lock.
     """
     expected = read_hash_lockfile(lockfile)
     actual = {
@@ -725,9 +740,13 @@ def verify_hashes_cmd(build_dir: Path, lockfile: Path) -> None:
         return
 
     problems: list[str] = []
+    skipped: list[str] = []
     for rel, digest in sorted(expected.items()):
         if rel not in actual:
-            problems.append(f"In lockfile but missing from build: {rel}")
+            if built_only:
+                skipped.append(rel)
+            else:
+                problems.append(f"In lockfile but missing from build: {rel}")
         elif actual[rel] != digest:
             problems.append(
                 f"Hash mismatch for {rel}: expected {digest[:12]}..., got {actual[rel][:12]}..."
@@ -743,6 +762,10 @@ def verify_hashes_cmd(build_dir: Path, lockfile: Path) -> None:
         click.echo("See CLAUDE.md §4 — investigate before updating the lockfile.", err=True)
         sys.exit(1)
 
+    if skipped:
+        click.echo(f"Skipped {len(skipped)} lockfile entries absent from the build tree:")
+        for rel in skipped:
+            click.echo(f"  {rel}")
     click.echo(f"Hash check PASSED ({len(actual)} artifacts)")
 
 

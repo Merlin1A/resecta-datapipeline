@@ -40,6 +40,15 @@ from pathlib import Path
 # = the resecta-data builder, not the reaper).
 _ORPHAN_MIN_AGE_SECONDS = 600
 
+_SECONDS_PER_MINUTE = 60
+_SECONDS_PER_HOUR = 3600
+
+# After the ")" in /proc/<pid>/stat, fields are 0-indexed from "state";
+# starttime is the 22nd field overall (man 5 proc) -> index 19 here.
+_STARTTIME_INDEX = 19
+
+_CMDLINE_DISPLAY_WIDTH = 60
+
 # Targets we recognise as in-tree workers. Anything else is left alone.
 _TARGET_COMMS = frozenset({"resecta-data", "python", "python3", "python3.12"})
 
@@ -94,12 +103,10 @@ def _process_age_seconds(pid: int, btime: float) -> float | None:
     if rparen < 0:
         return None
     fields = stat[rparen + 2 :].split()
-    # After ")", fields are 0-indexed from "state". starttime is the
-    # 22nd field overall (man 5 proc) → index 19 here.
-    if len(fields) < 20:
+    if len(fields) <= _STARTTIME_INDEX:
         return None
     try:
-        starttime_clk = int(fields[19])
+        starttime_clk = int(fields[_STARTTIME_INDEX])
     except ValueError:
         return None
     clk_tck = os.sysconf("SC_CLK_TCK") or 100
@@ -162,7 +169,9 @@ def find_orphans() -> list[_OrphanRow]:
     """
     if sys.platform != "linux":
         return []
-    btime = _read_btime()
+    # unreachable fires only on non-Linux mypy hosts (the early return above
+    # is platform-conditional); unused-ignore covers the Linux run.
+    btime = _read_btime()  # type: ignore[unreachable, unused-ignore]
     reapers = _find_session_reaper_pids()
     uid = os.getuid()
     rows: list[_OrphanRow] = []
@@ -205,25 +214,29 @@ def find_orphans() -> list[_OrphanRow]:
 
 
 def _format_age(seconds: float) -> str:
-    if seconds < 60:
+    if seconds < _SECONDS_PER_MINUTE:
         return f"{seconds:.0f}s"
-    if seconds < 3600:
-        return f"{seconds / 60:.0f}m"
-    return f"{seconds / 3600:.1f}h"
+    if seconds < _SECONDS_PER_HOUR:
+        return f"{seconds / _SECONDS_PER_MINUTE:.0f}m"
+    return f"{seconds / _SECONDS_PER_HOUR:.1f}h"
 
 
 def print_orphans(rows: list[_OrphanRow]) -> None:
     """Print a human-readable table to stdout (always exit 0)."""
     if not rows:
         print(
-            f"0 stale workers (parent = session reaper, age > {_ORPHAN_MIN_AGE_SECONDS // 60} min)"
+            f"0 stale workers (parent = session reaper,"
+            f" age > {_ORPHAN_MIN_AGE_SECONDS // _SECONDS_PER_MINUTE} min)"
         )
         return
     print(f"{len(rows)} stale workers detected:")
     print(f"  {'PID':>7}  {'PPID':>6}  {'RSS':>10}  {'AGE':>6}  COMM            CMDLINE")
     for row in rows:
         rss_mb = row.rss_kb / 1024
-        cmdline = row.cmdline if len(row.cmdline) <= 60 else row.cmdline[:57] + "..."
+        if len(row.cmdline) <= _CMDLINE_DISPLAY_WIDTH:
+            cmdline = row.cmdline
+        else:
+            cmdline = row.cmdline[: _CMDLINE_DISPLAY_WIDTH - 3] + "..."
         print(
             f"  {row.pid:>7}  {row.ppid:>6}  {rss_mb:>8.1f}MB  "
             f"{_format_age(row.age_seconds):>6}  {row.comm:<14}  {cmdline}"

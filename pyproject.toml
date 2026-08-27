@@ -12,7 +12,8 @@ license = { text = "Apache-2.0" }
 authors = [{ name = "Jesse Brookins" }]
 
 # Runtime dependencies for the build pipeline itself.
-# Any addition requires a note in the PR description and a rerun of scripts/freeze_deps.sh.
+# Any addition requires a note in the PR description and a rerun of
+# scripts/freeze_deps.sh (regenerates requirements.lock and requirements-dev.lock).
 dependencies = [
     "click>=8.1.7,<9",
     "jsonschema>=4.22,<5",
@@ -33,8 +34,11 @@ dev = [
     "pytest-socket>=0.7,<1",
     "pytest-xdist>=3.6,<4",
     "hypothesis>=6.100,<7",
-    "ruff>=0.4,<1",
-    "mypy>=1.10,<2",
+    # ruff and mypy are exact-pinned: the lint/type gates are byte-sensitive to
+    # tool version (a newer ruff reports scores of new findings on a clean tree),
+    # and CI must see the same verdict as a maintainer's machine.
+    "ruff==0.15.12",
+    "mypy==1.20.2",
     "pip-tools>=7.4,<8",
     "types-jsonschema>=4.22,<5",
 ]
@@ -54,7 +58,7 @@ include = ["resecta_data*"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src", "tests"]
+src = ["src", "tests", "scripts"]
 extend-exclude = ["build", ".venv", "src/resecta_data/*/sources"]
 
 [tool.ruff.lint]
@@ -89,6 +93,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "S101", "PLR2004"]
 "src/resecta_data/cli.py" = ["T20"]  # click.echo is permitted here
+"scripts/**" = ["T20"]  # standalone CLI tools that report to stdout by design
 
 [tool.ruff.lint.isort]
 known-first-party = ["resecta_data"]
@@ -113,7 +118,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 show_error_codes = true
 pretty = true
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 exclude = ["build/", "src/resecta_data/.*/sources/"]
 
 [[tool.mypy.overrides]]

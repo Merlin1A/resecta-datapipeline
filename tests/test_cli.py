@@ -7,6 +7,7 @@ lock that contract in.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -200,6 +201,82 @@ def test_verify_hashes_fails_on_hash_mismatch(runner: CliRunner, tmp_path: Path)
     )
     assert result.exit_code == 1
     assert "mismatch" in result.stderr.lower()
+
+
+def test_verify_hashes_built_only_skips_missing_artifact(runner: CliRunner, tmp_path: Path) -> None:
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "built.json").write_text("{}", encoding="utf-8")
+    digest = hashlib.sha256(b"{}").hexdigest()
+
+    lockfile = tmp_path / "lock"
+    # One entry is built and matches; one entry has no built file.
+    write_hash_lockfile(lockfile, {"built.json": digest, "absent.json": "a" * 64})
+
+    base_args = ["verify-hashes", "--build-dir", str(build_dir), "--lockfile", str(lockfile)]
+
+    # Without the flag the absent entry fails the check.
+    strict = runner.invoke(main, base_args)
+    assert strict.exit_code == 1
+    assert "missing from build" in strict.stderr
+
+    # With --built-only the absent entry is reported as skipped, not failed.
+    relaxed = runner.invoke(main, [*base_args, "--built-only"])
+    assert relaxed.exit_code == 0
+    assert "Skipped 1 lockfile entries" in relaxed.output
+    assert "absent.json" in relaxed.output
+    assert "Hash check PASSED (1 artifacts)" in relaxed.output
+
+
+def test_verify_hashes_built_only_still_fails_on_mismatch(
+    runner: CliRunner, tmp_path: Path
+) -> None:
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "built.json").write_text("{}", encoding="utf-8")
+
+    lockfile = tmp_path / "lock"
+    # The built file's hash is wrong; a second entry is absent from the build.
+    write_hash_lockfile(lockfile, {"built.json": "0" * 64, "absent.json": "a" * 64})
+
+    result = runner.invoke(
+        main,
+        [
+            "verify-hashes",
+            "--build-dir",
+            str(build_dir),
+            "--lockfile",
+            str(lockfile),
+            "--built-only",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "mismatch" in result.stderr.lower()
+
+
+def test_verify_hashes_built_only_still_fails_on_untracked_artifact(
+    runner: CliRunner, tmp_path: Path
+) -> None:
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "surprise.json").write_text("{}", encoding="utf-8")
+
+    lockfile = tmp_path / "lock"
+    write_hash_lockfile(lockfile, {"absent.json": "a" * 64})
+
+    result = runner.invoke(
+        main,
+        [
+            "verify-hashes",
+            "--build-dir",
+            str(build_dir),
+            "--lockfile",
+            str(lockfile),
+            "--built-only",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "missing from lockfile" in result.stderr
 
 
 # -----------------------------------------------------------------------------

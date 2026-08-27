@@ -13,7 +13,7 @@ that require maintainer sign-off — see below for the full list.
 Python 3.12 is required.
 
 ```sh
-scripts/bootstrap.sh     # create .venv, install pinned deps from requirements.lock
+scripts/bootstrap.sh     # create .venv, install hash-pinned deps from both lockfiles
 ```
 
 On macOS, install GNU Make 4.x (`brew install make`) and invoke targets as
@@ -27,9 +27,12 @@ gmake verify     # ruff, mypy, pytest, schema validation, hash + determinism che
 gmake all        # build + verify + install-assets
 ```
 
-`scripts/ci_verify.sh` runs the same sequence for a local smoke check. There is
-no remote CI runner; `gmake verify` (or `ci_verify.sh`) is the gate before any
-change ships.
+`scripts/ci_verify.sh` runs the same sequence for a local smoke check. Remote
+CI runs on every pull request (the hermetic `ci.yml` gate) and weekly (the
+full verify with fetched sources); `gmake verify` (or `ci_verify.sh`) stays
+the local gate before any change ships. A scheduled job refreshes a
+`ci-keepalive` side branch when `main` has been quiet for ~50 days, so the
+weekly workflows never lapse into the platform's scheduled-run auto-disable.
 
 ## Invariants
 
