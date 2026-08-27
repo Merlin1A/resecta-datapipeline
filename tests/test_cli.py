@@ -378,12 +378,11 @@ def test_install_assets_skips_unrouted_artifacts(runner: CliRunner, tmp_path: Pa
     assert "unrouted.json" in result.output
 
 
-# D-19: the 15 vector-fixture families confirmed schema-clean + determinism-clean
-# by the cc-derive D-19 audit (2026-04-26). All must round-trip from build/vectors/
-# to fixtures/vectors/ via INSTALL_ROUTES. Names mirror the build-side filenames
-# (some use the `_test_` infix, some don't; D-19 audit recorded the inconsistency
-# as not a blocker).
-# Search-impl S2 task 11 (2026-06-11) adds routing_number_vectors.json (count: 14->15).
+# The 15 vector-fixture families are schema-clean and determinism-clean.
+# All must round-trip from build/vectors/ to fixtures/vectors/ via
+# INSTALL_ROUTES. Names mirror the build-side filenames (some use the
+# `_test_` infix, some don't -- the inconsistency is not a blocker).
+# routing_number_vectors.json was added (count: 14->15).
 D19_VECTOR_FAMILIES = (
     "npi_test_vectors.json",
     "dea_test_vectors.json",
@@ -406,7 +405,7 @@ D19_VECTOR_FAMILIES = (
 def test_install_assets_routes_all_14_d19_vector_fixtures(
     runner: CliRunner, tmp_path: Path
 ) -> None:
-    """All 15 D-19 vector-fixture families must round-trip via INSTALL_ROUTES."""
+    """All 15 vector-fixture families must round-trip via INSTALL_ROUTES."""
     build_dir = tmp_path / "build"
     vectors_src = build_dir / "vectors"
     vectors_src.mkdir(parents=True)
@@ -446,7 +445,7 @@ def test_install_assets_routes_all_14_d19_vector_fixtures(
 def test_install_routes_has_exactly_14_vector_entries() -> None:
     """Defence against silent route loss: any change to the vector-route count
     is intentional and must update the D19_VECTOR_FAMILIES tuple in lockstep.
-    Count is 15 as of S2 task 11 (routing_number_vectors.json added)."""
+    Count is 15 (routing_number_vectors.json added)."""
     vector_routes = [k for k in INSTALL_ROUTES if k.startswith("vectors/")]
     assert len(vector_routes) == len(D19_VECTOR_FAMILIES), (
         f"INSTALL_ROUTES has {len(vector_routes)} vector entries; "

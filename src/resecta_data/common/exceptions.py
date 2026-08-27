@@ -40,5 +40,5 @@ class MissingSourceError(PipelineError):
 
     Triggered by build targets when ``src/resecta_data/<module>/sources/`` is
     missing a file that the builder requires. Fix by running ``make sources``
-    (which may require Jesse to supply restricted datasets manually).
+    (which may require the maintainer to supply restricted datasets manually).
     """

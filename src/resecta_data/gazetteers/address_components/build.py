@@ -2,11 +2,11 @@
 
 The artifact ``build/gazetteers/address_components.json`` bundles three
 address-component vocabularies consumed by the Swift
-``AddressComponentsGazetteer`` (added in C12):
+``AddressComponentsGazetteer``:
 
 * ``cities`` — populated-place feature names from the USGS GNIS national
-  extract, cross-filtered against Census TIGER/Line 2024 PLACE boundaries
-  (search-impl S5 item 2.9).  Only GNIS entries whose casefolded name
+  extract, cross-filtered against Census TIGER/Line 2024 PLACE boundaries.
+  Only GNIS entries whose casefolded name
   matches a TIGER PLACE ``NAME`` value (the suffix-stripped canonical form
   Census publishes) are retained.  Entries that fail the join are dropped
   — they are unincorporated or GNIS-only features with no formal municipal
@@ -17,11 +17,11 @@ address-component vocabularies consumed by the Swift
   (``Street``, ``Avenue``, …). No upstream dataset drives this set; the
   list is the same full-word vocabulary already regex-enumerated in
   ``PIIDetector.swift``, factored out as a shared spec so the Python and
-  Swift sides stay aligned (findings L6 §"Top street-type list").
+  Swift sides stay aligned.
 
 TIGER PLACE join rationale
 --------------------------
-The design spec (design 02 §8 item 2.9) describes the filter as
+The filter is defined as
 "NAMELSAD contains the GNIS name (case-insensitive)".  We implement it
 as ``gnis_name.casefold() in tiger_name_set`` where ``tiger_name_set``
 contains casefolded values of the TIGER ``NAME`` column (not ``NAMELSAD``).
@@ -40,13 +40,12 @@ All raw files stay inside their ``.zip`` wrappers at
 rest; this builder reads them through ``zipfile.Path`` / ``zipfile.ZipFile``
 and never extracts to disk.
 
-The ``build_cutover_diff()`` helper emits the BINDING cutover-diff sidecar
-required by STRAT §10.4 row §D7 (G1 PARTIAL [BINDING]) for the
-cc-derive-rebuild S2 segment. Because A7 already consumes the
-vintage-pinned D-03 + D-04 sources this chain mandates (audit-DONE.md §3b
-coverage snapshot), no legacy parser variant was retired and the diff is
-empty by construction — Jesse signs the empty diff at PR review per
-JESSE-NEEDS §3 row 46.
+The ``build_cutover_diff()`` helper emits a cutover-diff sidecar that
+verifies a rebuilt source parser has not regressed against the legacy
+one. This builder already consumes the vintage-pinned Census-counties and
+GNIS sources a rebuilt chain requires (see the coverage snapshot in
+``build_cutover_diff()`` below), so no legacy parser variant was retired
+and the diff is empty by construction; the PR review confirms it.
 """
 
 from __future__ import annotations
@@ -138,7 +137,7 @@ _TIGER_PLACE_SOURCES: Final[tuple[tuple[str, str, str], ...]] = (
 
 # Top-20 street-type suffixes. Sorted alphabetically for determinism. The
 # list mirrors the full-word vocabulary enumerated in the Swift
-# ``PIIDetector`` address regex (findings L6 §"Top street-type list").
+# ``PIIDetector`` address regex.
 _STREET_TYPES: Final[tuple[str, ...]] = (
     "Alley",
     "Avenue",
@@ -178,7 +177,7 @@ def build(
     """Return the address-components payload.
 
     Cities from the USGS GNIS extract are cross-filtered against the Census
-    TIGER/Line 2024 PLACE boundaries (search-impl S5 item 2.9): only GNIS
+    TIGER/Line 2024 PLACE boundaries: only GNIS
     entries whose casefolded name appears in the TIGER ``NAME`` set are
     retained.  See the module docstring for join-rationale details.
 
@@ -243,22 +242,20 @@ def build(
 def build_cutover_diff() -> dict[str, Any]:
     """Return the legacy→rebuild cutover diff for ``address_components.json``.
 
-    Verification-posture under STRAT §10.4 row §D7 (G1 PARTIAL [BINDING]):
-    the A7 builder already consumes the vintage-pinned D-03 + D-04 sources
-    that the cc-derive-rebuild chain mandates. An internal coverage
+    This builder already consumes the vintage-pinned Census-counties and
+    GNIS sources that a rebuilt source chain requires. An internal coverage
     snapshot (cities=110434, counties=1960, street_types=20) was captured
     from the same builder; no legacy parser variant was
     retired in this rebuild, so there is no LEGACY corpus to diff against
     the rebuild output. ``legacy_only`` / ``rebuild_only`` / ``keyed_diff``
-    are empty by construction — A7 entries are plain strings (cities /
-    counties / street_types arrays), so even with two corpora
-    ``keyed_diff`` would always be empty under the §D7 phase-1 wire-stable
-    invariant.
+    are empty by construction — this builder's entries are plain strings
+    (cities / counties / street_types arrays), so even with two corpora
+    ``keyed_diff`` would always be empty while the wire format stays
+    stable.
 
-    Jesse signs the empty diff at PR review per JESSE-NEEDS §3 row 46,
-    attesting that A7 has no shipped-vs-rebuild divergence under the
-    phase-1 BINDING. W-D-engine-paired (S7) consumes this artifact for
-    BINDING enumeration in the engine-paired PR description.
+    The empty diff is expected by construction; the PR review confirms it,
+    attesting that this builder has no shipped-vs-rebuild divergence. The
+    diff is included as review material for the paired engine change.
     """
     return {
         "version": _CUTOVER_DIFF_VERSION,

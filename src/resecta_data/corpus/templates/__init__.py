@@ -4,7 +4,7 @@ Each template module exposes ``emit(rng, name_sampler, bucket, *,
 locale, name_sparse) -> (text, spans, adversarial_tags)``. All templates
 are deterministic given the rng; ``locale`` selects the Faker locale
 used for locale-sensitive content (addresses) and defaults to
-``en_US``; ``name_sparse`` (design 03 §3.2) replaces every person-name
+``en_US``; ``name_sparse`` replaces every person-name
 span with placeholder text so the document carries zero name spans.
 
 ``SUB_TEMPLATE_EMITTERS`` holds alternate shapes that share a doctype

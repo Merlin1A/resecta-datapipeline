@@ -1,36 +1,35 @@
 """Promote the pre-reviewed passport-pattern candidates into the shipping artifact.
 
-The per-country passport-number pattern gazetteer (D-14 in the V1 data
-requirements catalog) is produced by a two-stage workflow:
+The per-country passport-number pattern gazetteer is produced by a
+two-stage workflow:
 
-1. An orchestration session emits
+1. An authoring pass writes
    ``src/resecta_data/gazetteers/passport_patterns/sources/passport_patterns_candidates.json``
-   with per-row provenance (W-R-4 + W-R-4.1 research briefs) and audit
-   metadata (``candidate_only``, ``exclude_from_ship``, ...). Jesse
-   reviews row-by-row. The file is immutable.
+   with per-row provenance (the two passport-format research briefs) and
+   audit metadata (``candidate_only``, ``exclude_from_ship``, ...). The file
+   then changes only under an approved change plan.
 2. This builder reads that candidates file, strips audit-only keys,
    drops non-shipping rows, and canonicalizes the payload.
 
-F-item posture baked in here:
+Posture baked in here:
 
-* **F-36 (ship set).** 11 issuers ship: CA, CN, DO, GB, IN, KR, MX, PH,
+* **Ship set.** 11 issuers ship: CA, CN, DO, GB, IN, KR, MX, PH,
   SV, US, VN. Dominican Republic uses ``DO`` (ISO 3166-1 alpha-2);
-  the candidates file predates F-36's closure and still carries DO as
-  ``candidate_only: true`` — the builder carries an explicit post-F-36
-  promotion override so DO ships without mutating the candidates file.
-* **F-37 (Cuba).** CU is omitted entirely for V1 on OFAC sanctions
+  the candidates file predates the ship-set decision and still carries DO
+  as ``candidate_only: true`` — the builder carries an explicit promotion
+  override so DO ships without mutating the candidates file.
+* **Cuba.** CU is omitted entirely for V1 on OFAC sanctions
   grounds. The candidates-file gate (``exclude_from_ship: true``) is
   the primary drop; the builder additionally carries an ``_OFAC_EXCLUDED``
   belt-and-suspenders set against candidates-file mutation.
-* **F-38 (GB OGL attribution).** Preserve the candidates-file posture
+* **GB OGL attribution.** Preserve the candidates-file posture
   verbatim: ``license_posture: "needs-legal-review"`` plus a
-  ``pending_decision_memo`` body naming options A / B / C. Jesse +
-  counsel pick; this builder does not.
+  ``pending_decision_memo`` body naming options A / B / C. The pick is a
+  legal decision taken under an approved plan; this builder does not make it.
 
-See the data-requirements spec §1.16 for
-the full cross-issuer findings (ICAO 9303 9-character MRZ cap, no
-book-level check digit, US "Passport Book Number" terminology
-collision). Determinism rules apply: no wall-clock
+Cross-issuer facts the patterns rest on: the ICAO 9303 9-character MRZ
+cap, no book-level check digit, and the US "Passport Book Number"
+terminology collision. Determinism rules apply: no wall-clock
 content; ``generated_date`` is lifted verbatim from the candidates
 file.
 """
@@ -59,9 +58,9 @@ _EXPECTED_SHIPPING_ISSUERS: Final[frozenset[str]] = frozenset(
 )
 
 # Issuers whose ``candidate_only: true`` flag in the candidates file is
-# overridden by a subsequent F-item resolution. DO: F-36 option (b) —
-# "ship 11 rows with DR filling CU-freed slot." The candidates file
-# predates F-36 closure; this override promotes DO without mutating it.
+# overridden by the ship-set decision: DO fills the slot Cuba's exclusion
+# freed ("ship 11 rows"). The candidates file predates that decision; this
+# override promotes DO without mutating it.
 _POST_F36_PROMOTED: Final[frozenset[str]] = frozenset({"DO"})
 
 # Belt-and-suspenders guard against candidates-file mutation flipping
@@ -118,7 +117,7 @@ def build(seed: int, *, candidates_path: Path | None = None) -> dict[str, Any]:
     Raises:
         PipelineError: If the candidates file is missing or malformed,
             or if the filtered shipping set diverges from the 11-issuer
-            F-36 ship list. Fail-loud.
+            ship list. Fail-loud.
     """
     path = candidates_path if candidates_path is not None else _CANDIDATES_PATH
     data = load_json(path)
@@ -140,19 +139,18 @@ def build(seed: int, *, candidates_path: Path | None = None) -> dict[str, Any]:
         missing = sorted(_EXPECTED_SHIPPING_ISSUERS - actual_issuers)
         extra = sorted(actual_issuers - _EXPECTED_SHIPPING_ISSUERS)
         raise PipelineError(
-            "passport_patterns: shipping issuer set diverges from F-36 close. "
+            "passport_patterns: shipping issuer set diverges from the ship list. "
             f"Expected {sorted(_EXPECTED_SHIPPING_ISSUERS)}, "
             f"got {sorted(actual_issuers)}. "
             f"Missing: {missing}. Extra: {extra}. "
-            "This indicates a candidates-file change that warrants human review; "
-            "see the data-requirements spec §1.16 + §7.4."
+            "This indicates a candidates-file change that needs an approved change plan."
         )
 
     expected_count = 11
     if len(shipping) != expected_count:
         raise PipelineError(
             f"passport_patterns: expected {expected_count} shipping rows, "
-            f"got {len(shipping)}. See F-36 ship list."
+            f"got {len(shipping)}. The ship list is closed at 11 issuers."
         )
 
     generated_date = data.get("generated_date")

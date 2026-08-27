@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/rule_catalog.schema.json",
-  "title": "PII detector rule-ID catalog (D-18 / A22)",
-  "description": "Closed catalog of dotted rule_ids emitted into MatchAuditRecord.ruleID by every Swift detector that produces a PII match. One row per (detector, variant) pair; each row pins (rule_id, family, detector, version, source_artifact, is_checksum_gated). Acceptance per spec §1.20: every Swift detector symbol that wires into MatchAuditRecord.ruleID maps to ≥ 1 catalog entry (W-I1 Done = test). Version-bump policy per F-8 (spec §7.7): bump the per-row `version` on behavior-changing edits to the underlying Swift detector; ties to §D13 = M3 engine-code-hash trigger. Major-version bumps roll the v-tag in `rule_id` (e.g., `pii.foo.v1` → `pii.foo.v2`). The D-36 addendum (`pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1` per F-42) lands in D-36's chain; this V1 baseline ships only currently-implemented detectors. Wrapper shape ({version, generated_by, seed, entries}) matches the established context_keywords / passport_patterns / institutions / address_components gazetteer precedent.",
+  "title": "PII detector rule-ID catalog",
+  "description": "Closed catalog of dotted rule_ids emitted into MatchAuditRecord.ruleID by every Swift detector that produces a PII match. One row per (detector, variant) pair; each row pins (rule_id, family, detector, version, source_artifact, is_checksum_gated). Every Swift detector symbol that wires into MatchAuditRecord.ruleID must map to at least one catalog entry, verified by test. Version-bump policy: bump the per-row `version` on behavior-changing edits to the underlying Swift detector, which an engine-code-hash check flags automatically. Major-version bumps roll the v-tag in `rule_id` (e.g., `pii.foo.v1` → `pii.foo.v2`). An addendum (`pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1`) extends this V1 baseline, which ships only currently-implemented detectors. Wrapper shape ({version, generated_by, seed, entries}) matches the established context_keywords / passport_patterns / institutions / address_components gazetteer precedent.",
   "type": "object",
   "required": ["version", "generated_by", "seed", "entries"],
   "additionalProperties": false,
@@ -25,7 +25,7 @@
     "entries": {
       "type": "array",
       "uniqueItems": true,
-      "description": "Catalog rows in ascending rule_id order. The shipping set is closed at the V1 detector tree; D-36 adds `pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1` separately per F-42.",
+      "description": "Catalog rows in ascending rule_id order. The shipping set is closed at the V1 detector tree; an addendum adds `pii.dd.v1` + `pii.audit.v1` + `pii.icn.v1` separately.",
       "items": {
         "type": "object",
         "required": ["rule_id", "family", "detector", "version", "source_artifact", "is_checksum_gated"],
@@ -49,7 +49,7 @@
           "version": {
             "type": "string",
             "pattern": "^[0-9]+\\.[0-9]+$",
-            "description": "Per-row semver-style version. Bumps on behavior-changing edits to the underlying Swift detector per F-8 (spec §7.7) which ties to §D13 = M3 engine-code-hash trigger. V1 baseline = `1.0`."
+            "description": "Per-row semver-style version. Bumps on behavior-changing edits to the underlying Swift detector, tracked by an engine-code-hash check. V1 baseline = `1.0`."
           },
           "source_artifact": {
             "type": ["string", "null"],
@@ -57,7 +57,7 @@
           },
           "is_checksum_gated": {
             "type": "boolean",
-            "description": "True when the detector requires a structurally validated checksum to fire (Luhn, NPI Luhn-80840, DEA letter-checksum). False for state-machine, regex-only, NLTagger, or context-scored detectors. The SSN state-machine path is `false` per kickoff guidance — \"state machine isn't a checksum.\""
+            "description": "True when the detector requires a structurally validated checksum to fire (Luhn, NPI Luhn-80840, DEA letter-checksum). False for state-machine, regex-only, NLTagger, or context-scored detectors. The SSN state-machine path is `false` — a state machine isn't a checksum."
           }
         }
       }

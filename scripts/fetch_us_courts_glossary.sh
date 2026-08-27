@@ -7,8 +7,8 @@
 # Part of `make sources` network-permitted flow.
 #
 # The US Courts glossary is served as HTML. This script downloads the page
-# and extracts the <dt> term entries into a plain-text file; Jesse then
-# hand-reviews and trims noise before the new file replaces the bootstrap
+# and extracts the <dt> term entries into a plain-text file; the maintainer
+# reviews and trims noise before the new file replaces the bootstrap
 # sample.
 
 set -euo pipefail
@@ -22,7 +22,7 @@ URL="https://www.uscourts.gov/glossary"
 
 if [ -f "$DEST_FILE" ]; then
     echo "File already exists: $DEST_FILE" >&2
-    echo "Refusing to overwrite. Source files are immutable (CLAUDE.md §2.7)." >&2
+    echo "Refusing to overwrite. Source files are immutable." >&2
     exit 1
 fi
 
@@ -46,7 +46,7 @@ for raw in terms:
         cleaned.append(t)
 Path(sys.argv[2]).write_text(
     "# US Courts glossary — scraped from uscourts.gov/glossary.\n"
-    + "# Jesse reviews and trims before this file replaces the bootstrap sample.\n"
+    + "# The maintainer reviews and trims the extracted list before it replaces the bootstrap sample.\n"
     + "\n".join(cleaned) + "\n",
     encoding="utf-8",
 )

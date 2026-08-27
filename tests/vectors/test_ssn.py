@@ -5,7 +5,7 @@ Mirrors the Swift ``SSNStructuralValidator`` contract: reject area 000, area
 all-same-digit SSN. Live-grep verified 2026-04-26 against
 ``src/resecta_data/vectors/ssn.py``.
 
-F-9 ack: HYPOTHESIS_SEED=20260425 (per-test fixed seed via ``derandomize``).
+HYPOTHESIS_SEED=20260425 (per-test fixed seed via ``derandomize``).
 Override via env ``HYPOTHESIS_SEED=<int>`` for broader local runs.
 """
 

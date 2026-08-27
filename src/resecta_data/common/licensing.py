@@ -20,7 +20,7 @@ from .io import sha256_file
 
 logger = logging.getLogger(__name__)
 
-# Licenses that may be added without Jesse's review.
+# Licenses that may be added without a plan-sign-off change.
 ALLOWLIST: Final[frozenset[str]] = frozenset(
     {
         "Public Domain",
@@ -138,7 +138,8 @@ def validate_license(entry: SourceEntry) -> None:
     """
     if entry.license in FORBIDDEN:
         raise LicenseError(
-            f"{entry.relative_path}: license {entry.license!r} is forbidden. See CLAUDE.md §1.2."
+            f"{entry.relative_path}: license {entry.license!r} is forbidden. "
+            "See CONTRIBUTING.md's Plan-sign-off changes section."
         )
 
     if entry.license in GATED:
@@ -147,7 +148,7 @@ def validate_license(entry: SourceEntry) -> None:
             raise LicenseError(
                 f"{entry.relative_path}: license {entry.license!r} requires "
                 f"environment variable {flag}=1 (pending legal review). "
-                "See CLAUDE.md §1.2."
+                "See CONTRIBUTING.md's Plan-sign-off changes section."
             )
         return
 
@@ -155,7 +156,7 @@ def validate_license(entry: SourceEntry) -> None:
         raise LicenseError(
             f"{entry.relative_path}: license {entry.license!r} is not on the "
             f"allowlist. Either add it to ALLOWLIST (after review) or escalate. "
-            "See CLAUDE.md §2.1."
+            "See CONTRIBUTING.md's Plan-sign-off changes section."
         )
 
 

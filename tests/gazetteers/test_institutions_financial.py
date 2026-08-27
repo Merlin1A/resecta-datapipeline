@@ -1,4 +1,4 @@
-"""Tests for the FDIC + EDGAR institution parsers and integrated builder (S5 / design 02 §6).
+"""Tests for the FDIC + EDGAR institution parsers and integrated builder.
 
 Exercises:
 - parse_fdic: category assignment, ACTIVE filtering, STNAME mapping, alias derivation
@@ -255,8 +255,9 @@ def test_absent_optional_sources_byte_identity(tmp_path: Path) -> None:
     """When no FDIC/EDGAR files are present, build() output is byte-identical to FedReg-only.
 
     This is the critical regression guard: with no optional sources, the
-    payload must be byte-for-byte identical to the behavior before S5
-    (FedReg only). The sources list must contain exactly the federalregister row,
+    payload must be byte-for-byte identical to the behavior before
+    FDIC/EDGAR support was added (FedReg only). The sources list must
+    contain exactly the federalregister row,
     and entries must match parse_federalregister output alone.
     """
     # Build with no optional sources (pass empty tmp_path so globs find nothing).

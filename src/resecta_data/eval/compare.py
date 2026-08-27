@@ -1,8 +1,8 @@
-"""Compare two derived G8 detection baselines and decide the §3 predicate.
+"""Compare two derived G8 detection baselines and decide the four-clause
+before/after predicate.
 
-The S4 measurement design (``04-implementation-plan.md`` §5.2, restated in
-``05-final-plan.md`` §3) decides whether a context-scorer AFTER run improves on
-the S3 BEFORE purely from the two derived ``g8_detection_baseline.json`` dicts
+The measurement design decides whether a context-scorer AFTER run improves on
+the BEFORE run purely from the two derived ``g8_detection_baseline.json`` dicts
 the harness + :mod:`resecta_data.eval.baseline` already produce. This module is
 that decision: **pure arithmetic over the already-frozen ``BaselineCell``
 fields** -- it does not re-run detection, re-join offsets, read any device
@@ -13,31 +13,30 @@ score-dump, or re-derive any metric. It reads the fields
 over the grand-total aggregate.
 
 Each clause carries TWO senses so one comparator decides both questions: a
-``win`` sense (the §3 improvement bar is met) and a ``regressed`` sense (the
+``win`` sense (the before/after improvement bar is met) and a ``regressed`` sense (the
 metric got worse beyond float noise). Failing to *improve* is NOT a regression
 -- so an identical BEFORE/AFTER is ``regression=False`` (a clean non-regression)
 even though no uplift was achieved. The four clauses (AFTER vs BEFORE), per
 family ``F`` and over ``totals``:
 
-- **C1 precision** -- win: ``after.precision >= before.precision + delta_p``;
+- **precision** -- win: ``after.precision >= before.precision + delta_p``;
   regressed: precision dropped.
-- **C2 family-FPR** -- win: ``after_FPR <= before_FPR * (1 - delta_f_rel)``;
+- **family-FPR** -- win: ``after_FPR <= before_FPR * (1 - delta_f_rel)``;
   regressed: ``after_FPR > before_FPR`` -- where ``family_FPR =
   1 - precision_with_decoys`` (NOT ``1 - precision``: the two coincide on G8
   today only because zero decoys fire for the five families, but the code reads
   ``precision_with_decoys`` so it stays correct once a corpus adds decoys).
-- **C3 recall floor** -- win and regressed both key on
+- **recall floor** -- win and regressed both key on
   ``after.recall >= before.recall - eps`` (the over-suppression guard).
-- **C4 slice non-regression** -- regressed: any ``per_doctype`` (5) or
+- **slice non-regression** -- regressed: any ``per_doctype`` (5) or
   ``per_demographic`` (5) precision drops by more than ``delta_slice``.
 
 A REGRESSION is **any** gating clause regressing. An aggregate clean verdict
 never excuses a per-family regression. The five scorer families map to
-``per_family`` keys by the
-D-5 rule (the per_family block is keyed by ``PIICategory`` rawValue):
+``per_family`` keys by ``PIICategory`` rawValue:
 ``account -> "account"``, ``phone -> "phone"``, ``mrn -> "medicalrecord"``,
 ``ein -> "ein"``, ``itin -> "itin"``. MRN/EIN are clean on G8 (zero FP) -> their
-bar is **non-regression only** (no C1 uplift is demanded). ITIN is absent from
+bar is **non-regression only** (no precision uplift is demanded). ITIN is absent from
 the G8 panel -> tolerated with no ``KeyError`` and marked off-panel.
 
 Units: ``delta_p`` and ``delta_slice`` are precision **fractions** here (e.g.
@@ -47,9 +46,9 @@ Units: ``delta_p`` and ``delta_slice`` are precision **fractions** here (e.g.
 This is a dev/eval comparator: it has no install route, no lock entry, and is
 not produced by ``make build``. It follows the pipeline's determinism
 (``common/determinism.py``) and mechanism-language
-(``common/mechanism_language.py``) rules; ARCH §12.2 (every emitted record
-carries category / aggregate / mechanism only -- no document text, no PII
-values, no coordinates).
+(``common/mechanism_language.py``) rules: every emitted record carries
+category / aggregate / mechanism only -- no document text, no PII values, no
+coordinates.
 """
 
 from __future__ import annotations
@@ -68,7 +67,7 @@ _SCHEMA_VERSION: Final[int] = 1
 _METRIC: Final[str] = "g8_compare_verdict"
 
 # The five scorer families and the per_family key each resolves to. The
-# per_family block is keyed by PIICategory rawValue (the D-5 trap): MRN's
+# per_family block is keyed by PIICategory rawValue (a naming trap): MRN's
 # rawValue is "medicalrecord", NOT "mrn", so reading per_family["mrn"] would
 # silently look absent and skip MRN's non-regression check -- a bug. Keyed by
 # the scorer/wireName family name -> the baseline per_family key.
@@ -86,7 +85,7 @@ _FAMILY_ORDER: Final[tuple[str, ...]] = ("account", "phone", "mrn", "ein", "itin
 # The aggregate's reporting name in the verdict.
 _AGGREGATE_NAME: Final[str] = "aggregate"
 
-# The 5 doctype + 5 demographic slice axes the C4 non-regression clause walks.
+# The 5 doctype + 5 demographic slice axes the slice non-regression clause walks.
 # Literal names: ai_an carries an underscore and is NOT re-split (it is a single
 # bucket key, mirroring baseline._BUCKETS / the input schema's required keys).
 _DOCTYPES: Final[tuple[str, ...]] = ("court", "medical", "financial", "foia", "generic")
@@ -99,7 +98,7 @@ _C3: Final[str] = "C3_recall"
 _C4: Final[str] = "C4_slice_non_regression"
 
 # Float-noise tolerance: a movement smaller than this is treated as "no change"
-# for the C1/C2 regression sense, so re-derived-identical inputs never read as a
+# for the precision/family-FPR regression sense, so re-derived-identical inputs never read as a
 # regression on rounding dust. The metrics are ratios of small integers, so this
 # is comfortably below any real one-detection movement.
 _FLOAT_TOL: Final[float] = 1e-12
@@ -123,11 +122,11 @@ def _family_fpr(cell: dict[str, Any]) -> float:
 
 
 def _clause_c1(before: dict[str, Any], after: dict[str, Any], delta_p: float) -> dict[str, Any]:
-    """Evaluate C1 (precision), carrying both the WIN and the regression sense.
+    """Evaluate the precision clause, carrying both the WIN and the regression sense.
 
     Two senses, one clause:
 
-    - ``win`` -- precision rose by at least ``delta_p`` (the §5.2 uplift bar).
+    - ``win`` -- precision rose by at least ``delta_p`` (the required precision uplift).
     - ``regressed`` -- precision *dropped* (``after < before``, beyond a tiny
       float-noise tolerance). Failing to improve is NOT a regression; only a
       drop is. So an identical BEFORE/AFTER is ``regressed=False`` (and
@@ -148,7 +147,7 @@ def _clause_c1(before: dict[str, Any], after: dict[str, Any], delta_p: float) ->
 
 
 def _clause_c2(before: dict[str, Any], after: dict[str, Any], delta_f_rel: float) -> dict[str, Any]:
-    """Evaluate C2 (family-FPR), carrying both the WIN and the regression sense.
+    """Evaluate the family-FPR clause, carrying both the WIN and the regression sense.
 
     Reads ``precision_with_decoys`` via :func:`_family_fpr` (NOT ``precision``)
     so the clause stays correct when a corpus adds decoys. Two senses:
@@ -174,7 +173,7 @@ def _clause_c2(before: dict[str, Any], after: dict[str, Any], delta_f_rel: float
 
 
 def _clause_c3(before: dict[str, Any], after: dict[str, Any], eps: float) -> dict[str, Any]:
-    """Evaluate C3 (recall), carrying both the WIN and the regression sense.
+    """Evaluate the recall clause, carrying both the WIN and the regression sense.
 
     The over-suppression guard -- the augment can only lower confidence, so this
     is the dangerous clause. Both senses share one floor here:
@@ -209,7 +208,7 @@ def _slice_regressions(
 
     A slice is a regression when ``after.precision < before.precision -
     delta_slice``. Every slice is reported (passed or not) so the verdict shows
-    the full axis; the C4 aggregation flags the regressing ones.
+    the full axis; the slice non-regression aggregation flags the regressing ones.
 
     Args:
         before: The BEFORE baseline dict.
@@ -249,9 +248,9 @@ def _clause_c4(
     after: dict[str, Any],
     delta_slice: float,
 ) -> dict[str, Any]:
-    """Evaluate C4 (per-doctype/per-demographic slice non-regression).
+    """Evaluate the slice non-regression clause (per-doctype/per-demographic).
 
-    A slice that drops more than ``delta_slice`` is a regression; C4 is a pure
+    A slice that drops more than ``delta_slice`` is a regression; this is a pure
     non-regression clause, so its ``win`` and ``regressed`` senses are the
     inverse of each other (no uplift is demanded of a slice).
     """
@@ -282,9 +281,10 @@ def _family_verdict(
     """Build the four-clause verdict for one scorer family or the aggregate.
 
     ``non_regression_only`` families (MRN/EIN -- clean on G8, zero FP) drop the
-    C1 uplift demand: C1 is reported but does not gate, so a clean family is not
-    misread as a failure for "not improving". The C2/C3/C4 non-regression
-    clauses still bind (a family that GROWS FP or DROPS recall regresses).
+    precision uplift demand: the precision clause is reported but does not
+    gate, so a clean family is not misread as a failure for "not improving".
+    The family-FPR/recall/slice non-regression clauses still bind (a family
+    that GROWS FP or DROPS recall regresses).
 
     Args:
         name: Family or aggregate reporting name.
@@ -305,9 +305,9 @@ def _family_verdict(
         the carried ``low_confidence`` advisory.
     """
     # MRN/EIN: clean on G8 -> non-regression bar only (no +delta_p demanded).
-    # For these the C1 PRECISION clause does not gate AT ALL: a degraded-
-    # precision MRN with still-0 FP is NOT flagged (per the plan), but a C2 FP
-    # growth or a C3 recall drop still gates.
+    # For these the precision clause does not gate AT ALL: a degraded-
+    # precision MRN with still-0 FP is NOT flagged, but a family-FPR
+    # growth or a recall drop still gates.
     non_regression_only = name in ("mrn", "ein")
 
     c1 = _clause_c1(before, after, delta_p)
@@ -315,8 +315,9 @@ def _family_verdict(
     c3 = _clause_c3(before, after, eps)
     clauses = [c1, c2, c3]
 
-    # C1's REGRESSION sense gates only for the uplift-required families; C2/C3
-    # always gate. (C1.regressed = precision dropped; suppressed for MRN/EIN.)
+    # The precision clause's REGRESSION sense gates only for the
+    # uplift-required families; family-FPR/recall always gate. (Its
+    # ``regressed`` flag means precision dropped; suppressed for MRN/EIN.)
     c1_gates = not non_regression_only
     regressed_clauses = [
         clause["clause"]
@@ -347,11 +348,11 @@ def build_compare(
     after: dict[str, Any],
     thresholds: dict[str, float],
 ) -> dict[str, Any]:
-    """Decide the §3 predicate from two derived G8 detection baselines.
+    """Decide the four-clause before/after predicate from two derived G8 detection baselines.
 
     Pure arithmetic over the frozen ``BaselineCell`` fields. Evaluates the four
-    clauses per scorer family (mapped by the D-5 rule) and over the grand-total
-    aggregate, then folds them into one verdict. REGRESSION is any gating clause
+    clauses per scorer family (mapped by ``PIICategory`` rawValue) and over the
+    grand-total aggregate, then folds them into one verdict. REGRESSION is any gating clause
     failing on any family or the aggregate; an aggregate PASS never excuses a
     per-family FAIL.
 
@@ -413,8 +414,9 @@ def build_compare(
             )
         )
 
-    # The aggregate verdict gates on C1/C2/C3 over totals AND on the C4 slice
-    # non-regression guard (slices are a whole-run axis, reported once here).
+    # The aggregate verdict gates on precision/family-FPR/recall over totals AND
+    # on the slice non-regression guard (slices are a whole-run axis, reported
+    # once here).
     aggregate = _family_verdict(
         _AGGREGATE_NAME,
         before["totals"],

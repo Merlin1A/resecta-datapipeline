@@ -45,9 +45,6 @@ g8_corpus_output/
 # Hypothesis property-test database (regenerable).
 .hypothesis/
 
-# Per-machine Claude Code settings (user-specific, not for collaborators).
-.claude/settings.local.json
-
 # Transient lock file created by scripts/_fetch_lib.sh::append_sources_row to
-# serialise concurrent SOURCES.md appenders (orchestration.md §5).
+# serialise concurrent SOURCES.md appenders.
 SOURCES.md.lock

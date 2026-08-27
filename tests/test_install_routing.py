@@ -3,7 +3,7 @@
 Phase 1 ships five test fixtures. Phase 2 adds three runtime resources (the
 dual Bloom filters plus the gazetteer manifest). The negative-context
 candidate list and the demographic coverage report are held in build/;
-zip_scf_states.json ships as a runtime resource since S1 0.7 (Phase 3
+zip_scf_states.json ships as a runtime resource since 0.7 (Phase 3
 AddressDetector landed).
 """
 
@@ -17,7 +17,7 @@ def test_every_install_route_is_schema_routed() -> None:
     # Non-JSON artifacts validate by other mechanisms:
     #  - .bloom: round-trip + manifest cross-check.
     #  - .sig: Ed25519 signature over the (schema-validated) manifest; the iOS
-    #    verifier is the source of truth — SEC-6.
+    #    verifier is the source of truth.
     #  - .pem: SubjectPublicKeyInfo wrapper that the cryptography library
     #    parses on load; structural correctness is enforced at signing time.
     non_schema_suffixes = (".bloom", ".sig", ".pem")
@@ -28,7 +28,7 @@ def test_every_install_route_is_schema_routed() -> None:
 
 
 def test_zip_scf_in_install_routes() -> None:
-    """zip_scf_states.json ships to iOS as a runtime resource (S1 0.7).
+    """zip_scf_states.json ships to iOS as a runtime resource (0.7).
 
     Phase 3 AddressDetector landed; ZIPStateTableLoader.swift consumes the
     file at runtime. The old assertion-of-absence became a regression once
@@ -102,11 +102,12 @@ def test_phase_3_g8_corpus_routes_to_fixtures() -> None:
 
 
 def test_s5_gazetteer_sidecars_route_to_resources() -> None:
-    """S5 (design 02 §§6-8): institutions, address_components, nicknames are routed.
+    """institutions, address_components, and nicknames gazetteer sidecars are routed.
 
     institutions.json and address_components.json were manual copies in the
-    iOS tree before S5; the routed install owns them now (the first install
-    reconciles the drifted iOS copies — a Jesse-review diff, not an error).
+    iOS tree before this routing was added; the routed install owns them now
+    (the first install reconciles the drifted iOS copies — a diff to review
+    at install time, not an error).
     nicknames.json is the new given-name sidecar; its route is inert until
     the artifact is built post-fetch.
     """

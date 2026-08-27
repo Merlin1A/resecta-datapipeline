@@ -1,7 +1,7 @@
 """Deterministic negative-text corpus for false-positive-rate measurement.
 
-This corpus is the document-level FP surface for the S3 baseline (CONTRACT.md
-"File 4" / "Negative corpus fixture format"). Every document is realistic
+This corpus is the document-level false-positive-rate baseline fixture.
+Every document is realistic
 benign prose that contains **no valid PII**: any detection the engine produces
 when scanning this corpus is, by construction, a false positive.
 
@@ -60,8 +60,8 @@ _MODULE_NAME: Final[str] = "resecta_data.corpus.negative.generate"
 _SCHEMA_VERSION: Final[int] = 1
 _ID_TEMPLATE: Final[str] = "neg_%06d"
 
-# The five doctypes the engine classifies into; mirrors the G8 corpus and the
-# S3 contract's doctype enum (court / medical / financial / foia / generic).
+# The five doctypes the engine classifies into; mirrors the G8 corpus's
+# doctype enum (court / medical / financial / foia / generic).
 _DOCTYPE_ORDER: Final[tuple[str, ...]] = (
     "court",
     "medical",
@@ -1163,11 +1163,10 @@ def build(seed: int = CANONICAL_SEED) -> dict[str, Any]:
     """Build the deterministic negative-text corpus payload.
 
     The corpus contains no valid PII; any detection the engine surfaces when
-    scanning it is a false positive (CONTRACT.md "Negative corpus fixture
-    format"). The content is a frozen literal -- the ``seed`` argument is
-    accepted for interface uniformity with the other builders and is recorded
-    in the payload, but this builder is not randomized, so every seed yields
-    byte-identical documents.
+    scanning it is a false positive. The content is a frozen literal -- the
+    ``seed`` argument is accepted for interface uniformity with the other
+    builders and is recorded in the payload, but this builder is not
+    randomized, so every seed yields byte-identical documents.
 
     Args:
         seed: Recorded in the payload for uniformity. Defaults to the canonical

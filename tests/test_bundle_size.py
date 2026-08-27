@@ -1,13 +1,13 @@
-"""Determinism + schema + shape checks for the D-35 bundle-size probe.
+"""Determinism + schema + shape checks for the bundle-size probe.
 
-Spec §1.35 + §4 #13 + F-12 (engineer-facing only; no Resecta UI in V1;
-Swift cold-start hook is the deferred Mac-side half). The probe is dev/CI
-only -- not installed to the Swift Resources path.
+The probe is engineer-facing only; there is no Resecta UI for it (the
+Swift cold-start hook is the deferred Mac-side half). The probe is
+dev/CI only -- not installed to the Swift Resources path.
 
 The body is emitted at ``build/instrumentation/bundle_size.json``; the
 build-input ``git_head`` lives in the sibling ``bundle_size.meta.json``
 sidecar and is excluded from the hash lock to break the
-cc-script audit §5e regen-lock feedback loop.
+regen-lock feedback loop.
 """
 
 from __future__ import annotations
@@ -48,8 +48,8 @@ def test_walks_default_subdirs_and_omits_others(tmp_build_dir: Path) -> None:
     _populate(tmp_build_dir)
     payload = build(tmp_build_dir)
     subs = payload["subdirectories"]
-    # Default scope omits hand-review surfaces (calibration/) and
-    # out-of-scope dirs like demographics/.
+    # Default scope omits surfaces meant for manual review (calibration/)
+    # and out-of-scope dirs like demographics/.
     assert set(subs.keys()) == set(DEFAULT_SUB_DIRS)
     assert "demographics" not in subs
     assert "calibration" not in subs
@@ -96,7 +96,7 @@ def test_byte_identical_across_invocations(tmp_build_dir: Path) -> None:
 
 
 def test_body_byte_stable_across_git_head_drift(tmp_build_dir: Path) -> None:
-    """Body is independent of git_head — the §5e regen-lock loop is broken.
+    """Body is independent of git_head — the regen-lock loop is broken.
 
     Two body-builds against the same tree produce byte-identical output even
     though a sibling meta-build would carry a different git_head per cycle.

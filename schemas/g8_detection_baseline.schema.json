@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_detection_baseline.schema.json",
-  "title": "G8 detection baseline (S3 eval)",
-  "description": "Committed-ready detection baseline derived by resecta_data.eval.baseline from the Swift harness's offset-overlap join cells (CONTRACT.md File 1). Carries precision / recall / F1 / adversarial-suppression FP-rate per cell and aggregated per-family, per-doctype, per-demographic, and grand-total. Dev/eval artifact: not installed to the Swift Resources path. A low_confidence flag marks (but does not drop) slices whose positive support is below the small-sample floor -- the demographic-fairness guardrail.",
+  "title": "G8 detection baseline",
+  "description": "Committed-ready detection baseline derived by resecta_data.eval.baseline from the Swift harness's offset-overlap join cells. Carries precision / recall / F1 / adversarial-suppression FP-rate per cell and aggregated per-family, per-doctype, per-demographic, and grand-total. Dev/eval artifact: not installed to the Swift Resources path. A low_confidence flag marks (but does not drop) slices whose positive support is below the small-sample floor -- the demographic-fairness guardrail.",
   "type": "object",
   "required": [
     "schema_version",

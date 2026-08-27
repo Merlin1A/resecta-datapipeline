@@ -1,4 +1,4 @@
-"""Parser for the Federal Register agencies API feed (D-01 source).
+"""Parser for the Federal Register agencies API feed.
 
 Consumes the JSON feed at
 ``src/resecta_data/gazetteers/institutions/sources/federalregister_agencies.json``
@@ -44,8 +44,7 @@ def parse_federalregister_agencies(path: Path) -> list[InstitutionEntry]:
     """
     if not path.is_file():
         raise MissingSourceError(
-            f"Federal Register agencies feed not found at {path}. "
-            "Run `make sources` to fetch, or check CLAUDE.md §1.4."
+            f"Federal Register agencies feed not found at {path}. Run `make sources` to fetch."
         )
 
     with path.open("r", encoding=_SOURCE_ENCODING) as fh:

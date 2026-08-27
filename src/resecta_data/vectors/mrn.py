@@ -14,7 +14,7 @@ themselves are declared at :686-702:
 Each variant ships with ~30 vectors covering the alphanumeric / digit-only
 shape space plus a handful of structural rejections, for ~90 valid + a
 small rejection tail across all three. The ``pattern_variant`` enum tag is
-the schema-required dispatch field per M13 / claude.md C4.
+the schema-required dispatch field.
 """
 
 from __future__ import annotations

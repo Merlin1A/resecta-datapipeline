@@ -153,7 +153,7 @@ SCHEMA_ROUTES: dict[str, str] = {
     "vectors/ein_vectors.json": "ein_vectors",
     "vectors/itin_vectors.json": "itin_vectors",
     "vectors/dob_vectors.json": "dob_vectors",
-    # C4 follow-up vectors (Phone, Email, Passport, DL, MRN, Bates, LicensePlate).
+    # Follow-up vectors (Phone, Email, Passport, DL, MRN, Bates, LicensePlate).
     "vectors/phone_test_vectors.json": "phone_vectors",
     "vectors/email_test_vectors.json": "email_vectors",
     "vectors/passport_test_vectors.json": "passport_vectors",
@@ -161,7 +161,7 @@ SCHEMA_ROUTES: dict[str, str] = {
     "vectors/mrn_test_vectors.json": "mrn_vectors",
     "vectors/bates_test_vectors.json": "bates_vectors",
     "vectors/license_plate_test_vectors.json": "license_plate_vectors",
-    # S2 task 11 — ABA routing-number vectors (design 01 §4).
+    # ABA routing-number vectors.
     "vectors/routing_number_vectors.json": "routing_number_vectors",
     "gazetteers/zip_scf_states.json": "zip_scf_states",
     "fuzz/redos_payloads.json": "redos_payloads",
@@ -175,7 +175,7 @@ SCHEMA_ROUTES: dict[str, str] = {
     "gazetteers/institutions.cutover-diff.json": "cutover_diff",
     "gazetteers/address_components.json": "address_components",
     "gazetteers/address_components.cutover-diff.json": "cutover_diff",
-    # S5 (design 02 §7) — nickname/diminutive sidecar; built only once the
+    # Nickname/diminutive sidecar; built only once the
     # CC0 raw source has been fetched (see the Makefile GAZ_NICKNAMES gate).
     "gazetteers/nicknames.json": "nicknames",
     "gazetteers/dl_patterns.json": "dl_patterns",
@@ -188,17 +188,17 @@ SCHEMA_ROUTES: dict[str, str] = {
     # Phase 3
     "classifier/doctype_keywords.json": "doctype_keywords",
     "classifier/preset_thresholds_candidates.json": "preset_thresholds",
-    # B03 — in-band context scorer (C1). Both the candidate and the final-named
+    # In-band context scorer. Both the candidate and the final-named
     # build artifact validate against the same schema; only the final is routed
-    # for install (below), and promotion stays Jesse-gated.
+    # for install (below); promotion happens under an approved change plan.
     "classifier/context_scorer.json": "context_scorer",
     "classifier/context_scorer_candidates.json": "context_scorer",
     "corpus/g8_corpus.json": "g8_corpus",
-    # S3 baseline (eval) — deterministic no-PII negative corpus for the
+    # Eval baseline — deterministic no-PII negative corpus for the
     # document-level FP measurement. Dev/eval fixture; no INSTALL_ROUTES entry
     # (not shipped), like g8_bucket_recall.
     "corpus/negative_corpus.json": "negative_corpus",
-    # S3 baseline (eval) — derived detection baseline + M9 headroom probe.
+    # Eval baseline — derived detection baseline + learned-term headroom probe.
     # Produced by `resecta-data build eval-baseline` from the Swift harness's
     # _cells.json / _raw_scores.json. Dev/eval only; no INSTALL_ROUTES entry
     # (not shipped), like g8_bucket_recall / negative_corpus.
@@ -217,7 +217,7 @@ SCHEMA_ROUTES: dict[str, str] = {
 #
 # Phase 2 ships the dual-Bloom filter bundle to Resources/Gazetteers/. The
 # negative-context candidate file and the demographic coverage report stay
-# in build/: the former is hand-review-gated, the latter is
+# in build/: the former is replaced by the reviewed file staged from reviewed/, the latter is
 # a dev/CI artifact not shipped to end users.
 INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     "vectors/npi_test_vectors.json": ("fixtures", "vectors/npi_test_vectors.json"),
@@ -240,7 +240,7 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
         "fixtures",
         "vectors/license_plate_test_vectors.json",
     ),
-    # S2 task 11 — ABA routing-number vectors (design 01 §4).
+    # ABA routing-number vectors.
     "vectors/routing_number_vectors.json": ("fixtures", "vectors/routing_number_vectors.json"),
     "fuzz/redos_payloads.json": ("fixtures", "fuzz/redos_payloads.json"),
     "adversarial/adversarial_patterns.json": (
@@ -250,7 +250,7 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     "gazetteers/surnames.bloom": ("resources", "Gazetteers/surnames.bloom"),
     "gazetteers/given-names.bloom": ("resources", "Gazetteers/given-names.bloom"),
     "gazetteers/gazetteer_manifest.json": ("resources", "Gazetteers/gazetteer-manifest.json"),
-    # SEC-6 — Signed manifest peer files. The .sig is the detached Ed25519
+    # Signed manifest peer files. The .sig is the detached Ed25519
     # signature over `gazetteer_manifest.json`; the .pem is the public key
     # the iOS engine verifies against. Both produced by `make sign-manifest`
     # (a `make install-assets` prerequisite).
@@ -259,14 +259,13 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     "gazetteers/dl_patterns.json": ("resources", "Gazetteers/dl_patterns.json"),
     "gazetteers/passport_patterns.json": ("resources", "Gazetteers/passport_patterns.json"),
     # Phase 3 AddressDetector landed (ZIPStateTableLoader.swift consumes this
-    # at runtime); zip_scf_states ships as a runtime resource (S1 0.7). The
+    # at runtime); zip_scf_states ships as a runtime resource. The
     # iOS copy was previously manually placed — install-assets now owns it.
     "gazetteers/zip_scf_states.json": ("resources", "Gazetteers/zip_scf_states.json"),
     "gazetteers/negative_context.json": ("resources", "Gazetteers/negative-context.json"),
-    # S5 (design 02 §§6-8) — institutions and address_components were
-    # previously MANUAL copies in the iOS tree; install-assets now owns them.
-    # The first routed install reconciles drifted iOS copies (Jesse reviews
-    # that diff at install time — landmine note in the S5 session prompt).
+    # institutions and address_components were previously MANUAL copies in
+    # the iOS tree; install-assets now owns them. The first routed install
+    # reconciles drifted iOS copies — review the install diff.
     # nicknames.json is the new given-name sidecar; the route is inert until
     # the artifact exists in build/ (post-fetch).
     "gazetteers/institutions.json": ("resources", "Gazetteers/institutions.json"),
@@ -278,10 +277,10 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     # Preset-threshold candidates stay in build/ pending the Phase 3b G9
     # sweep. The G8 corpus is a test fixture.
     "classifier/doctype_keywords.json": ("resources", "Classifier/doctype-keywords.json"),
-    # B03 — context scorer ships hyphenated to Classifier/. FINAL only; the
+    # The context scorer ships hyphenated to Classifier/. FINAL only; the
     # `_candidates` artifact stays in build/. shutil.copy2 does no auto-rename,
-    # so the hyphenated dest is hard-coded here (D-6). The installed promotion
-    # is Jesse-gated — not executed by B03 (which ships a placeholder).
+    # so the hyphenated dest is hard-coded here. The installed promotion
+    # happens under an approved change plan.
     "classifier/context_scorer.json": ("resources", "Classifier/context-scorer.json"),
     "corpus/g8_corpus.json": ("fixtures", "corpus/g8_corpus.json"),
     # Phase 3b: calibrated artifacts ship to Classifier/. Only present when
@@ -586,7 +585,7 @@ def verify_determinism_cmd(
 
     1. **In-place** (``--rebuild-out-dir`` unset): snapshot ``--build-dir``,
        wipe it, run the rebuild in place, diff. Out-of-band artifacts
-       (Swift-produced calibration dumps, hand-reviewed gazetteers) are
+       (Swift-produced calibration dumps, the reviewed gazetteer) are
        restored across the wipe.
 
     2. **Side-by-side** (``--rebuild-out-dir`` set): snapshot ``--build-dir``,
@@ -633,8 +632,8 @@ def verify_determinism_cmd(
 
             # Restore out-of-band artifacts that the rebuild command does not
             # regenerate (Swift-produced calibration dumps, calibrated outputs,
-            # hand-reviewed gazetteers). Preserving them here keeps the user's
-            # calibration and review work intact across the verify pipeline.
+            # the reviewed gazetteer). Preserving them here keeps the user's
+            # calibration and staged files intact across the verify pipeline.
             preserved = 0
             for rel in first_hashes:
                 if not _is_out_of_band(rel):
@@ -673,7 +672,7 @@ def verify_determinism_cmd(
         }
 
     # Exclude out-of-band artifacts (Swift-produced dumps, calibration
-    # outputs, hand-reviewed gazetteers) from the determinism comparison.
+    # outputs, the reviewed gazetteer) from the determinism comparison.
     first_hashes = {k: v for k, v in first_hashes.items() if not _is_out_of_band(k)}
     second_hashes = {k: v for k, v in second_hashes.items() if not _is_out_of_band(k)}
 
@@ -730,7 +729,7 @@ def verify_hashes_cmd(build_dir: Path, lockfile: Path, built_only: bool) -> None
     actual = {
         p.relative_to(build_dir).as_posix(): sha256_file(p) for p in iter_build_artifacts(build_dir)
     }
-    # SEC-6 — sign-manifest products are out-of-band relative to `make build`
+    # sign-manifest products are out-of-band relative to `make build`
     # (the rebuild scope hash-check runs against). They're not in the lockfile
     # by design; the iOS verifier is the source of truth for their integrity.
     actual = {k: v for k, v in actual.items() if not _is_out_of_band(k)}
@@ -759,7 +758,7 @@ def verify_hashes_cmd(build_dir: Path, lockfile: Path, built_only: bool) -> None
         for p in problems:
             click.echo(f"  {p}", err=True)
         click.echo("", err=True)
-        click.echo("See CLAUDE.md §4 — investigate before updating the lockfile.", err=True)
+        click.echo("Investigate before updating the lockfile; see CONTRIBUTING.md.", err=True)
         sys.exit(1)
 
     if skipped:
@@ -800,7 +799,7 @@ def regenerate_lockfile_cmd(build_dir: Path, lockfile: Path, yes: bool) -> None:
     entries = {
         p.relative_to(build_dir).as_posix(): sha256_file(p) for p in iter_build_artifacts(build_dir)
     }
-    # SEC-6 — exclude sign-manifest output (out-of-band relative to `make build`).
+    # Exclude sign-manifest output (out-of-band relative to `make build`).
     entries = {k: v for k, v in entries.items() if not _is_out_of_band(k)}
     write_hash_lockfile(lockfile, entries)
     click.echo(f"Wrote {len(entries)} entries to {lockfile}")
@@ -827,11 +826,12 @@ def regenerate_lockfile_cmd(build_dir: Path, lockfile: Path, yes: bool) -> None:
     ),
 )
 def stage_reviewed_negctx_cmd(build_dir: Path, reviewed_dir: Path | None) -> None:
-    """Stage the committed reviewed negative_context.json into build/ (D6).
+    """Stage the committed reviewed negative_context.json into build/.
 
     Verifies the meta sidecar's ``reviewed_version`` against the live
     candidates hash before copying — a mismatch means the candidates
-    changed since Jesse's review and staging refuses.
+    changed without the sidecar being re-stamped under an approved change
+    plan, and staging refuses.
     """
     if reviewed_dir is None:
         staged = stage_reviewed_negative_context(build_dir)
@@ -871,7 +871,7 @@ def stage_reviewed_negctx_cmd(build_dir: Path, reviewed_dir: Path | None) -> Non
     default=False,
     help=(
         "Permit a shrink-guarded gazetteer (e.g. institutions.json) to be "
-        "overwritten by a smaller build/ artifact. Required only after the S5 "
+        "overwritten by a smaller build/ artifact. Required only after the "
         "institutions fetches make build/ a verified superset. Off by default "
         "so a bare refresh cannot regress a committed corpus."
     ),
@@ -922,7 +922,7 @@ def install_assets_cmd(
                 raise PipelineError(
                     f"{rel}: refusing to shrink shipped gazetteer "
                     f"{dst_n} -> {src_n} entries. The committed file is a "
-                    f"superset; complete the S5 institutions fetches + "
+                    f"superset; complete the institutions fetches + "
                     f"`gmake gazetteers` so build/ is >= shipped, or pass "
                     f"--allow-shrink to override. See cutover-diff "
                     f"build/gazetteers/institutions.cutover-diff.json "
@@ -941,7 +941,7 @@ def install_assets_cmd(
 
 
 # -----------------------------------------------------------------------------
-# Sign manifest (SEC-6 — paired iOS PR)
+# Sign manifest (verified by the iOS engine)
 # -----------------------------------------------------------------------------
 
 
@@ -983,10 +983,10 @@ def sign_manifest_cmd(
     to the manifest. Both files are picked up by ``install-assets`` via the
     routing entries above and copied into the iOS Resources/Gazetteers/
     tree. The iOS engine verifies the signature at detector init
-    (see GazetteerLoader.swift / SEC-6).
+    (see GazetteerLoader.swift).
 
     Cross-boundary wire-format changes need a paired Swift PR
-    (plan.md §3 SEC-6: Ed25519, rotation per major release).
+    (Ed25519; the signing key rotates per major release).
     """
     key_path = private_key if private_key is not None else DEFAULT_PRIVATE_KEY_PATH
 
@@ -1522,7 +1522,7 @@ def _ingest_with_cache(
 
     # Workers aggregate (dedup) rows before they cross the process boundary;
     # byte-equivalent to merge(parse_sources_parallel(...)) but the live set
-    # stays bounded — see ingest_sources_parallel and the S04 design note.
+    # stays bounded — see ingest_sources_parallel.
     ingest, seen_source_ids = ingest_sources_parallel(specs, workers=workers)
     # Derive sources from actual rows (covers specs whose .args we couldn't
     # introspect); seen_source_ids is already sorted.
@@ -1718,7 +1718,7 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
     show_default=True,
 )
 def build_context_cmd(build_dir: Path, seed: int) -> None:
-    """Build per-category positive context-keyword gazetteer (D-11 / A21)."""
+    """Build the per-category positive context-keyword gazetteer."""
     assert_hash_seed_pinned()
     payload = build_context_keywords(seed)
     dest = build_dir / "context" / "context_keywords.json"
@@ -1739,7 +1739,7 @@ def build_context_cmd(build_dir: Path, seed: int) -> None:
     show_default=True,
 )
 def build_rules_cmd(build_dir: Path, seed: int) -> None:
-    """Build PII detector rule-ID catalog (D-18 / A22)."""
+    """Build the PII detector rule-ID catalog."""
     assert_hash_seed_pinned()
     payload = build_rule_catalog(seed)
     dest = build_dir / "rules" / "rule_catalog.json"
@@ -1799,11 +1799,11 @@ def build_demographics_cmd(build_dir: Path, sources_dir: Path, seed: int) -> Non
     show_default=True,
 )
 def build_g8_bucket_recall_cmd(build_dir: Path, seed: int) -> None:
-    """Build the G8 bucket-stratified recall artifact (D-24).
+    """Build the G8 bucket-stratified recall artifact.
 
     Reads the G8 corpus and the surnames Bloom filter from ``build_dir`` and
-    emits ``demographics/g8_bucket_recall_v1.json``. V1 one-off measurement
-    (spec §1.24 + F-10 ack option a).
+    emits ``demographics/g8_bucket_recall_v1.json``. A one-off measurement
+    (point estimate + sample size only).
     """
     assert_hash_seed_pinned()
 
@@ -1847,7 +1847,7 @@ def build_g8_bucket_recall_cmd(build_dir: Path, seed: int) -> None:
     show_default=True,
 )
 def build_negative_corpus_cmd(build_dir: Path, seed: int) -> None:
-    """Build the deterministic no-PII negative corpus (S3 baseline FP surface).
+    """Build the deterministic no-PII negative corpus (the baseline FP surface).
 
     Emits ``corpus/negative_corpus.json``: benign documents that contain no
     valid PII, so any detection the engine surfaces against them is a false
@@ -1882,7 +1882,7 @@ def build_negative_corpus_cmd(build_dir: Path, seed: int) -> None:
     help="Directory for g8_detection_baseline.json + g8_headroom.json.",
 )
 def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> None:
-    """Derive the S3 detection baseline + M9 headroom from the Swift JSONs.
+    """Derive the detection baseline + learned-term headroom from the Swift JSONs.
 
     Loads the harness's offset-overlap join cells and raw match scores and
     writes ``g8_detection_baseline.json`` + ``g8_headroom.json`` into
@@ -1928,28 +1928,28 @@ _POINTS_TO_FRACTION: float = 0.01
     type=float,
     default=5.0,
     show_default=True,
-    help="C1 minimum precision uplift, in precision POINTS (5 = 5 points = 0.05).",
+    help="Clause 1: minimum precision uplift, in precision POINTS (5 = 5 points = 0.05).",
 )
 @click.option(
     "--delta-f-rel",
     type=float,
     default=0.30,
     show_default=True,
-    help="C2 minimum relative family-FPR cut, as a fraction (0.30 = 30%).",
+    help="Clause 2: minimum relative family-FPR cut, as a fraction (0.30 = 30%).",
 )
 @click.option(
     "--eps",
     type=float,
     default=0.01,
     show_default=True,
-    help="C3 recall floor slack, as a fraction (0.01 = 1 point).",
+    help="Clause 3: recall floor slack, as a fraction (0.01 = 1 point).",
 )
 @click.option(
     "--delta-slice",
     type=float,
     default=3.0,
     show_default=True,
-    help="C4 max per-doctype/per-demographic precision drop, in precision POINTS (3 = 3 points).",
+    help="Clause 4: max per-doctype/per-demographic precision drop, in POINTS (3 = 3 points).",
 )
 @click.option(
     "--out",
@@ -1967,7 +1967,7 @@ def build_eval_compare_cmd(
     delta_slice: float,
     out_path: Path,
 ) -> None:
-    """Decide the §3 before/after predicate from two derived baselines.
+    """Decide the four-clause before/after predicate from two derived baselines.
 
     Reads the two derived ``g8_detection_baseline.json`` dicts (a BEFORE and an
     AFTER), applies the four-clause predicate per scorer family and over the
@@ -2039,16 +2039,15 @@ def _git_head_short(repo_root: Path) -> str:
     show_default=True,
     help=(
         "Subdirectory under build/ to include. Repeat to add more; "
-        "defaults to the spec §1.35 scope."
+        "defaults to the shipping-asset scope."
     ),
 )
 def build_bundle_size_cmd(build_dir: Path, sub_dirs: tuple[str, ...]) -> None:
-    """Build the bundle-size instrumentation probe (D-35).
+    """Build the bundle-size instrumentation probe.
 
     Walks the configured ``build/`` subdirectories and writes
-    ``instrumentation/bundle_size.json``. Engineer-facing only per spec
-    §1.35 + §4 #13; the Swift cold-start hook (F-12) ships from the Mac
-    side.
+    ``instrumentation/bundle_size.json``. Engineer-facing only; the Swift
+    cold-start hook ships from the Mac side.
     """
     assert_hash_seed_pinned()
 
@@ -2105,11 +2104,12 @@ def build_classifier_cmd(kind: str, build_dir: Path, seed: int) -> None:
                 f"Wrote {dest} (status={payload['status']}, {len(payload['presets'])} presets)"
             )
         elif name == "scorer":
-            # B05 — in-band context scorer (C1), PROMOTED. The final-named
+            # In-band context scorer, PROMOTED. The final-named
             # artifact now carries the trained calibrated weights: the families
-            # that cleared the orchestrator-path §3 before/after predicate ship
-            # w_family 1 (account, phone), the rest ship identity. The promotion
-            # is Jesse-gated (D-10); the calibrated final's weights are
+            # that cleared the orchestrator-path four-clause before/after
+            # predicate ship w_family 1 (account, phone), the rest ship identity.
+            # The promotion happens under an approved change plan; the
+            # calibrated final's weights are
             # byte-identical to the `_candidates` fit — only the status (+ notes)
             # differ. Both shapes read the SAME committed File-5 fire dump.
             corpus_path = build_dir / "corpus" / "g8_corpus.json"
@@ -2182,7 +2182,7 @@ def build_corpus_cmd(kind: str, build_dir: Path, seed: int) -> None:
 #
 # These subcommands consume Swift-side dumps (softmax logits from
 # DocumentTypeClassifier, raw per-candidate scores from the PII detectors)
-# that Jesse produces out-of-band via a Swift test target. They are NOT
+# produced out-of-band via a Swift test target. They are NOT
 # part of the default `make build`: the Makefile
 # `calibrate` targets gate on dump presence and fail cleanly when dumps are
 # absent, so normal builds stay fully offline and synthetic.
@@ -2361,8 +2361,8 @@ def build_calibrate_finalize_cmd(
     """Promote a reviewed sweep_raw artifact to the shipping preset file.
 
     The only writer of ``build/classifier/preset_thresholds.json`` in the
-    calibrate flow (0.4). Jesse-gated via the interactive Makefile target
-    ``calibrate-finalize``.
+    calibrate flow. Promoted under an approved change plan via the interactive
+    Makefile target ``calibrate-finalize``.
     """
     assert_hash_seed_pinned()
     dest = build_dir / "classifier" / "preset_thresholds.json"

@@ -64,7 +64,7 @@ STAMP_DIR := $(BUILD_DIR)/.stamps
 # common/ rarely changes. Computed at parse time via $(shell find ...).
 COMMON_DEPS := $(shell find src/resecta_data/common -name '*.py' 2>/dev/null) src/resecta_data/cli.py
 
-# ---- Content-keyed stamps (speed plan #4) -----------------------------------
+# ---- Content-keyed stamps ---------------------------------------------------
 # Stamps are no longer bare `touch` artifacts: each holds a content manifest
 # (sha256 per tracked input) of its own prerequisite closure, computed over
 # make's $^ so the covered file list can never drift below the prereq graph.
@@ -75,7 +75,7 @@ COMMON_DEPS := $(shell find src/resecta_data/common -name '*.py' 2>/dev/null) sr
 # changed. Any keyer failure mode reports "changed", i.e. degrades to the old
 # always-rebuild behavior, never to a wrong skip. CI's
 # RESECTA_FORCE_DETERMINISM=1 path never consults stamp keys.
-# See src/resecta_data/common/stamp_key.py and the S03 design doc.
+# See src/resecta_data/common/stamp_key.py.
 STAMP_KEY := $(PYTHON_VENV) -m resecta_data.common.stamp_key
 
 # $(call keyed_stamp,<label>,<single-line builder command>) — canned
@@ -114,10 +114,10 @@ GAZ_ADDRESS_PY        := $(shell find src/resecta_data/gazetteers/address_compon
 GAZ_ADDRESS_SOURCES   := $(wildcard src/resecta_data/gazetteers/institutions/sources/usgs_gnis_pop_places_*.zip) $(wildcard src/resecta_data/gazetteers/institutions/sources/census_counties_*.zip) $(wildcard src/resecta_data/gazetteers/address_components/sources/tiger_places/*.zip)
 GAZ_NICKNAMES_PY      := $(shell find src/resecta_data/gazetteers/nicknames -name '*.py' 2>/dev/null)
 GAZ_NICKNAMES_SOURCES := $(wildcard src/resecta_data/gazetteers/nicknames/sources/nicknames_cc0_*.csv)
-# S5: the nicknames sidecar joins the default build only once its CC0 raw
-# source has been fetched (Jesse, Linux — scripts/fetch_nicknames.sh). Before
-# that the builder fails loud on the missing source, so the stamp is gated on
-# source presence (same shape as the zip-scf census-source gate below).
+# The nicknames sidecar joins the default build only once its CC0 raw
+# source has been fetched on a Linux host (scripts/fetch_nicknames.sh — the
+# fetch chain needs flock). Before that the builder fails loud on the missing
+# source, so the stamp depends on source presence (same shape as the zip-scf census-source gate below).
 ifneq ($(GAZ_NICKNAMES_SOURCES),)
 GAZ_NICKNAMES_STAMP := $(STAMP_DIR)/gaz-nicknames
 else
@@ -161,7 +161,7 @@ RESECTA_SEED   := 20260416
 export PYTHONHASHSEED := 0
 
 # Default ZIP → SCF source. The full Census 2020 ZCTA-to-Tract Relationship
-# File (§21.2 V4 substitute for HUD per decisions.md M21a) supersedes the
+# File (the substitute for the HUD crosswalk) supersedes the
 # 32-row bootstrap when present; the build auto-detects the format by header
 # sniff. HUD path is retained as a fallback for environments that still use
 # the bootstrap fixture.
@@ -231,7 +231,7 @@ PHASE3B_ARTIFACTS := \
 	$(BUILD_DIR)/classifier/doctype_temperature.json \
 	$(BUILD_DIR)/classifier/preset_thresholds.json
 
-# S5: nicknames.json exists only after Jesse's CC0 fetch (see the
+# nicknames.json exists only after the CC0 source has been fetched (see the
 # GAZ_NICKNAMES_SOURCES gate above) — added to the verification surface only
 # when buildable so schema/hash/determinism checks do not require it earlier.
 ifneq ($(GAZ_NICKNAMES_SOURCES),)
@@ -251,8 +251,8 @@ help: ## Print this help
 	@echo "Primary targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "Current phase: 1+2+3 (Phase 3 adds doctype keywords, preset-threshold candidates, G8 corpus). See CLAUDE.md §7."
-	@echo "Phase 3b: `make calibrate` is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (CLAUDE.md §2.4)."
+	@echo "Current phase: 1+2+3 (Phase 3 adds doctype keywords, preset-threshold candidates, G8 corpus)."
+	@echo "Phase 3b: `make calibrate` is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (see schemas/doctype_softmax_dump.schema.json and schemas/detector_score_dump.schema.json)."
 
 # -----------------------------------------------------------------------------
 # Environment
@@ -352,7 +352,7 @@ REBUILD_JOBS ?= $(shell n=$$(( $(NPROC) - $(PYTEST_WORKERS) )); [ $$n -lt 2 ] &&
 # CLI, not a recipe-level sub-make — with the literal `$(MAKE)` token in
 # the recipe, `gmake -n verify` on a stale witness force-executes the line
 # and the rebuild inherits -n, yielding an empty second build dir and a
-# spurious determinism FAIL. (Pinned to the running make per S01: the cli
+# spurious determinism FAIL. (Pinned to the running make: the cli
 # default `make build` resolves to stock 3.81 via PATH.)
 REBUILD_MAKE := $(MAKE)
 
@@ -362,7 +362,7 @@ REBUILD_MAKE := $(MAKE)
 # unrecognized option after the build prereq already ran.
 OUTPUT_SYNC := $(if $(filter 4.% 5.%,$(MAKE_VERSION)),--output-sync=target)
 
-# `build` / `build-fast` are parallel by default (speed plan #7). Parse-time
+# `build` / `build-fast` are parallel by default. Parse-time
 # goal filter (same idiom as the version guard at the top of this file)
 # instead of a recursive wrapper, so a no-op `gmake build` keeps its ~0.16 s
 # wall, BUILD_DIR= overrides pass through untouched, and the determinism
@@ -517,7 +517,7 @@ $(STAMP_DIR)/zip-scf: $(ZIP_SCF_PY) $(COMMON_DEPS) $(ZIP_SCF_SOURCE) | $(VENV_DI
 	@mkdir -p $(dir $@)
 	@if [ ! -f "$(ZIP_SCF_SOURCE)" ]; then \
 		echo "ERROR: ZIP crosswalk source not found: $(ZIP_SCF_SOURCE)" >&2; \
-		echo "       Expected either $(ZIP_SCF_CENSUS_SOURCE) (§21.2 V4 substitute)" >&2; \
+		echo "       Expected either $(ZIP_SCF_CENSUS_SOURCE) (the full Census relationship file)" >&2; \
 		echo "       or $(ZIP_SCF_BOOTSTRAP_SOURCE) (fixture fallback)." >&2; \
 		exit 1; \
 	fi
@@ -577,14 +577,17 @@ $(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) |
 .PHONY: gazetteers-negative-context
 gazetteers-negative-context: $(STAMP_DIR)/gaz-negctx  ## [Phase 2] Build negative-context candidates
 
-# D6 (search-impl S1): the reviewed negative_context.json is committed under
-# src/.../negative_context/reviewed/ and staged into build/ on demand. The
-# CLI verifies the meta sidecar's reviewed_version (sha256 of the CANDIDATES
-# file at review time) against the live candidates hash and refuses on
-# drift — a changed candidates file requires a Jesse re-review. Fails until
-# the first reviewed file lands (search-impl S3).
+# The reviewed negative_context.json is committed under
+# src/.../negative_context/reviewed/ and staged into build/ on demand. Curated
+# context assets change only under a written change plan approved by the
+# maintainer before the edit — the asset, the rows or fields, the reason, and
+# the regeneration and verification steps. No row-by-row review afterwards.
+# The sidecar drift check stays as a mechanical tripwire the same change
+# re-stamps: the CLI verifies the meta sidecar's reviewed_version (sha256 of
+# the CANDIDATES file the change was based on) against the live candidates
+# hash and refuses on drift.
 .PHONY: stage-reviewed-negctx
-stage-reviewed-negctx: bootstrap gazetteers-negative-context ## [D6] Stage reviewed negative_context.json into build/ (verifies candidates-hash sidecar; safe to re-run)
+stage-reviewed-negctx: bootstrap gazetteers-negative-context ## Stage the reviewed negative_context.json into build/ (verifies the candidates-hash sidecar; safe to re-run)
 	$(RESECTA_DATA) stage-reviewed-negctx --build-dir $(BUILD_DIR)
 
 $(STAMP_DIR)/gaz-institutions: $(GAZ_INSTITUTIONS_PY) $(COMMON_DEPS) $(GAZ_INSTITUTIONS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
@@ -603,31 +606,31 @@ $(STAMP_DIR)/gaz-nicknames: $(GAZ_NICKNAMES_PY) $(COMMON_DEPS) $(GAZ_NICKNAMES_S
 	$(call keyed_stamp,gaz-nicknames,$(RESECTA_DATA) build gazetteers nicknames --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: gazetteers-nicknames
-gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [S5] Build nickname/diminutive sidecar (needs fetched CC0 source)
+gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [Phase 2] Build nickname/diminutive sidecar (needs fetched CC0 source)
 
 $(STAMP_DIR)/passport-patterns: $(PASSPORT_PATTERNS_PY) $(COMMON_DEPS) $(PASSPORT_PATTERNS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,passport-patterns,$(RESECTA_DATA) build gazetteers passport-patterns --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: passport-patterns
-passport-patterns: $(STAMP_DIR)/passport-patterns  ## [Phase 2] Build per-country passport-pattern gazetteer (D-14)
+passport-patterns: $(STAMP_DIR)/passport-patterns  ## [Phase 2] Build per-country passport-pattern gazetteer
 
 $(STAMP_DIR)/dl-patterns: $(DL_PATTERNS_PY) $(COMMON_DEPS) $(DL_PATTERNS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,dl-patterns,$(RESECTA_DATA) build gazetteers dl-patterns --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: dl-patterns
-dl-patterns: $(STAMP_DIR)/dl-patterns  ## [Phase 2] Build per-state driver-license-pattern gazetteer (D-13)
+dl-patterns: $(STAMP_DIR)/dl-patterns  ## [Phase 2] Build per-state driver-license-pattern gazetteer
 
 $(STAMP_DIR)/context: $(CONTEXT_PY) $(COMMON_DEPS) $(CONTEXT_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,context,$(RESECTA_DATA) build context --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: context
-context: $(STAMP_DIR)/context  ## [Phase 2] Build per-category positive context-keyword gazetteer (D-11 / A21)
+context: $(STAMP_DIR)/context  ## [Phase 2] Build per-category positive context-keyword gazetteer
 
 $(STAMP_DIR)/rules: $(RULES_PY) $(COMMON_DEPS) $(RULES_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,rules,$(RESECTA_DATA) build rules --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: rules
-rules: $(STAMP_DIR)/rules  ## [Phase 2] Build PII detector rule-ID catalog (D-18 / A22)
+rules: $(STAMP_DIR)/rules  ## [Phase 2] Build PII detector rule-ID catalog
 
 $(STAMP_DIR)/demographics: $(DEMOGRAPHICS_PY) $(COMMON_DEPS) $(STAMP_DIR)/bloom | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,demographics,$(RESECTA_DATA) build demographics --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -635,7 +638,7 @@ $(STAMP_DIR)/demographics: $(DEMOGRAPHICS_PY) $(COMMON_DEPS) $(STAMP_DIR)/bloom 
 .PHONY: demographics
 demographics: $(STAMP_DIR)/demographics  ## [Phase 2] Build demographic coverage report
 
-# B04: the context-scorer candidates fit (run by `build classifier all`) reads
+# The context-scorer candidates fit (run by `build classifier all`) reads
 # the committed G8 corpus (provenance) plus the committed File-5 fire dump
 # (pre-computed features), so both are content prereqs of the classifier stamp.
 # The corpus stamp produces g8_corpus.json. The fire dump is a committed input
@@ -658,20 +661,20 @@ $(STAMP_DIR)/corpus: $(CORPUS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 .PHONY: corpus
 corpus: $(STAMP_DIR)/corpus  ## [Phase 3] Build the G8 synthetic corpus
 
-# D-24 G8 bucket-stratified recall (V1 one-off; spec §1.24 + F-10).
+# G8 bucket-stratified recall (a one-off measurement for the transparency copy).
 # Depends on the surnames Bloom filter and the G8 corpus, both of which
 # precede this step in the dependency graph.
 $(STAMP_DIR)/g8-bucket-recall: $(DEMOGRAPHICS_PY) $(COMMON_DEPS) $(STAMP_DIR)/bloom $(STAMP_DIR)/corpus | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,g8-bucket-recall,$(RESECTA_DATA) build g8-bucket-recall --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: g8-bucket-recall
-g8-bucket-recall: $(STAMP_DIR)/g8-bucket-recall  ## [Phase 3] Build the G8 bucket-stratified recall artifact (D-24)
+g8-bucket-recall: $(STAMP_DIR)/g8-bucket-recall  ## [Phase 3] Build the G8 bucket-stratified recall artifact
 
-# D-35 bundle-size build probe (engineer-facing only; spec §1.35 + §4 #13).
+# Bundle-size build probe (engineer-facing only).
 # Walks gazetteers / context / rules / calibration / vectors and emits per-
 # artifact byte counts. Depends on the artifact-producing stamps so a clean
 # build orders this step last; calibration/ being absent is handled by the
-# probe itself (empty payload). The Swift cold-start hook (F-12) is the
+# probe itself (empty payload). The Swift cold-start hook is the
 # deferred Mac-side half.
 $(STAMP_DIR)/bundle-size: $(INSTRUMENTATION_PY) $(COMMON_DEPS) \
     $(STAMP_DIR)/vectors $(STAMP_DIR)/zip-scf $(STAMP_DIR)/bloom \
@@ -681,7 +684,7 @@ $(STAMP_DIR)/bundle-size: $(INSTRUMENTATION_PY) $(COMMON_DEPS) \
 	$(call keyed_stamp,bundle-size,$(RESECTA_DATA) build bundle-size --build-dir $(BUILD_DIR))
 
 .PHONY: bundle-size
-bundle-size: $(STAMP_DIR)/bundle-size  ## [Phase 3] Build the bundle-size instrumentation probe (D-35)
+bundle-size: $(STAMP_DIR)/bundle-size  ## [Phase 3] Build the bundle-size instrumentation probe
 
 # -----------------------------------------------------------------------------
 # Phase 3b calibration (out-of-band; requires Swift-side dumps)
@@ -692,7 +695,7 @@ calibrate-temperature: bootstrap corpus ## [Phase 3b] Fit doctype-softmax temper
 	@if [ ! -f "$(SOFTMAX_DUMP)" ]; then \
 		echo "ERROR: Swift softmax dump not found at $(SOFTMAX_DUMP)." >&2; \
 		echo "       Produced by the Swift DocumentTypeClassifier test target;" >&2; \
-		echo "       see CLAUDE.md §2.4 and schemas/doctype_softmax_dump.schema.json." >&2; \
+		echo "       see schemas/doctype_softmax_dump.schema.json." >&2; \
 		exit 1; \
 	fi
 	$(RESECTA_DATA) build calibrate temperature \
@@ -707,7 +710,7 @@ calibrate-sweep: bootstrap corpus calibrate-temperature ## [Phase 3b] Sweep per-
 	@if [ ! -f "$(SCORE_DUMP)" ]; then \
 		echo "ERROR: Swift detector score dump not found at $(SCORE_DUMP)." >&2; \
 		echo "       Produced by the Swift PII detector test target;" >&2; \
-		echo "       see CLAUDE.md §2.4 and schemas/detector_score_dump.schema.json." >&2; \
+		echo "       see schemas/detector_score_dump.schema.json." >&2; \
 		exit 1; \
 	fi
 	$(RESECTA_DATA) build calibrate sweep \
@@ -719,10 +722,10 @@ calibrate-sweep: bootstrap corpus calibrate-temperature ## [Phase 3b] Sweep per-
 		--seed $(RESECTA_SEED) \
 		--prior-mode fresh
 	@echo "Wrote $(BUILD_DIR)/classifier/preset_thresholds_sweep_raw.json (status=sweep_raw)."
-	@echo "The shipping preset_thresholds.json is untouched; promote via make calibrate-finalize (Jesse gate)."
+	@echo "The shipping preset_thresholds.json is untouched; promote via make calibrate-finalize (under an approved change plan)."
 
 .PHONY: calibrate-finalize
-calibrate-finalize: bootstrap ## [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (Jesse gate: review the diff first)
+calibrate-finalize: bootstrap ## [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (under an approved change plan: review the diff first)
 	@if [ ! -f "$(BUILD_DIR)/classifier/preset_thresholds_sweep_raw.json" ]; then \
 		echo "ERROR: $(BUILD_DIR)/classifier/preset_thresholds_sweep_raw.json not found." >&2; \
 		echo "       Run: make calibrate-sweep" >&2; \
@@ -733,24 +736,24 @@ calibrate-finalize: bootstrap ## [Phase 3b] Promote sweep_raw to the shipping pr
 	         "$(BUILD_DIR)/classifier/preset_thresholds_sweep_raw.json" || true
 	@echo "" >&2
 	@echo "Review the diff above. If correct, press Enter to promote." >&2
-	@[ -t 0 ] || { echo 'calibrate-finalize requires an interactive terminal (Jesse-only)'; exit 1; }
+	@[ -t 0 ] || { echo 'calibrate-finalize requires an interactive terminal'; exit 1; }
 	@read -r _confirm
 	$(RESECTA_DATA) build calibrate finalize \
 		--sweep-raw "$(BUILD_DIR)/classifier/preset_thresholds_sweep_raw.json" \
 		--build-dir "$(BUILD_DIR)" \
 		--schemas-dir "$(SCHEMAS_DIR)"
 	@echo "Wrote $(BUILD_DIR)/classifier/preset_thresholds.json (status=calibrated)"
-	@echo "Next: make install-assets (Jesse gate: regenerate lockfile after install)"
+	@echo "Next: make install-assets (then regenerate the lockfile)"
 
 .PHONY: calibrate
-calibrate: calibrate-temperature calibrate-sweep ## [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate Jesse-gated step)
+calibrate: calibrate-temperature calibrate-sweep ## [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
 
 # -----------------------------------------------------------------------------
 # Sources (network-permitted)
 # -----------------------------------------------------------------------------
 
 .PHONY: sources
-sources: bootstrap ## Fetch raw inputs (the ONLY network target — see CLAUDE.md §1.4)
+sources: bootstrap ## Fetch raw inputs (the ONLY network target)
 	@echo "Phase 1+2 ship bootstrap sources in git (no fetch needed)."
 	@echo "For the full HUD crosswalk, run:"
 	@echo "  scripts/fetch_hud_zip_crosswalk.sh <YYYY> <Qn>"
@@ -885,7 +888,7 @@ verify: bootstrap build ## Full verification suite (single build; parallel check
 
 # verify minus determinism-check. The determinism rebuild is the only gate
 # with a real cost: ~3-4 min when the witness is stale (cold ParaNames
-# re-parse; was 40-55 min before the S04 in-worker aggregation);
+# re-parse; was 40-55 min before the in-worker aggregation);
 # everything else is ~10 s warm. This target exists for the dev loop ONLY —
 # it does not prove rebuild reproducibility, so it is NEVER the pre-install
 # gate: `install-assets` keeps full `verify` as its prerequisite for anything
@@ -896,7 +899,7 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 	@echo "verify-fast PASSED — determinism-check NOT run; run 'gmake verify' before any install/ship step."
 
 # -----------------------------------------------------------------------------
-# Sign gazetteer manifest (SEC-6 — paired iOS PR)
+# Sign gazetteer manifest (verified by the iOS engine)
 # -----------------------------------------------------------------------------
 # Ed25519-signs build/gazetteers/gazetteer_manifest.json and writes
 # manifest_public_key.pem + gazetteer_manifest.sig next to it. Both files
@@ -905,34 +908,33 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 #
 # Private key lives at ~/.resecta-data/manifest-private-key.pem (gitignored
 # — outside both repos so it never enters git history). Rotation cadence
-# is per major release; see plan.md §3 SEC-6 (locked decision).
+# is per major release.
 #
 # install-assets depends on sign-manifest so the .sig / .pem files are
-# always in build/ when Jesse runs the asset install + hash-check.
+# always in build/ for the asset install + hash-check.
 
-# Narrowed prereq (speed plan #11, verifier A-C7): the sign command reads
+# Narrowed prereq: the sign command reads
 # exactly one input — build/gazetteers/gazetteer_manifest.json, produced by
 # the bloom builder — so the bloom stamp is the narrowest sound prerequisite.
 # This cannot weaken the ship gate: install-assets still requires full
 # `verify` before any signed byte crosses into the Swift tree.
 .PHONY: sign-manifest
-sign-manifest: bootstrap $(STAMP_DIR)/bloom ## [SEC-6] Sign gazetteer_manifest.json with Ed25519 (writes .sig + .pem peers)
+sign-manifest: bootstrap $(STAMP_DIR)/bloom ## Sign gazetteer_manifest.json with Ed25519 (writes .sig + .pem peers)
 	$(PYTHON_VENV) -m resecta_data.cli sign-manifest --build-dir $(BUILD_DIR)
 
 # -----------------------------------------------------------------------------
 # Install into Swift tree
 # -----------------------------------------------------------------------------
 
-# D6 (search-impl S1): stage-reviewed-negctx is a prerequisite so the
-# reviewed file is always present-and-current in build/ before any byte
-# crosses into the Swift tree. NOTE: until the first reviewed file is
-# committed (search-impl S3), this makes install-assets fail by design —
-# installing an unreviewed negative_context.json is the failure mode D6
-# exists to stop.
+# stage-reviewed-negctx is a prerequisite so the reviewed file is always
+# present-and-current in build/ before any byte crosses into the Swift tree.
+# A drifted candidates file (sidecar not re-stamped) makes install-assets
+# fail by design — installing an unreviewed negative_context.json is the
+# failure mode the sidecar tripwire exists to stop.
 # INSTALL_ASSETS_FLAGS is threaded to the install-assets CLI (empty by default).
 # Set INSTALL_ASSETS_FLAGS=--allow-shrink to permit a shrink-guarded gazetteer
 # (e.g. institutions.json) to be overwritten by a smaller build/ file
-# (D11-config-golive-F1 / REL-5).
+# (the first install after a source refresh).
 INSTALL_ASSETS_FLAGS ?=
 .PHONY: install-assets
 install-assets: verify sign-manifest stage-reviewed-negctx ## Copy artifacts from build/ into the Swift Resources path
@@ -1009,24 +1011,24 @@ doctor: ## Print environment health summary (read-only)
 	    fi; \
 	  else echo "  ✓ fresh (determinism-check is a no-op)"; fi
 	@echo ""
-	@echo "=== Lock / out-of-band consistency (catches N1-class drift) ==="
+	@echo "=== Lock / out-of-band consistency (catches lock/out-of-band drift) ==="
 	@if [ -x $(PYTHON_VENV) ]; then \
 	  $(PYTHON_VENV) -c 'from resecta_data.common.determinism import is_out_of_band; import pathlib; bad = [l.split()[0] for l in pathlib.Path("asset_hashes.lock").read_text().splitlines() if l and not l.startswith("#") and is_out_of_band(l.split()[0])]; print("  ⚠️  lock lists out-of-band entries (hash-check WILL fail): " + ", ".join(bad) if bad else "  ✓ no out-of-band entries in lock")' \
 	  || echo "  ⚠️  consistency check failed to run"; \
 	else echo "  (venv needed — run: gmake bootstrap)"; fi
 	@echo ""
-	@echo "=== Bundle-size probe / out-of-band parity (catches N7-class drift) ==="
+	@echo "=== Bundle-size probe / out-of-band parity (catches probe/out-of-band drift) ==="
 	@if [ -x $(PYTHON_VENV) ] && [ -d $(BUILD_DIR) ]; then \
 	  $(PYTHON_VENV) -c 'from pathlib import Path; from resecta_data.common.determinism import is_out_of_band; from resecta_data.instrumentation.bundle_size import DEFAULT_SUB_DIRS, _walk_subdir; build = Path("$(BUILD_DIR)"); listed = [p.relative_to(build).as_posix() for sub in DEFAULT_SUB_DIRS for p in _walk_subdir(build, sub)]; leaks = [p for p in listed if is_out_of_band(p)]; print("  ⚠️  probe lists out-of-band files (determinism will fail on a signed tree): " + ", ".join(leaks) if leaks else "  ✓ probe walk excludes all out-of-band files (" + str(len(listed)) + " in-band files listed)")' \
 	  || echo "  ⚠️  parity check failed to run"; \
 	else echo "  (venv + $(BUILD_DIR)/ needed)"; fi
 	@echo ""
-	@echo "=== Calibration dumps (Swift-produced, CLAUDE.md §2.4) ==="
+	@echo "=== Calibration dumps (Swift-produced) ==="
 	@for d in $(SOFTMAX_DUMP) $(SCORE_DUMP); do \
 	  if [ -f "$$d" ]; then printf "  ✓ %s (mtime: %s)\n" "$$d" "$$(stat -f '%Sm' "$$d" 2>/dev/null || stat -c '%y' "$$d" 2>/dev/null || echo '?')"; \
 	  else echo "  – $$d absent (make calibrate fails with a pointer)"; fi; done
 	@echo ""
-	@echo "=== Signing key (SEC-6) ==="
+	@echo "=== Signing key ==="
 	@k="$$HOME/.resecta-data/manifest-private-key.pem"; \
 	  if [ -f "$$k" ]; then echo "  ✓ $$k present"; else echo "  ⚠️  $$k missing — sign-manifest needs it (or --generate-key for a new pair)"; fi
 	@echo ""

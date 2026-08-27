@@ -177,7 +177,7 @@ def test_assert_safe_error_lists_all_hits() -> None:
 
 
 def test_assert_safe_error_references_claude_md() -> None:
-    with pytest.raises(PipelineError, match=r"CLAUDE\.md"):
+    with pytest.raises(PipelineError, match=r"CONTRIBUTING\.md"):
         assert_safe("guaranteed", context="test")
 
 

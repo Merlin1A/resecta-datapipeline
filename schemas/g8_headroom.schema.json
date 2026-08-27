@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_headroom.schema.json",
-  "title": "G8 learned-term headroom (M9, S3 eval)",
-  "description": "Per-family learned-term headroom probe derived by resecta_data.eval.headroom from the Swift harness's raw match scores (CONTRACT.md File 2). For each family it quantifies the suppressible false-positive mass above/below the balanced cutoff (raw and posterior) and the score gap between the FP and TP masses, gating whether a learned scoring term has headroom. The posterior mirrors the engine seam CalibratedScorer.posterior(raw, priorMean = max(prior, floor)) with empty priors. Dev/eval artifact: not installed to the Swift Resources path.",
+  "title": "G8 learned-term headroom",
+  "description": "Per-family learned-term headroom probe derived by resecta_data.eval.headroom from the Swift harness's raw match scores. For each family it quantifies the suppressible false-positive mass above/below the balanced cutoff (raw and posterior) and the score gap between the FP and TP masses, gating whether a learned scoring term has headroom. The posterior mirrors the engine seam CalibratedScorer.posterior(raw, priorMean = max(prior, floor)) with empty priors. Dev/eval artifact: not installed to the Swift Resources path.",
   "type": "object",
   "required": [
     "schema_version",

@@ -74,7 +74,7 @@ def test_entries_are_sorted() -> None:
 
 
 # -----------------------------------------------------------------------------
-# Hand-curated MEDICAL + GENERIC + AUDIT_PART3 entries (C5 + A5 audit)
+# Hand-curated MEDICAL + GENERIC + AUDIT_PART3 entries (the negative-context audit)
 # -----------------------------------------------------------------------------
 
 
@@ -123,7 +123,7 @@ def test_manual_medical_schema(tmp_build_dir: Path) -> None:
 def test_manual_entries_scopes_valid() -> None:
     """Every manual ``category_scopes`` element is a Swift-supported category.
 
-    Per findings L5 §"Swift-side category support" and decisions log M7:
+    Swift-side category support (the engine's category enum) decides this:
     the Swift ``wireName`` switch recognises ssn, npi, dea, name, address,
     dob, account. ``medicalRecord`` is deliberately excluded (M7 =
     scope-to-ssn-only, 2026-04-18).
@@ -238,26 +238,25 @@ def test_candidates_file_not_installed() -> None:
     """The candidates file is build-only.
 
     ``SCHEMA_ROUTES`` contains the candidates file (schema validation runs
-    on it) but ``INSTALL_ROUTES`` must not — Jesse hand-reviews candidates
-    before the installed ``negative_context.json`` is updated.
+    on it) but ``INSTALL_ROUTES`` must not — the installed
+    ``negative_context.json`` is the reviewed file staged from ``reviewed/``,
+    changed under an approved change plan, never the raw candidates.
     """
     candidates_key = "gazetteers/negative_context_candidates.json"
     assert candidates_key in SCHEMA_ROUTES, f"{candidates_key} should be schema-validated"
     assert candidates_key not in INSTALL_ROUTES, (
-        f"{candidates_key} must NOT be installed — §2.2 requires Jesse's "
-        "hand-review before anything under Packages/.../Resources/ is "
-        "updated. Found it in INSTALL_ROUTES."
+        f"{candidates_key} must NOT be installed — only the reviewed file "
+        "(staged under an approved change plan) reaches "
+        "Packages/.../Resources/. Found it in INSTALL_ROUTES."
     )
 
 
 # -----------------------------------------------------------------------------
-# S3 D6 reviewed/ path existence checks (design 03 §0.5)
+# reviewed/ path existence checks
 #
 # These tests assert that the committed reviewed files exist in
-# src/resecta_data/gazetteers/negative_context/reviewed/. The reviewed file
-# lands after the Jesse gate later this session; the tests are intentionally
-# RED right now and will turn GREEN once Jesse approves and the reviewed
-# file is committed.
+# src/resecta_data/gazetteers/negative_context/reviewed/ — the durable source
+# the staging step copies from.
 # -----------------------------------------------------------------------------
 
 _REVIEWED_DIR = (
@@ -273,17 +272,14 @@ _REVIEWED_DIR = (
 def test_reviewed_file_exists_in_sources() -> None:
     """The reviewed negative_context.json and its meta sidecar exist in reviewed/.
 
-    Per design 03 §0.5: the committed reviewed file is the source-of-truth;
-    the stage-reviewed-negctx make target copies it to build/. This test
-    will be RED until Jesse approves the candidates diff and commits the
-    reviewed file. That is expected; do not skip or xfail it.
+    The committed reviewed file is the source of truth; the
+    stage-reviewed-negctx make target copies it to build/.
     """
     reviewed_json = _REVIEWED_DIR / "negative_context.json"
     reviewed_meta = _REVIEWED_DIR / "negative_context.meta.json"
     assert reviewed_json.exists(), (
-        f"Reviewed file not yet committed: {reviewed_json}. Jesse gate required before staging."
+        f"Reviewed file not committed: {reviewed_json}. Staging needs it."
     )
     assert reviewed_meta.exists(), (
-        f"Reviewed meta sidecar not yet committed: {reviewed_meta}. "
-        "Jesse gate required before staging."
+        f"Reviewed meta sidecar not committed: {reviewed_meta}. Staging needs it."
     )

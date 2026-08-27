@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/nicknames.schema.json",
   "title": "Nickname / diminutive sidecar",
-  "description": "Given-name nickname-to-canonical lookup sidecar consumed by the Swift NameGazetteer boost path (search-impl S5, design 02 §7). Each key is a lowercase nickname or diminutive surface form; the value lists the canonical given names that form maps to, so a bloom miss on the surface form can be re-queried against its canonical forms. This is a standalone sidecar — it is not part of the signed bloom manifest and requires no bloom rebuild.",
+  "description": "Given-name nickname-to-canonical lookup sidecar consumed by the Swift NameGazetteer boost path. Each key is a lowercase nickname or diminutive surface form; the value lists the canonical given names that form maps to, so a bloom miss on the surface form can be re-queried against its canonical forms. This is a standalone sidecar — it is not part of the signed bloom manifest and requires no bloom rebuild.",
   "type": "object",
   "required": [
     "version",

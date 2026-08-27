@@ -31,10 +31,9 @@ from .templates import EMITTERS, SUB_TEMPLATE_EMITTERS
 _MODULE_NAME: Final[str] = "resecta_data.corpus.generate"
 _SCHEMA_VERSION: Final[int] = 1
 
-# Canonical per-doctype counts from plan Phase 2 / Phase 3 exit criteria.
-# financial raised 200 → 300 in S4 (design 03 §3.2): the last third of
-# the financial index range emits the W-2 tax sub-template, keeping the
-# 200 invoice docs and adding 100 tax-form docs.
+# Canonical per-doctype counts. The financial count was raised from 200 to
+# 300: the last third of the financial index range emits the W-2 tax
+# sub-template, keeping the 200 invoice docs and adding 100 tax-form docs.
 _DEFAULT_COUNTS: Final[dict[str, int]] = {
     "court": 300,
     "medical": 250,
@@ -43,7 +42,7 @@ _DEFAULT_COUNTS: Final[dict[str, int]] = {
     "generic": 100,
 }
 
-# Fraction of docs (per design 03 §3.2) emitted with zero name spans so
+# Fraction of docs emitted with zero name spans so
 # the (doctype, name) train-prior is not pinned at ≈1.0 by template
 # construction. Drawn per-document from the per-doc rng.
 _NAME_SPARSE_FRACTION: Final[float] = 0.30
@@ -135,8 +134,8 @@ def _sub_template_for(doctype: str, index: int, count: int) -> str | None:
     """Return the sub-template key for ``(doctype, index)``, if any.
 
     The financial doctype splits its index range: the first two thirds
-    emit the invoice shape, the last third the W-2 tax shape (design 03
-    §3.2 — both labeled ``doctype="financial"``). The split is a pure
+    emit the invoice shape, the last third the W-2 tax shape (both
+    labeled ``doctype="financial"``). The split is a pure
     function of the per-doctype count, so invoice docs keep the indexes
     (and therefore sub-seeds) they had before the split existed.
     """

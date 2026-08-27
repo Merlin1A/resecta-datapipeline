@@ -1,7 +1,7 @@
 """Determinism + schema + PII-absence checks for the negative-text corpus.
 
-The corpus is the S3 baseline document-level FP surface (CONTRACT.md
-"Negative corpus fixture format"). It must contain NO ground-truth PII: any
+The corpus is the baseline document-level FP surface. It must contain
+NO ground-truth PII: any
 detection the engine surfaces against it is a false positive. These tests pin
 that invariant with regex guards mirroring ``resecta-sample-doc/verify.py``
 (no SSN-shaped string, phones only in the reserved 555-01xx range, RFC-2606

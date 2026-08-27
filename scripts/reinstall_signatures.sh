@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# scripts/reinstall_signatures.sh — re-copy the SEC-6 signature pair into the
-# iOS Gazetteers resources (speed plan #19, verifier C6).
+# scripts/reinstall_signatures.sh — re-copy the gazetteer manifest signature
+# pair into the iOS Gazetteers resources.
 #
 # The two files are gitignored on the iOS side, so a corpus refresh or
 # re-clone over there drops them and every Auto-Detect run degrades until

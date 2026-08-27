@@ -14,7 +14,7 @@ DEST_FILE="$DEST_DIR/census_spanish_surnames_full.txt"
 URL="https://www.census.gov/library/publications/2011/demo/2000-gen-3.html"
 
 echo "The Census Spanish Surname List is not published as a single machine-readable"
-echo "file. Jesse must inspect the HTML at"
+echo "file. Inspect the HTML at"
 echo "  $URL"
 echo "and either extract the list manually or use the bootstrap sample"
 echo "already committed under the sources directory."

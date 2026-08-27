@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-# Canonical category tuple imported instead of duplicated: the S2
+# Canonical category tuple imported instead of duplicated: the
 # routingNumber addition surfaced that a hardcoded copy here goes stale the
 # moment the sweep's category set moves (the loader hard-fails on
 # exact-order mismatch).

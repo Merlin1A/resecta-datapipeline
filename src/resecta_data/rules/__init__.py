@@ -1,4 +1,4 @@
-"""PII detector rule-ID catalog (D-18 / A22).
+"""PII detector rule-ID catalog.
 
 See :mod:`resecta_data.rules.build` for the :func:`build` entry point.
 """

@@ -1,15 +1,19 @@
-"""Stage the hand-reviewed negative-context gazetteer into ``build/`` (D6).
+"""Stage the reviewed negative-context gazetteer into ``build/``.
 
 The reviewed file is committed at
 ``src/resecta_data/gazetteers/negative_context/reviewed/`` together with a
 ``negative_context.meta.json`` sidecar whose ``reviewed_version`` field is
 the SHA-256 of ``build/gazetteers/negative_context_candidates.json`` as it
-stood when Jesse reviewed it.
+stood when the change that produced the reviewed file was approved.
 
-Staging recomputes the live candidates hash and fails on mismatch — a
-changed candidates file means the review is stale and a re-review is
-required. The sidecar is deliberately NOT the hash of the reviewed file
-itself: that would self-verify trivially and never detect a stale review.
+Curated context assets change only under a written change plan approved by
+the maintainer before the edit — the asset, the rows or fields, the reason,
+and the regeneration and verification steps. No row-by-row review
+afterwards. The sidecar drift check stays as a mechanical tripwire the same
+change re-stamps: staging recomputes the live candidates hash and fails on
+mismatch — a changed candidates file means the sidecar was not re-stamped by
+the change that produced it. The sidecar is deliberately NOT the hash of the
+reviewed file itself: that would self-verify trivially and never detect drift.
 
 ``build/gazetteers/negative_context.json`` is out-of-band (not produced by
 ``make build``; see common/determinism.py), so ``make clean`` destroys it.
@@ -52,9 +56,10 @@ def stage_reviewed(build_dir: Path, reviewed_dir: Path = REVIEWED_DIR) -> list[P
     if not reviewed.is_file() or not meta.is_file():
         raise PipelineError(
             f"Reviewed negative-context files not committed yet under {reviewed_dir} "
-            "(D6 review gate, CLAUDE.md §2.2). Run `make gazetteers` to produce the "
-            f"candidates file; Jesse reviews it and commits {_REVIEWED_NAME} plus "
-            f"{_META_NAME} to reviewed/."
+            "(the reviewed gazetteer is staged from reviewed/, never built). Run "
+            "`make gazetteers` to produce the candidates file, then commit "
+            f"{_REVIEWED_NAME} plus {_META_NAME} to reviewed/ under an approved "
+            "change plan."
         )
 
     candidates = build_dir / _CANDIDATES_REL
@@ -71,15 +76,15 @@ def stage_reviewed(build_dir: Path, reviewed_dir: Path = REVIEWED_DIR) -> list[P
     if not isinstance(reviewed_version, str) or not reviewed_version:
         raise PipelineError(
             f"{meta}: missing or non-string 'reviewed_version' field; expected the "
-            "SHA-256 of the candidates file the review was based on."
+            "SHA-256 of the candidates file the change was based on."
         )
 
     live = sha256_file(candidates)
     if live != reviewed_version:
         raise PipelineError(
-            f"Candidates file changed since Jesse's review: live sha256 {live} != "
-            f"reviewed_version {reviewed_version} ({meta}). The candidates have "
-            "drifted; a re-review is required before staging (CLAUDE.md §2.2)."
+            f"Candidates file changed since the sidecar was stamped: live sha256 {live} "
+            f"!= reviewed_version {reviewed_version} ({meta}). Re-stamp the sidecar "
+            "under an approved change plan before staging."
         )
 
     dest_dir = build_dir / "gazetteers"

@@ -1,6 +1,6 @@
-"""Driver: load the Swift S3 JSONs, derive the baseline + M9 headroom.
+"""Driver: load the Swift G8 JSONs, derive the baseline + headroom.
 
-Reads ``_cells.json`` and ``_raw_scores.json`` (CONTRACT.md Files 1-2),
+Reads ``_cells.json`` and ``_raw_scores.json``,
 runs :func:`resecta_data.eval.baseline.build_baseline` and
 :func:`resecta_data.eval.headroom.build_headroom`, and writes
 ``g8_detection_baseline.json`` + ``g8_headroom.json`` into ``out_dir`` via the
@@ -37,8 +37,8 @@ def main(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> dict[str, Pa
     """Build both eval artifacts from the two Swift JSONs into ``out_dir``.
 
     Args:
-        cells_path: Path to the Swift ``_cells.json`` (CONTRACT.md File 1).
-        raw_scores_path: Path to the Swift ``_raw_scores.json`` (File 2).
+        cells_path: Path to the Swift ``_cells.json``.
+        raw_scores_path: Path to the Swift ``_raw_scores.json``.
         out_dir: Directory the two derived artifacts are written into; created
             if absent.
 

@@ -20,7 +20,7 @@ into one of two categories:
   name-keyword indicators below.
 - ``"employer"`` — all other top-N companies.
 
-**Proxy caveat (documented here per design §6 Jesse Gates):**
+**Proxy caveat:**
 
 (a) This classification is a proxy because ``company_tickers.json`` carries no
     SIC field. The design specifies SIC 6000-6799 as the correct split for
@@ -30,11 +30,11 @@ into one of two categories:
     to ``.financial`` in Swift's ``InstitutionGazetteer.anchoredDoctype``, so the
     split is currently behavior-neutral at the suppression layer.
 
-(c) The curation criterion (keyword list + top-N cutoff) is parked for Jesse's
-    approval before the fetcher script runs. The fetcher is authored but not
+(c) The curation criterion (keyword list + top-N cutoff) is documented here and
+    changes only under an approved source plan. The fetcher is authored but not
     executed (see scripts/fetch_edgar_companies.sh).
 
-Alias derivation (design 02 §6): uses ``normalize.derive_aliases`` identical to
+Alias derivation uses ``normalize.derive_aliases`` identical to
 the FDIC parser.
 """
 
@@ -85,7 +85,7 @@ def _is_financial(title: str) -> bool:
     """Return True if the company title is classified as a financial institution.
 
     Uses a name-keyword classifier (proxy for SIC 6000-6799; see module
-    docstring for documented limitations and Jesse Gates).
+    docstring for documented limitations).
 
     Args:
         title: Raw company title from the EDGAR feed.

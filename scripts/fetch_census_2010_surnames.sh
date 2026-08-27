@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# fetch_census_2010_surnames.sh — fetch Census 2010 Decennial Surname File (D-06).
+# fetch_census_2010_surnames.sh — fetch Census 2010 Decennial Surname File.
 # Provenance, license, and SHA-256 are recorded in SOURCES.md.
-# §105 PD. Vintage 2010 hardcoded per F-15.
+# §105 PD. Vintage 2010 hardcoded.
 #
 # Replaces scripts/fetch_census_surnames.sh (renamed for vintage clarity).
 # A 2020 successor product was published 2026-04-14 at a different URL; this
@@ -50,7 +50,7 @@ fetch_lib::append_sources_row \
     "$DEST_REL" \
     "Public Domain" \
     "$ZIP_URL" \
-    "Census ${VINTAGE} Decennial Surname File (D-06; vintage ${VINTAGE} hardcoded per F-15; ~162k rows; columns name,rank,count,prop100k,cum_prop100k,pctwhite,pctblack,pctapi,pctaian,pct2prace,pcthispanic; §105 PD; consumed by A1/A2 Bloom regen + demographic coverage report)."
+    "Census ${VINTAGE} Decennial Surname File (vintage ${VINTAGE} hardcoded; ~162k rows; columns name,rank,count,prop100k,cum_prop100k,pctwhite,pctblack,pctapi,pctaian,pct2prace,pcthispanic; §105 PD; consumed by A1/A2 Bloom regen + demographic coverage report)."
 
-echo "D-06 fetch complete: $DEST_FILE"
+echo "Census 2010 surnames fetch complete: $DEST_FILE"
 echo "SHA-256: $(cat "$DEST_FILE.sha256")"

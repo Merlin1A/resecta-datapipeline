@@ -4,9 +4,10 @@ Thanks for your interest. This is the build-time data pipeline for the Resecta
 iOS app: it produces name Bloom filters, gazetteers, classifier dictionaries,
 calibration vectors, and test corpora, then copies them into the engine's
 `Resources/` tree. This document covers the workflow and the invariants that
-keep generated artifacts license-clean and reproducible, including the hard
-stops (license judgments, dependency additions, device-validated thresholds)
-that require maintainer sign-off — see below for the full list.
+keep generated artifacts license-clean and reproducible, including the
+changes that need a written plan approved by the maintainer before the edit
+(curated context assets, license judgments, dependency additions) — see
+"Plan-sign-off changes" below for the full list.
 
 ## Setup
 
@@ -45,7 +46,8 @@ These are non-negotiable; the test suite enforces them.
   test.
 - **License provenance.** Every file under `src/resecta_data/*/sources/` needs a
   row in `SOURCES.md` (license, URL, retrieval date, SHA-256). Adding a dataset
-  whose license is not on `common/licensing.py`'s `ALLOWLIST` is a hard stop.
+  whose license is not on `common/licensing.py`'s `ALLOWLIST` is a
+  plan-sign-off change.
 - **Zero-network builds.** `make build` never reaches the network; only
   `make sources` fetches, and it validates hashes. ParaNames is fetched on
   demand via `scripts/fetch_paranames.sh` (not committed; no Git-LFS), and the
@@ -69,12 +71,32 @@ If `asset_hashes.lock` changes, the commit body must explain why — an
 unexplained hash change usually signals a determinism defect, not a reason to
 regenerate.
 
-## Hard stops (maintainer sign-off required)
+## Plan-sign-off changes
 
-License-compatibility judgments, negative-context keyword curation,
-device-validated thresholds, on-device calibration artifacts, dependency
-additions, and any release or lockfile decision. If a change crosses one of
-these, open a draft PR with a plan and stop.
+Curated context assets change only under a written change plan approved by
+the maintainer before the edit — the asset, the rows or fields, the reason,
+and the regeneration and verification steps. No row-by-row review afterwards.
+The sidecar drift check stays as a mechanical tripwire the same change
+re-stamps.
+
+The same posture covers every change in this list:
+
+- the negative-context candidates (`gazetteers/negative_context/_scope_rules.py`)
+  and the reviewed `negative_context.json` with its sidecar;
+- the context-keyword candidates (`context/sources/d12_candidates.json`,
+  `context/sources/d16_bates_anchors.json`,
+  `gazetteers/context_keywords/sources/d11_lift_candidates.json`);
+- the doctype-keyword seeds (`classifier/_keyword_data.py`);
+- the three classifier quality assets — the context scorer, the doctype
+  temperature and the preset thresholds — including the `calibrate-finalize`
+  promotion;
+- license-compatibility judgments and dependency additions;
+- legal-text authorship (`NOTICE.txt` rows);
+- any release or lockfile decision.
+
+Propose the written plan (the asset, the rows or fields, the reason, the
+regeneration and verification steps); edit after approval; no row-by-row
+review afterwards. The PR review confirms the plan was carried out.
 
 ## Security
 

@@ -90,8 +90,8 @@ def emit(
     sb.append_pii(dea, "dea")
     sb.append(".\n\n")
 
-    # Clinical-furniture lines after the diagnosis (S4 2026-06-11, finding
-    # fix direction 2): real discharge summaries carry vitals, a diagnosis
+    # Clinical-furniture lines after the diagnosis (2026-06-11): real
+    # discharge summaries carry vitals, a diagnosis
     # code, and a medication line, which exercise all four medical
     # structural bonuses and surface more of the class vocabulary —
     # 'vitals', 'medication', 'refill'. Static text: no rng draws, no PII,

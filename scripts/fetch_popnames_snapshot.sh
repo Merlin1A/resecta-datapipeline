@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# fetch_popnames_snapshot.sh — fetch sigpwned/popular-names-by-country CSVs (D-08).
+# fetch_popnames_snapshot.sh — fetch sigpwned/popular-names-by-country CSVs.
 # CC0. Provenance and SHA-256 are recorded in SOURCES.md.
 #
-# Replaces scripts/fetch_popular_names.sh (renamed for spec-alignment per §2.1).
+# Replaces scripts/fetch_popular_names.sh (renamed for naming consistency).
 # Consumed by popnames_adapter (parse_popnames_fullfile in bloom/corpus_ingest.py).
 
 set -euo pipefail
@@ -30,8 +30,8 @@ for entry in "${FILES[@]}"; do
         "src/resecta_data/gazetteers/sources/popnames/$fname" \
         "CC0" \
         "$url" \
-        "sigpwned popular-names-by-country dataset — common ${kind} (D-08; CC0; consumed by popnames_adapter / parse_popnames_fullfile; rows tagged demographic='unlabeled' on ingest per CLAUDE.md §9 2026-04-17 changelog)."
+        "sigpwned popular-names-by-country dataset — common ${kind} (CC0; consumed by popnames_adapter / parse_popnames_fullfile; rows tagged demographic='unlabeled' on ingest)."
 done
 
 echo ""
-echo "D-08 fetch complete (or cache-hit if already on disk)."
+echo "Popnames snapshot fetch complete (or cache-hit if already on disk)."

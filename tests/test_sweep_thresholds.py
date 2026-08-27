@@ -129,7 +129,7 @@ def test_all_presets_cover_all_categories(tmp_build_dir: Path) -> None:
 def test_conservative_at_least_as_high_as_aggressive(tmp_build_dir: Path) -> None:
     """With the fixture dumps, signal scores dominate; conservative threshold
     should never be strictly below aggressive threshold for the same category.
-    If this ever fails in real runs it is a signal to Jesse that the sweep
+    If this ever fails in real runs it is a signal that the sweep
     found an inversion — not a hard build failure."""
     score_path, temp_path, corpus_path = _setup(tmp_build_dir)
     payload = build_sweep_thresholds(
@@ -360,10 +360,10 @@ def test_finalize_promotes_sweep_raw(tmp_build_dir: Path) -> None:
 
 
 def test_finalize_preserves_unswept_shipping_categories(tmp_build_dir: Path) -> None:
-    """Finalize carries hand-set rows the sweep does not produce (S4 finding).
+    """Finalize carries hand-set rows the sweep does not produce.
 
     The shipping file holds 8 ungated categories beyond the sweep's canonical
-    tuple (search-impl S3 item 1.7); a wholesale promote would delete them.
+    tuple; a wholesale promote would delete them.
     """
     score_path, temp_path, corpus_path = _setup(tmp_build_dir)
     payload = build_sweep_thresholds(
@@ -459,8 +459,8 @@ def test_sweep_does_not_clobber_ungated_categories(tmp_build_dir: Path) -> None:
     output does NOT contain any of the 8 ungated categories so a sweep output
     cannot overwrite hand-set values when merged into the shipping file.
 
-    Per design 02 section 2 WS3 note: sweep_thresholds._CATEGORIES is a
-    strict subset of the full preset category list.
+    sweep_thresholds._CATEGORIES is a strict subset of the full preset
+    category list.
     """
     score_path, temp_path, corpus_path = _setup(tmp_build_dir)
     payload = build_sweep_thresholds(

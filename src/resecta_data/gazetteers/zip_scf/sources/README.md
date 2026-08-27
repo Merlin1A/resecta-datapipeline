@@ -22,4 +22,4 @@ Phase 3 needs the full HUD USPS ZIP Code Crosswalk (~42k rows) so
 4. Run `make zip-scf && make verify` and commit the updated
    `asset_hashes.lock`.
 5. Leave the bootstrap file in place for test fixtures; do not edit it
-   (CLAUDE.md §2.7 — source files are immutable once committed).
+   (source files are immutable once committed).

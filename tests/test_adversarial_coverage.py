@@ -40,7 +40,7 @@ def test_keyword_stuffing_g5_has_rows() -> None:
     for p in stuff:
         assert p["expected_detector"] == "none"
         assert p["expected_outcome"] == "flag"
-        assert p["source_plan_ref"] == "G5"
+        assert p["source_plan_ref"].startswith("classifier keyword-stuffing stanza")
 
 
 def test_ids_are_unique() -> None:
@@ -103,7 +103,7 @@ def test_bbox_context_only_on_column_header() -> None:
 
 
 def test_new_category_entry_counts() -> None:
-    """Per-family row counts fall within the C6 plan ranges."""
+    """Per-family row counts fall within the planned ranges."""
     payload = build(CANONICAL_SEED)
     counts: dict[str, int] = {}
     for entry in payload["patterns"]:

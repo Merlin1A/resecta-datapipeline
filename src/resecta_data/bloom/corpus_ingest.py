@@ -42,13 +42,13 @@ DEMOGRAPHIC_LABELS: Final[tuple[str, ...]] = (
 )
 
 # Cap parse workers so concurrent parse passes stay bounded on 16-32 GB
-# hosts. Since S04 the aggregated path returns per-spec first-occurrence
+# hosts. The aggregated path returns per-spec first-occurrence
 # aggregates (~50 MB pickled for a paranames_full shard, measured) instead
 # of multi-GB row lists, but the cap is deliberately retained: four
-# concurrent gzip+normalize passes are the RAM/CPU budget the
-# oom-freeze-fix plan sized, and the legacy list-returning path
-# (parse_sources_parallel) still exists. Deliberately lower than
-# bloom/filter.py's cap (8) and corpus/generate.py's cap (16).
+# concurrent gzip+normalize passes are the sized RAM/CPU budget, and the
+# legacy list-returning path (parse_sources_parallel) still exists.
+# Deliberately lower than bloom/filter.py's cap (8) and corpus/generate.py's
+# cap (16).
 _MAX_BUILD_WORKERS: Final[int] = 4
 
 # The (source_id, demographic) attribution a merged key carries. Interned
@@ -216,8 +216,9 @@ def parse_census_spanish_full(path: Path, source_id: str) -> list[IngestedRow]:
     if suffix in {".xls", ".xlsx"}:
         raise PipelineError(
             f"{path}: .xls/.xlsx inputs require an XLSX reader that is not in "
-            "pyproject.toml (CLAUDE.md §2.5); point the adapter at the "
-            "companion app_c.csv or the zip wrapper that contains it."
+            "pyproject.toml, and unsupervised dependency additions are not "
+            "allowed; point the adapter at the companion app_c.csv or the "
+            "zip wrapper that contains it."
         )
     if suffix == ".zip":
         with zipfile.ZipFile(path) as zf:
@@ -535,8 +536,8 @@ def aggregate_rows(rows: Iterable[IngestedRow]) -> AggregatedRows:
     """Reduce a row stream to its first-occurrence aggregate, streaming.
 
     Consumes generators without materializing them — for a paranames_full
-    shard this is the difference between ~0.84 GB (full row list, measured
-    S03) and ~0.35 GB (this dict, measured S04 T1) of worker RSS. Attribution
+    shard this is the difference between ~0.84 GB (full row list, measured)
+    and ~0.35 GB (this dict, measured) of worker RSS. Attribution
     pairs are interned so the millions of dict values are references to a
     handful of shared tuples.
     """
@@ -626,15 +627,15 @@ def compute_sources_fingerprint(inputs: Iterable[tuple[Path, str]]) -> str:
 
     ``st_mtime_ns`` is deliberately NOT in the key, and dropping it is sound
     only because the content digest replaced it: a key of path+size+source_id
-    alone would collide on same-size edits and serve a stale cache (reviewer
-    F6). Size stays in the payload as a cheap discriminator alongside the
+    alone would collide on same-size edits and serve a stale cache. Size
+    stays in the payload as a cheap discriminator alongside the
     digest. Cost: one streaming sha256 pass over each source file per
     fingerprint computation (~0.4 s for the 1 GB ParaNames file on this
     hardware, measured) — noise next to the parse it guards.
 
     The cache file this keys is never shipped (lives under ``build/…/_ingest_cache/``)
-    so it is not subject to §1.3 determinism; it exists purely to short-circuit
-    recomputation across ``make build`` invocations.
+    so it is not subject to determinism verification; it exists purely to
+    short-circuit recomputation across ``make build`` invocations.
     """
     h = hashlib.sha256()
     for path, source_id in sorted(inputs, key=lambda t: (str(t[0]), t[1])):
@@ -723,7 +724,7 @@ def parse_sources_parallel(
     count or completion order. ``ProcessPoolExecutor.map`` yields results in
     input order, so we iterate its generator and chain.
 
-    Production ingest goes through :func:`ingest_sources_parallel` since S04;
+    Production ingest goes through :func:`ingest_sources_parallel`;
     this materializing variant remains for callers that need the raw rows.
 
     Args:
@@ -773,8 +774,8 @@ def ingest_sources_parallel(
     Byte-equivalent to ``merge(parse_sources_parallel(specs))`` plus the raw
     stream's distinct source ids (pinned by
     tests/test_bloom_ingest_aggregation.py), while collapsing the live set —
-    the S04 fix for the memory-pressure-bound cold gate (speed plan
-    #14-redirected). Measured on a real paranames_full shard: 4.51M rows
+    the fix for the memory-pressure-bound cold gate. Measured on a real
+    paranames_full shard: 4.51M rows
     collapse to 2.37M unique keys before crossing the process boundary;
     worker RSS 0.84 → 0.35 GB; IPC payload 134 → 48 MB. The parent folds
     aggregates one at a time instead of concatenating ~36M row objects.

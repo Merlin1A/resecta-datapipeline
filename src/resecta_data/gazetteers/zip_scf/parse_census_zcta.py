@@ -171,7 +171,7 @@ def parse_census_zcta_tract(path: Path) -> list[CrosswalkRow]:
     if not path.is_file():
         raise MissingSourceError(
             f"Census ZCTA-to-Tract relationship file not found at {path}. "
-            "Run `make sources` to fetch, or check CLAUDE.md §1.4."
+            "Run `make sources` to fetch."
         )
 
     # Land-area accumulator: {zcta5 -> {state -> total_area}}.

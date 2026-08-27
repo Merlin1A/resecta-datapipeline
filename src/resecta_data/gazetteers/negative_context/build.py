@@ -4,8 +4,8 @@ Reads the three bootstrap source files under
 ``src/resecta_data/gazetteers/sources/negative_context/`` and emits a
 deterministic list of candidate entries. The artifact lands in
 ``build/gazetteers/negative_context_candidates.json`` and is *not* installed —
-Jesse hand-reviews before a renamed, reviewed
-``negative_context.json`` is ever shipped.
+the reviewed ``negative_context.json`` is committed under ``reviewed/`` under
+an approved change plan and staged from there.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from resecta_data.common.exceptions import MissingSourceError
+from resecta_data.common.exceptions import MissingSourceError, PipelineError
 
 from ._scope_rules import known_source_ids, manual_entries, scope_keyword
 
@@ -56,7 +56,8 @@ def build(seed: int, *, source_dir: Path) -> dict[str, Any]:
     Returns:
         A JSON-serializable dict matching ``negative_context.schema.json``.
     """
-    assert known_source_ids() == set(_SOURCE_FILES), "scope rules and build sources diverged"
+    if known_source_ids() != set(_SOURCE_FILES):
+        raise PipelineError("negative_context: scope rules and build sources diverged")
 
     # (keyword, category_scope, doctype_scope) deduplication — if multiple
     # sources propose the same triple, keep the first (source id, rationale).

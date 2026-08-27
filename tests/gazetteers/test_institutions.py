@@ -1,8 +1,7 @@
-"""Tests for the federal-agency institution gazetteer (C9).
+"""Tests for the federal-agency institution gazetteer.
 
-Post-cc-derive-rebuild S1: the build is sourced from the Federal Register
-agencies API feed (D-01) per STRAT §10.4 row §D1 (= A1 1:1). The legacy
-GSA Federal Hierarchy Crosswalk parser is retained for the advisory
+The build is sourced from the Federal Register agencies API feed. The
+legacy GSA Federal Hierarchy Crosswalk parser is retained for the advisory
 cutover-diff sidecar emitted alongside the rebuild artifact and exercised
 by ``test_parse_gsa_*`` below.
 """
@@ -102,7 +101,7 @@ def test_every_entry_is_federal_agency() -> None:
 
 
 def test_sources_record_matches_raw_sha() -> None:
-    """The sources[] block records the D-01 SHA-256 pinned in SOURCES.md."""
+    """The sources[] block records the SHA-256 pinned in SOURCES.md."""
     payload = build_institutions(20260416)
     fr = next(s for s in payload["sources"] if s["id"] == "federalregister_agencies")
     assert fr["sha256"] == ("6b5713fae71a5ae9fcfc8def7fc46ddab3afe115ee403d75a8620387bda109d6")

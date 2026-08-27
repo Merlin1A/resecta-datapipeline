@@ -1,16 +1,16 @@
-"""Tests for the address-components gazetteer (C11 / search-impl S5 item 2.9).
+"""Tests for the address-components gazetteer.
 
-Post-cc-derive-rebuild S2: A7 already consumes the §D7-mandated D-03 +
-D-04 sources (audit-DONE.md §3b), so the BINDING cutover-diff is empty by
-construction. ``test_cutover_diff_schema`` validates the empty-diff
+This gazetteer already consumes the GNIS and TIGER sources it is
+required to use, so the cutover-diff against the prior build is empty
+by construction. ``test_cutover_diff_schema`` validates the empty-diff
 artifact against ``schemas/cutover_diff.schema.json`` and asserts the
-verification-posture invariants documented in the S2 DONE marker.
+verification-posture invariants.
 
-Search-impl S5 (item 2.9) adds the GNIS x TIGER cross-filter. The new tests
-``test_gnis_tiger_filter_drops_junk`` and ``test_dbf_reader_*`` exercise
-the filter using a synthetic in-memory DBF; the ``test_tiger_place_*``
-integration test exercises the real 51-state corpus but is bounded to a
-loose count range so timing-sensitive environments are not tripped.
+The GNIS x TIGER cross-filter adds new tests. ``test_gnis_tiger_filter_drops_junk``
+and ``test_dbf_reader_*`` exercise the filter using a synthetic in-memory DBF;
+the ``test_tiger_place_*`` integration test exercises the real 51-state corpus
+but is bounded to a loose count range so timing-sensitive environments are
+not tripped.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ COUNTIES_ZIP = SOURCES_DIR / "census_counties_2024.zip"
 
 # Expected street-type suffixes — fixed top-20 list. Must match the full-word
 # vocabulary in the Swift address regex; any change here requires a
-# coordinated Swift PR (C12 adds the consumer).
+# coordinated Swift PR.
 EXPECTED_STREET_TYPES = (
     "Alley",
     "Avenue",
@@ -360,11 +360,11 @@ def test_gnis_city_count() -> None:
 def test_gnis_filtered_city_count() -> None:
     """After the TIGER cross-filter, city count is within the expected drop range.
 
-    The filter drops ~15-20% of GNIS entries (design 02 §8 prediction).
+    The filter drops ~15-20% of GNIS entries.
     The bounds here are intentionally wide (5%-40% drop from ~110k) so the
     test does not brittle-fail on minor corpus or vintage changes.
     """
-    # S5 TIGER cross-filter: the build() function calls parse_tiger_place_dir()
+    # TIGER cross-filter: the build() function calls parse_tiger_place_dir()
     # against the real 51-state corpus.  This test re-uses build() directly.
     payload = build_address_components(20260416)
     count = len(payload["cities"])
@@ -452,10 +452,9 @@ def test_arrays_non_empty(arr_key: str) -> None:
 def test_cutover_diff_schema(tmp_build_dir: Path) -> None:
     """build_cutover_diff() output validates against cutover_diff.schema.json.
 
-    Verification-posture under §D7 phase-1: the diff is empty by
-    construction (no legacy parser variant retired in this rebuild). The
-    summary counts mirror the array lengths; the artifact field points at
-    the rebuild artifact this diff covers.
+    The diff is empty by construction (no legacy parser variant retired
+    in this rebuild). The summary counts mirror the array lengths; the
+    artifact field points at the rebuild artifact this diff covers.
     """
     diff = build_address_components_cutover_diff()
     dest = tmp_build_dir / "gazetteers" / "address_components.cutover-diff.json"
@@ -468,8 +467,8 @@ def test_cutover_diff_schema(tmp_build_dir: Path) -> None:
     assert summary["keyed_diff_count"] == len(diff["keyed_diff"])
     # Verification-posture invariant: empty by construction (no legacy
     # variant). Failing this assertion means a legacy-vs-rebuild diff
-    # surface has been introduced and the S2 DONE marker / PR description
-    # need refreshing.
+    # surface has been introduced and the PR description needs
+    # refreshing.
     assert summary["legacy_only_count"] == 0
     assert summary["rebuild_only_count"] == 0
     assert summary["keyed_diff_count"] == 0

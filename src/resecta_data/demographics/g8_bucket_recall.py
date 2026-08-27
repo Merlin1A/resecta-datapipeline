@@ -1,11 +1,11 @@
-"""Build the G8 bucket-stratified recall artifact (D-24).
+"""Build the G8 bucket-stratified recall artifact.
 
 Measures, per Census demographic bucket, the recall of the surnames Bloom
 filter against the synthetic G8 corpus. Replaces the 81.70 pt population-
 composition figure in the V1 transparency copy with a measured number.
 
-Per V1 spec §1.24 + F-10 ack option a: point estimate + sample size only;
-no CI band in V1. V1.1+ W-K may refine with larger corpora.
+V1 ships a point estimate + sample size only; no CI band. V1.1+ may refine
+with larger corpora.
 
 The artifact is dev/CI only -- it is NOT installed to the Swift Resources
 path; downstream consumers are the V1 README + Resecta UI transparency
@@ -24,9 +24,9 @@ _SCHEMA_VERSION = "v1"
 _METRIC = "g8_bucket_stratified_recall"
 
 # Census buckets carried on G8 corpus documents (see schemas/g8_corpus.schema.json).
-# Spec §1.24 enumerates {white, black, hispanic, api, other}; the actual G8
+# An earlier spec enumerated {white, black, hispanic, api, other}; the actual G8
 # corpus uses {white, black, hispanic, asian, ai_an}. The corpus partition is
-# the source of truth (see cc-derive-d24-DONE.md spec-ambiguity defer-note).
+# the source of truth.
 _BUCKETS: tuple[str, ...] = ("white", "black", "hispanic", "asian", "ai_an")
 
 _CI_BAND_NOTE = (

@@ -11,7 +11,7 @@ Case-insensitive. Capture group 1 is the actual DL number, which matches
 either ``[A-Z]\\d{4,14}`` (one letter + 4-14 digits) OR ``\\d{6,12}``
 (6-12 digits, no letter).
 
-Per C4 scope: per-state formats are out of scope. Vectors cover the generic
+Per-state formats are out of scope. Vectors cover the generic
 label x number-shape cube plus structural rejections (missing label,
 short pure-digit run, two-letter prefix, lowercase letter prefix).
 """
@@ -127,7 +127,7 @@ def build(seed: int) -> dict[str, Any]:
                     "shape": "pure_digits",
                     "valid": False,
                     "rejection_reason": "pure_digits_too_short",
-                    "notes": "L-02 widened the floor to 6 digits for pure-numeric DLs.",
+                    "notes": "The floor was widened to 6 digits for pure-numeric DLs.",
                 },
             )
 

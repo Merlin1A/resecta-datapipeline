@@ -21,7 +21,7 @@ _MIN_KEYWORDS = 30
 _MAX_KEYWORDS = 200
 _EXPECTED_CLASSES = 5
 
-# C7 BLS-derived physician-specialty titles appended to MEDICAL.
+# BLS-derived physician-specialty titles appended to MEDICAL.
 _BLS_SPECIALTY_TITLES = frozenset(
     {
         "anesthesiologist",
@@ -47,12 +47,12 @@ _BLS_SPECIALTY_TITLES = frozenset(
         "pulmonologist",
         "radiologist",
         "rheumatologist",
-        "surgeon general",
+        "surgeon",
         "urologist",
     }
 )
 
-# Sample of the MeSH-derived top-level headings appended to MEDICAL (C7, M19a).
+# Sample of the MeSH-derived top-level headings appended to MEDICAL.
 _MESH_SAMPLE_HEADINGS = frozenset(
     {
         "anatomy",
@@ -130,21 +130,21 @@ def test_seed_recorded() -> None:
 
 
 def test_medical_keyword_additions() -> None:
-    """C7: the 25 BLS SOC 29-1200 specialty titles are present in MEDICAL."""
+    """The 25 BLS SOC 29-1200 specialty titles are present in MEDICAL."""
     medical = set(KEYWORDS_BY_CLASS["medical"])
     missing = _BLS_SPECIALTY_TITLES - medical
     assert not missing, f"missing BLS specialty titles: {sorted(missing)}"
 
 
 def test_mesh_keywords_present() -> None:
-    """C7 (M19a): MeSH-derived top-level headings are present in MEDICAL."""
+    """MeSH-derived top-level headings are present in MEDICAL."""
     medical = set(KEYWORDS_BY_CLASS["medical"])
     missing = _MESH_SAMPLE_HEADINGS - medical
     assert not missing, f"missing MeSH headings: {sorted(missing)}"
 
 
 def test_drug_dosage_regex() -> None:
-    """C7: drug_dosage bonus matches common dosage forms but not generic units."""
+    """drug_dosage bonus matches common dosage forms but not generic units."""
     bonuses = {b[0]: b[1] for b in STRUCTURAL_BY_CLASS["medical"]}
     assert "drug_dosage" in bonuses
     pattern = re.compile(bonuses["drug_dosage"])
@@ -159,14 +159,14 @@ def test_drug_dosage_regex() -> None:
 
 
 def test_medical_bonus_count() -> None:
-    """C7: MEDICAL gains drug_dosage, for 3 bonuses (icd_shape, vitals_bp, drug_dosage)."""
+    """MEDICAL gains drug_dosage, for 3 bonuses (icd_shape, vitals_bp, drug_dosage)."""
     ids = {b[0] for b in STRUCTURAL_BY_CLASS["medical"]}
     assert {"icd_shape", "vitals_bp", "drug_dosage"} <= ids
     assert len(STRUCTURAL_BY_CLASS["medical"]) >= 2
 
 
 def test_icd_3char_prefix_regex() -> None:
-    """C8: icd_3char_prefix bonus matches 3-char ICD-10-CM section shape."""
+    """icd_3char_prefix bonus matches 3-char ICD-10-CM section shape."""
     bonuses = {b[0]: b[1] for b in STRUCTURAL_BY_CLASS["medical"]}
     assert "icd_3char_prefix" in bonuses
     pattern = re.compile(bonuses["icd_3char_prefix"])
@@ -188,13 +188,13 @@ def test_icd_3char_prefix_regex() -> None:
 
 
 def test_medical_bonus_count_includes_icd_3char_prefix() -> None:
-    """C8: MEDICAL structural-bonus id set is exactly the four expected ids."""
+    """MEDICAL structural-bonus id set is exactly the four expected ids."""
     ids = {b[0] for b in STRUCTURAL_BY_CLASS["medical"]}
     assert ids == {"icd_shape", "vitals_bp", "drug_dosage", "icd_3char_prefix"}
 
 
 def test_doctype_keywords_byte_deterministic(tmp_build_dir: Path) -> None:
-    """C7: canonical JSON form of doctype_keywords is byte-identical across rebuilds."""
+    """Canonical JSON form of doctype_keywords is byte-identical across rebuilds."""
     payload_a = build_doctype_keywords(CANONICAL_SEED)
     payload_b = build_doctype_keywords(CANONICAL_SEED)
     path_a = tmp_build_dir / "a_doctype_keywords.json"

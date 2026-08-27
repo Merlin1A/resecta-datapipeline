@@ -1,11 +1,10 @@
-"""Build the bundle-size instrumentation probe (D-35).
+"""Build the bundle-size instrumentation probe.
 
 Walks a configured set of ``build/`` subdirectories and emits a per-artifact
-size + sha256-short summary. Engineer-facing only -- spec §1.35 + §4 #13:
-no Resecta UI surface in V1; the artifact feeds V1.1+ Q2/Q3 threshold
-decisions for Resecta cold-start budgets. F-12 ack option c (two
-``engine_load_ms`` / ``first_detection_ready_ms`` Swift metrics) is the
-companion half and ships from the Mac side.
+size + sha256-short summary. Engineer-facing only: no Resecta UI surface in
+V1; the artifact feeds V1.1+ threshold decisions for Resecta cold-start
+budgets. Two ``engine_load_ms`` / ``first_detection_ready_ms`` Swift metrics
+are the companion half and ship from the Mac side.
 
 Determinism: no wall-clock content, sorted directory
 iteration. The build-input git HEAD lives in a sibling
@@ -31,7 +30,7 @@ _SCHEMA_VERSION = "v1"
 _SHA256_SHORT_LEN = 12
 
 # Walks the pipeline-built `build/` subdirectories. `calibration/` is
-# excluded — it holds Swift-produced dumps (a hand-review surface) that
+# excluded — it holds Swift-produced dumps (a curated surface) that
 # are not built by this pipeline and don't ship into the
 # app, so their bytes don't belong in the cold-start bundle-size budget.
 # Their presence on disk also breaks `make determinism-check`, which
@@ -56,13 +55,13 @@ def _walk_subdir(build_dir: Path, sub_dir: str) -> list[Path]:
     (``EXCLUDED_ARTIFACT_NAMES`` / ``EXCLUDED_ARTIFACT_DIRS``) and the
     out-of-band predicate from ``common/determinism.py``, so the probe can
     never list bytes the verify/determinism walkers don't. A private stale
-    copy of the name set here is how the SEC-6 sign products
+    copy of the name set here is how the signed-manifest products
     (``gazetteer_manifest.sig`` / ``manifest_public_key.pem``, dropped into
     ``gazetteers/`` by ``make sign-manifest``) got baked into locked bytes,
     making a signed canonical tree unmatchable by the unsigned determinism
-    rebuild (speed review finding N7). Out-of-band files and the ingest
-    cache are also not shipped bytes, so excluding them makes
-    ``total_build_size`` the honest cold-start budget figure.
+    rebuild. Out-of-band files and the ingest cache are also not shipped
+    bytes, so excluding them makes ``total_build_size`` the honest
+    cold-start budget figure.
     """
     root = build_dir / sub_dir
     if not root.is_dir():
@@ -92,7 +91,7 @@ def build(
     Args:
         build_dir: Pipeline build root (typically ``build/``).
         sub_dirs: Subdirectories under ``build_dir`` to include in the
-            probe. Defaults to :data:`DEFAULT_SUB_DIRS` (spec §1.35 scope).
+            probe. Defaults to :data:`DEFAULT_SUB_DIRS`.
 
     Returns:
         A JSON-serializable dict matching ``schemas/bundle_size.schema.json``.
@@ -135,7 +134,7 @@ def build_meta(*, git_head: str) -> dict[str, Any]:
 
     Carries the build-input ``git_head`` (a build-metadata
     surface). Excluded from the hash lock by ``common/io.py`` so the
-    sidecar's per-commit drift doesn't trigger the §5e regen-lock feedback
+    sidecar's per-commit drift doesn't trigger a regen-lock feedback
     loop. Captured by the CLI via ``git rev-parse --short HEAD`` so this
     function stays test-pinnable.
     """

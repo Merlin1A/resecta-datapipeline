@@ -65,7 +65,7 @@ def test_notes_field_is_mechanism_safe() -> None:
 
 
 # -----------------------------------------------------------------------------
-# 0.3 (search-impl S1): artifact-level pins on the SHIPPED preset file
+# 0.3: artifact-level pins on the SHIPPED preset file
 # -----------------------------------------------------------------------------
 
 _SHIPPED_PRESET_PATH = (
@@ -102,12 +102,12 @@ def test_conservative_account_keeps_feasibility_margin() -> None:
     assert data["presets"]["conservative"]["account"] <= 0.70, (
         "conservative.account > 0.70 leaves no margin under the account "
         "detector's 0.75 ceiling; only a perfect context-boosted match "
-        "could pass the W4 gate."
+        "could pass the confidence gate."
     )
 
 
 # -----------------------------------------------------------------------------
-# S3 (search-impl S3, design 02 §2): 8 previously ungated categories
+# 8 previously ungated categories
 # -----------------------------------------------------------------------------
 
 _ALL_17_CATEGORIES = frozenset(
@@ -139,11 +139,11 @@ _ALL_17_CATEGORIES = frozenset(
 )
 def test_ungated_categories_in_schema() -> None:
     """All 17 categories appear in the shipped preset file's categories array
-    and each preset vector carries all 17 keys (design 02 section 2, item 1.7).
+    and each preset vector carries all 17 keys.
 
     The 8 ungated categories (ein, itin, creditCard, email, phone,
     driversLicense, passport, licensePlate) must be present alongside the
-    9 previously gated categories so the Swift W4 gate can read them.
+    9 previously gated categories so the Swift confidence gate can read them.
     """
     data = json.loads(_SHIPPED_PRESET_PATH.read_text())
     shipped_categories = set(data["categories"])

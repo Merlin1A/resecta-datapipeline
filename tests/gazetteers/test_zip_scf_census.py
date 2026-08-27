@@ -1,4 +1,4 @@
-"""Tests for the Census ZCTA-to-Tract adapter (C11).
+"""Tests for the Census ZCTA-to-Tract adapter.
 
 Covers the Census substitute for the HUD crosswalk. Confirms that the
 full-file Census path supersedes the 32-row HUD bootstrap when present, and

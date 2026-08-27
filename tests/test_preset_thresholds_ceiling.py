@@ -1,10 +1,10 @@
-"""Ceiling regression test for the SHIPPED preset_thresholds.json (speed plan #18).
+"""Ceiling regression test for the SHIPPED preset_thresholds.json.
 
 Targets ``build/classifier/preset_thresholds.json`` — the sweep OUTPUT — not
 the candidates builder: ``tests/test_preset_thresholds.py`` covers
 ``build_preset_thresholds``, and that gap is exactly how the degenerate
 balanced/conservative ``name=0.98`` cutoffs shipped (they sat above the
-NLTagger name detector's 0.65-0.85 reachable range, so the W4 gate withheld
+NLTagger name detector's 0.65-0.85 reachable range, so the confidence gate withheld
 every name candidate; see the notes field of the 2026-06-01 hand-fix inside
 the file).
 
@@ -28,7 +28,7 @@ _PRESET_PATH = Path(__file__).parent.parent / "build" / "classifier" / "preset_t
 # NLTagger name detector's documented 0.65-0.85 reachable output range (see
 # the hand-fix notes): a fresh document carries prior mean 0.5, so the
 # posterior equals the raw score, and any cutoff above the reachable range
-# withholds every candidate of that category from triage (W4 gate).
+# withholds every candidate of that category from triage (confidence gate).
 _CEILING = 0.90
 
 

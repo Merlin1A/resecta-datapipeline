@@ -54,7 +54,7 @@
               "foia",
               "generic"
             ],
-            "description": "Document class; mirrors the G8 corpus / S3 contract doctype enum."
+            "description": "Document class; mirrors the G8 corpus doctype enum."
           },
           "text": {
             "type": "string",

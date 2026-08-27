@@ -61,8 +61,7 @@ def parse(csv_path: Path) -> list[CrosswalkRow]:
     """
     if not csv_path.is_file():
         raise MissingSourceError(
-            f"HUD ZIP crosswalk not found at {csv_path}. "
-            "Run `make sources` to fetch, or check CLAUDE.md §1.4."
+            f"HUD ZIP crosswalk not found at {csv_path}. Run `make sources` to fetch."
         )
 
     rows: list[CrosswalkRow] = []

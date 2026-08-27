@@ -484,6 +484,54 @@
     "term": "owner"
   },
   {
+    "category": "licenseplate",
+    "doctypes": [],
+    "locale": "en",
+    "non_literal_flag": false,
+    "polarity": "positive",
+    "proposed_status": "a21-shipping",
+    "source_swift_file": "Packages/RedactionEngine/Sources/RedactionEngine/Detection/PIIDetector.swift",
+    "source_swift_line": 1366,
+    "term": "plate",
+    "confidence": "high"
+  },
+  {
+    "category": "licenseplate",
+    "doctypes": [],
+    "locale": "en",
+    "non_literal_flag": false,
+    "polarity": "positive",
+    "proposed_status": "a21-shipping",
+    "source_swift_file": "Packages/RedactionEngine/Sources/RedactionEngine/Detection/PIIDetector.swift",
+    "source_swift_line": 1366,
+    "term": "license plate",
+    "confidence": "high"
+  },
+  {
+    "category": "licenseplate",
+    "doctypes": [],
+    "locale": "en",
+    "non_literal_flag": false,
+    "polarity": "positive",
+    "proposed_status": "a21-shipping",
+    "source_swift_file": "Packages/RedactionEngine/Sources/RedactionEngine/Detection/PIIDetector.swift",
+    "source_swift_line": 1366,
+    "term": "tag",
+    "confidence": "high"
+  },
+  {
+    "category": "licenseplate",
+    "doctypes": [],
+    "locale": "en",
+    "non_literal_flag": false,
+    "polarity": "positive",
+    "proposed_status": "a21-shipping",
+    "source_swift_file": "Packages/RedactionEngine/Sources/RedactionEngine/Detection/PIIDetector.swift",
+    "source_swift_line": 1366,
+    "term": "lp",
+    "confidence": "high"
+  },
+  {
     "category": "mrn",
     "doctypes": [],
     "locale": "en",

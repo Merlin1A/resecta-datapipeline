@@ -66,7 +66,7 @@ _fetch_lib::write_sidecar() {
 # HEAD-probe <url>. Exit 0 on 200/206/301/302; exit 1 on 4xx/5xx/cert/DNS/timeout.
 # 3xx redirects are followed by the real download via curl --location;
 # the probe accepts 301/302 so a benign Location-header pivot doesn't halt
-# the chain. Per spec §2.1 "halt+report on 404/301/cert error (no silent
+# the chain. The rule is "halt+report on 404/301/cert error (no silent
 # degraded retrieve)" — the halt is for 4xx/5xx and connection failures.
 fetch_lib::probe_url() {
     local url="$1"
@@ -91,7 +91,7 @@ fetch_lib::probe_url() {
 
 # fetch_lib::download_with_sha <url> <dest> [<ua>]
 # Download <url> to <dest> via curl --fail --silent --show-error --location.
-# Capture SHA-256 into <dest>.sha256 sidecar (per F-1).
+# Capture SHA-256 into <dest>.sha256 sidecar.
 # Refuses to overwrite <dest>. On cache-hit, verifies the
 # existing sidecar (or writes one if absent) and returns 0.
 # Default UA = "Wget/1.21" (proven against ssa.gov).
@@ -137,7 +137,7 @@ fetch_lib::download_with_sha() {
 # (UTC date) plus a sidecar. Refuses to overwrite an existing dated mirror
 # whose SHA-256 differs from <live_path> (Failure Mode #2 — drift between
 # same-day re-fetches).
-# Per F-19 generalised: only D-01 (FR agencies) writes a dated mirror in V1.
+# Only the Federal Register agencies fetcher writes a dated mirror.
 fetch_lib::write_dated_mirror() {
     local live_path="$1"
     local mirror_dir="$2"
@@ -163,7 +163,7 @@ fetch_lib::write_dated_mirror() {
             echo "fetch_lib::write_dated_mirror: $mirror_path exists with different SHA" >&2
             echo "  existing: $mirror_sha" >&2
             echo "  current:  $live_sha" >&2
-            echo "  drift event — refuse to overwrite (FAILURE-MODES.md §2)" >&2
+            echo "  drift event — refuse to overwrite (same-day re-fetch produced a different SHA-256)" >&2
             return 1
         fi
         echo "fetch_lib::write_dated_mirror: $mirror_path already exists with matching SHA" >&2
@@ -178,8 +178,7 @@ fetch_lib::write_dated_mirror() {
 # Atomically append a SOURCES.md row for <repo_relative_path>. Reads SHA-256
 # from <repo_relative_path>.sha256 sidecar; uses today's UTC date as Retrieved.
 # If a row for <repo_relative_path> already exists, verifies all columns match
-# and returns 0 (no-op); on mismatch, prints diff and returns 1
-# (FAILURE-MODES.md §2 / §5).
+# and returns 0 (no-op); on mismatch, prints diff and returns 1.
 # Wraps read-modify-write in flock SOURCES.md.lock (30s timeout) so concurrent
 # appenders serialise.
 fetch_lib::append_sources_row() {

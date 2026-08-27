@@ -16,7 +16,7 @@ ExpectedOutcome = Literal["redact", "suppress", "flag"]
 _DEFAULT_OUTCOME: Final[ExpectedOutcome] = "redact"
 
 # Placeholder templates substitute for person names in name-sparse
-# documents (design 03 §3.2). Plain text, never recorded as a span.
+# documents. Plain text, never recorded as a span.
 REDACTED_NAME_PLACEHOLDER: Final[str] = "[REDACTED]"
 
 

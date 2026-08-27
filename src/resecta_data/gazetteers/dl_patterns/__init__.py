@@ -1,4 +1,4 @@
-"""Per-state driver-license-number pattern gazetteer (D-13).
+"""Per-state driver-license-number pattern gazetteer.
 
 See :mod:`resecta_data.gazetteers.dl_patterns.build` for the
 :func:`build` entry point.

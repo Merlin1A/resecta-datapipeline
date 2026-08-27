@@ -191,7 +191,7 @@ def test_parse_popnames_fullfile_determinism(tmp_path: Path) -> None:
     assert first == second
 
 
-# ---- ParaNames full-file adapter (C1 / plan M5) -----------------------------
+# ---- ParaNames full-file adapter -------------------------------------------
 
 _PARANAMES_FULL_FIXTURE = Path(__file__).parent / "fixtures" / "paranames_full_mini.tsv"
 
@@ -299,7 +299,7 @@ def test_parse_paranames_full_missing_file(tmp_path: Path) -> None:
         list(parse_paranames_full(tmp_path / "nope.tsv.gz", "paranames_full"))
 
 
-# ---- Census Spanish full-file adapter (C2 / plan M14, M23) ------------------
+# ---- Census Spanish full-file adapter ----------------------------------------
 
 _CENSUS_SPANISH_FULL_HEADER = (
     "name,rank,count,prop100k,cum_prop100k,pctwhite,pctblack,pctapi,pctaian,pct2prace,pcthispanic"
@@ -373,14 +373,14 @@ def test_parse_census_spanish_full_zip_missing_inner_member(tmp_path: Path) -> N
 def test_parse_census_spanish_full_xlsx_rejected(tmp_path: Path) -> None:
     path = tmp_path / "x.xlsx"
     path.write_bytes(b"PK\x03\x04")  # ZIP magic stand-in; adapter dispatches on suffix, not content
-    with pytest.raises(PipelineError, match=r"§2\.5"):
+    with pytest.raises(PipelineError, match="XLSX reader"):
         parse_census_spanish_full(path, "census_spanish_full")
 
 
 def test_parse_census_spanish_full_xls_rejected(tmp_path: Path) -> None:
     path = tmp_path / "x.xls"
     path.write_bytes(b"")
-    with pytest.raises(PipelineError, match=r"§2\.5"):
+    with pytest.raises(PipelineError, match="XLSX reader"):
         parse_census_spanish_full(path, "census_spanish_full")
 
 

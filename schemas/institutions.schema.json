@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/institutions.schema.json",
   "title": "Institution gazetteer",
-  "description": "Named institutions used as coreference anchors and negative-context expansions by the Swift engine. Phase 2 emits only federal_agency rows; search-impl S5 (design 02 §6) adds financial_institution (FDIC bank list) and employer (curated SEC EDGAR filers) so the header-anchor path covers tax and financial documents. The enum reserves federal_court, state_official, and local_clerk for later phases. Entries are sorted by name for deterministic output.",
+  "description": "Named institutions used as coreference anchors and negative-context expansions by the Swift engine. Phase 2 emits only federal_agency rows; a later phase adds financial_institution (FDIC bank list) and employer (curated SEC EDGAR filers) so the header-anchor path covers tax and financial documents. The enum reserves federal_court, state_official, and local_clerk for later phases. Entries are sorted by name for deterministic output.",
   "type": "object",
   "required": [
     "version",

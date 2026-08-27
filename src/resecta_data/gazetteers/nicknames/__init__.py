@@ -1,4 +1,4 @@
-"""Nickname / diminutive given-name sidecar builder (search-impl S5, design 02 §7).
+"""Nickname / diminutive given-name sidecar builder.
 
 Consumes the carltonnorthern/nicknames CC0 dataset and emits
 ``build/gazetteers/nicknames.json`` — an alias→canonicals lookup sidecar

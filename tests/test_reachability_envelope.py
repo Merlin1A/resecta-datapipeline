@@ -5,18 +5,17 @@ exceed the maximum score its detector can physically emit on a real device.
 The _DETECTOR_ACHIEVABLE_MAX table in sweep_thresholds is the authority;
 this test cross-checks the shipped artifact against it.
 
-Introduced by search-impl S1 (design 03 §0.2). It was RED on the pre-S1
-artifact (conservative address=0.75 > 0.65 ceiling, conservative
-account=0.75 > 0.70 ceiling); the 0.3 hand-fix turned it green — that
-red→green transition is the S1 acceptance evidence.
+This test was RED on the earlier artifact (conservative address=0.75 >
+0.65 ceiling, conservative account=0.75 > 0.70 ceiling); a 0.3 hand-fix
+turned it green — that red→green transition is the acceptance evidence.
 
-S1 staging note: ``dob`` is excluded from the hard assert and pinned by a
+Staging note: ``dob`` is excluded from the hard assert and pinned by a
 companion expected-state test instead. The dob detector's textual max is
-0.50 (ceiling 0.45), below every shipped preset — the C6a incident. S2
-ships the label-anchored DOB revival plus the 0.30/0.40/0.45 dob preset
-values; at that point the companion pin goes red and both it and the
-exclusion must be removed. This mirrors the iOS EnvelopeReachabilityTests'
-``withKnownIssue`` dob row (design 01 §12 staging note).
+0.50 (ceiling 0.45), below every shipped preset. The label-anchored DOB
+revival ships the 0.30/0.40/0.45 dob preset values; at that point the
+companion pin goes red and both it and the exclusion must be removed.
+This mirrors the iOS EnvelopeReachabilityTests' ``withKnownIssue`` dob
+row.
 """
 
 from __future__ import annotations
@@ -35,10 +34,10 @@ from resecta_data.classifier.sweep_thresholds import (
 
 _PRESET_PATH = Path(__file__).parent.parent / "build" / "classifier" / "preset_thresholds.json"
 
-# S2 (search-impl, design 01 §1 D4): the label-anchored dob path shipped
-# with the 0.30/0.40/0.45 preset rows, so dob is reachable and back under
-# the hard assert. The set stays (empty) as the staging mechanism for any
-# future known-unreachable window.
+# The label-anchored dob path shipped with the 0.30/0.40/0.45 preset
+# rows, so dob is reachable and back under the hard assert. The set
+# stays (empty) as the staging mechanism for any future
+# known-unreachable window.
 _S1_KNOWN_UNREACHABLE: Final[frozenset[str]] = frozenset()
 
 

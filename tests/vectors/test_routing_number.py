@@ -23,7 +23,7 @@ SCHEMAS_DIR = Path(__file__).parent.parent.parent / "schemas"
 
 _NINE_DIGIT_PATTERN = re.compile(r"^\d{9}$")
 
-# Design-doc §4 verified positives (sanity anchors).
+# Verified positives (sanity anchors).
 _DESIGN_POSITIVES = [
     "021000021",
     "322271627",
@@ -85,11 +85,11 @@ class TestPrefixValidation:
         assert _is_valid_prefix([8, 0, 0, 0, 0, 0, 0, 0, 0])
 
     def test_prefix_99_invalid(self) -> None:
-        """Design-doc §4 adversarial: 999999999 — prefix 99 not in any range."""
+        """Adversarial: 999999999 — prefix 99 not in any range."""
         assert not _is_valid_prefix([9, 9, 9, 9, 9, 9, 9, 9, 9])
 
     def test_prefix_41_invalid(self) -> None:
-        """Design-doc §4 adversarial: 411111111 — prefix 41 not in [01,12],[21,32],[61,72],80."""
+        """Adversarial: 411111111 — prefix 41 not in [01,12],[21,32],[61,72],80."""
         assert not _is_valid_prefix([4, 1, 1, 1, 1, 1, 1, 1, 1])
 
     def test_prefix_13_invalid(self) -> None:
@@ -130,7 +130,7 @@ class TestBuilder:
         validate_file(path, SCHEMAS_DIR, "routing_number_vectors")
 
     def test_design_positives_present(self) -> None:
-        """Design-doc §4 verified positives must appear in the fixture."""
+        """The verified positives must appear in the fixture."""
         payload = build(CANONICAL_SEED)
         numbers = {v["routing_number"] for v in payload["vectors"]}
         for routing_num in _DESIGN_POSITIVES:
@@ -143,7 +143,7 @@ class TestBuilder:
 
         `valid` carries detector semantics (structural gates only): a valid
         vector may have has_context False — the Swift detector still emits
-        it, at base confidence (the W4 gate handles suppression).
+        it, at base confidence (the confidence gate handles suppression).
         """
         payload = build(CANONICAL_SEED)
         for vec in payload["vectors"]:
