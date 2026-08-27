@@ -74,7 +74,7 @@ def test_version_fence_fixture_emits_out_of_range(asset: str) -> None:
 def test_name_gazetteer_version_fence_fixture() -> None:
     """NameGazetteer special case — ``GazetteerManifest.version`` is ``String``.
 
-    Per STRAT §5.5 v5 hardening: the fence pattern is
+    The fence pattern is
     ``Set<String>`` rather than ``ClosedRange<Int>`` because semver
     strings don't admit a single-range comparison. The fixture is
     ``gazetteer-manifest.json`` carrying ``version: "99.0.0"`` so the

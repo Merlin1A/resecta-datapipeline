@@ -1,6 +1,6 @@
-"""Tests for locale-aware per-document seed derivation (C13 / findings L9).
+"""Tests for locale-aware per-document seed derivation.
 
-Covers the three C13-mandated cases:
+Covers the three mandated cases:
 - determinism of ``(seed, locale)`` for fixed inputs,
 - the 30/30/40 es_MX/es_ES/en_US distribution on the Hispanic bucket,
 - non-Hispanic buckets always resolve to ``en_US``.

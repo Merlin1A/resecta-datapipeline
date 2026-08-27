@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/bundle_size.schema.json",
-  "title": "Bundle-size build probe (D-35)",
-  "description": "Per-artifact byte-count summary of the build/ subdirectories whose contents ship into the Resecta engine. Engineer-facing only per spec §1.35 + §4 #13 -- no Resecta UI surface in V1; feeds V1.1+ Q2/Q3 cold-start threshold decisions. F-12 ack option c (engine_load_ms / first_detection_ready_ms Swift metrics) is the companion cold-start half and ships from the Mac side.",
+  "title": "Bundle-size build probe",
+  "description": "Per-artifact byte-count summary of the build/ subdirectories whose contents ship into the Resecta engine. Engineer-facing only -- no Resecta UI surface in V1; feeds V1.1+ cold-start threshold decisions. The engine_load_ms / first_detection_ready_ms Swift metrics are the companion cold-start half and ship from the Mac side.",
   "type": "object",
   "additionalProperties": false,
   "required": ["_meta", "subdirectories", "total_build_size"],
@@ -11,7 +11,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["generated_by", "schema_version"],
-      "description": "Body-side metadata. The build-input git HEAD lives in the sibling `bundle_size.meta.json` sidecar and is excluded from the hash lock so this artifact stays byte-stable across lockfile-regen cycles (cc-script audit-DONE §5e).",
+      "description": "Body-side metadata. The build-input git HEAD lives in the sibling `bundle_size.meta.json` sidecar and is excluded from the hash lock so this artifact stays byte-stable across lockfile-regen cycles.",
       "properties": {
         "generated_by": {
           "type": "string",

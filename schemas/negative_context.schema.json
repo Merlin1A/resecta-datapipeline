@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/negative_context.schema.json",
   "title": "Negative-context gazetteer candidates",
-  "description": "Candidate list of keywords whose presence in the surrounding context is designed to suppress a structurally valid detector match. Precedence-weight floor is 0.25 per A1 (context alone never fully suppresses a checksum-validated match). This artifact is build-and-freeze in Phase 2; the installed negative_context.json is a hand-reviewed subset.",
+  "description": "Candidate list of keywords whose presence in the surrounding context is designed to suppress a structurally valid detector match. Precedence-weight floor is 0.25 (context alone never fully suppresses a checksum-validated match). This artifact is build-and-freeze in Phase 2; the installed negative_context.json is a hand-reviewed subset.",
   "type": "object",
   "required": ["version", "generated_by", "seed", "entries"],
   "additionalProperties": false,
@@ -57,7 +57,7 @@
             "type": "number",
             "minimum": 0.25,
             "maximum": 1.0,
-            "description": "Suppression strength in [0.25, 1.0]. The 0.25 floor preserves the A1 invariant that context cannot fully override a checksum match."
+            "description": "Suppression strength in [0.25, 1.0]. The 0.25 floor preserves the invariant that context cannot fully override a checksum match."
           },
           "source_id": {
             "type": "string",

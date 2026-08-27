@@ -1,19 +1,19 @@
 """Tax-form (W-2 shaped) financial sub-template.
 
-Emits W-2 Wage and Tax Statement structural text per design 03 §3.2:
+Emits W-2 Wage and Tax Statement structural text:
 box labels on the same line as PII (EIN/SSN adjacency so context
 keywords fire), dense dollar-amount lines (negative context for DOB),
 and no routing numbers (unlike the invoice template). Documents carry
 ``doctype="financial"`` with ``sub_template="financial_tax"``.
 
-Two deviations from the design sketch, both deliberate:
+Two deliberate template-shape decisions:
 
 - The EIN is labeled honestly as category ``"ein"`` (added to the corpus
-  schema) instead of the design's "label it ssn" placeholder. EIN format
+  schema) instead of a placeholder ``"ssn"`` label. EIN format
   ``XX-XXXXXXX`` does not match the SSN detector, so an ``"ssn"`` label
   would create 100 permanent false negatives and poison ssn recall.
   ``"ein"`` is not in the sweep's ``_CATEGORIES``, so it is sweep-inert.
-- The employee name is one full-name line, not the design's split
+- The employee name is one full-name line, not split
   first/last boxes: the Swift detector emits full-name spans, so split
   single-token truth spans would systematically fail IoU-0.5 matching.
 """

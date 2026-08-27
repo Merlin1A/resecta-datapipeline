@@ -14,7 +14,7 @@ Jurisdictions are derived from the STNAME (full state name) column using an
 explicit mapping to USPS 2-letter codes. Unknown state names cause a loud
 failure (fail-fast).
 
-Alias derivation (design 02 §6 lines 933-949):
+Alias derivation:
   - Short name = name up to the first comma.
   - Strip/normalize business suffixes via normalize.STRIP_SUFFIXES.
   - Keep both pre-strip and post-strip forms as aliases (normalized NFKC lowercase).
@@ -43,7 +43,7 @@ _REQUIRED_COLUMNS: Final[frozenset[str]] = frozenset({"NAME", "CERT", "CITY", "S
 
 # Explicit STNAME (full state name) → USPS 2-letter code map.
 # Covers all 50 states + DC + US territories that may appear in the FDIC export.
-# Unknown state names are a hard fail (design §6 fail-loud principle).
+# Unknown state names are a hard fail (fail-loud principle).
 _STNAME_TO_USPS: Final[dict[str, str]] = {
     "Alabama": "AL",
     "Alaska": "AK",

@@ -1,12 +1,12 @@
 """Aggregate institution gazetteer entries into the shipped artifact.
 
 Phase 2 emits a single category — ``federal_agency`` — sourced from the
-Federal Register agencies API feed (D-01) per STRAT §10.4 row §D1 (= A1 1:1)
-following the cc-derive-rebuild rewire. The category enum in the schema
+Federal Register agencies API feed, following a source-parser rebuild. The
+category enum in the schema
 leaves room for ``federal_court``, ``state_official``, and ``local_clerk``
 in later phases once the NAAG / USCOURTS / CDC / SSA license questions clear.
 
-Search-impl S5 (design 02 §6) adds OPTIONAL sources:
+Two OPTIONAL sources supplement the mandatory feed:
 - FDIC institutions CSV (fdic_institutions_YYYYMMDD.csv) → ``financial_institution``
 - SEC EDGAR company_tickers JSON (edgar_company_tickers_YYYYMMDD.json) →
   ``financial_institution`` or ``employer``
@@ -24,7 +24,7 @@ The legacy GSA Federal Hierarchy Crosswalk reader (``parse_gsa``) is retained
 and read at build time only to compute ``institutions.cutover-diff.json``,
 the advisory diff artifact emitted alongside the rebuild artifact. The
 crosswalk is not folded into the rebuild's ``sources`` provenance — the
-diff is informational and the §D1 binding is wire-stable.
+diff is informational and the wire format is stable.
 """
 
 from __future__ import annotations
@@ -224,8 +224,8 @@ def build_cutover_diff() -> dict[str, Any]:
     output, keys present only in the rebuild output, and keys present in
     both with field-level differences.
 
-    The diff is advisory under STRAT §10.4 row §D1 (= A1 1:1) — used for
-    PR-review context, not as a sign-off gate.
+    The diff is advisory — used for
+    PR-review context, not as a release gate.
     """
     legacy_entries = {e.name: e.to_dict() for e in parse_gsa_agencies(_GSA_LEGACY_SOURCE)}
     rebuild_entries = {e.name: e.to_dict() for e in parse_federalregister_agencies(_FR_SOURCE)}

@@ -436,7 +436,7 @@
     ],
     "license_posture": "public-domain",
     "locale": "en",
-    "notes": "SS-5 Item 3; cross-category anchor (see W-R-8 §8).",
+    "notes": "SS-5 Item 3; cross-category anchor (the same label also anchors the name family).",
     "polarity": "positive",
     "primary_source_type": "federal-form",
     "proposed_doctypes": [
@@ -1335,113 +1335,6 @@
   },
   {
     "aliases": [
-      "plaintiffs",
-      "Pla.",
-      "plaintiff(s)"
-    ],
-    "category": "name",
-    "confidence": "high",
-    "cross_category": "docket_number_adjacency",
-    "fp_neighbors": [
-      "plaintiff's attorney",
-      "plaintiff's bar",
-      "plaintiff-friendly"
-    ],
-    "license_posture": "public-domain",
-    "locale": "en",
-    "notes": "FRCP Rule 10(a) Caption.",
-    "polarity": "positive",
-    "primary_source_type": "federal-publication",
-    "proposed_doctypes": [
-      ".legal"
-    ],
-    "proposed_status": "a21-shipping",
-    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
-    "synthetic_sample": "Plaintiff: Jane Q. Public (synthetic FRCP Rule 10(a) caption)",
-    "term": "plaintiff"
-  },
-  {
-    "aliases": [
-      "defendants",
-      "Def.",
-      "dft"
-    ],
-    "category": "name",
-    "confidence": "high",
-    "cross_category": "docket_number_adjacency",
-    "fp_neighbors": [
-      "defendant class",
-      "defendant's counsel",
-      "defendant firm"
-    ],
-    "license_posture": "public-domain",
-    "locale": "en",
-    "notes": "FRCP Rule 10(a).",
-    "polarity": "positive",
-    "primary_source_type": "federal-publication",
-    "proposed_doctypes": [
-      ".legal"
-    ],
-    "proposed_status": "a21-shipping",
-    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
-    "synthetic_sample": "Defendant: John R. Public (synthetic FRCP Rule 10(a) caption)",
-    "term": "defendant"
-  },
-  {
-    "aliases": [
-      "petitioners",
-      "Pet."
-    ],
-    "category": "name",
-    "confidence": "high",
-    "cross_category": "docket_number_adjacency",
-    "fp_neighbors": [
-      "petition (verb)",
-      "petitioning",
-      "petition form",
-      "online petition"
-    ],
-    "license_posture": "public-domain",
-    "locale": "en",
-    "notes": "Appellate/probate/family-court captions.",
-    "polarity": "positive",
-    "primary_source_type": "federal-publication",
-    "proposed_doctypes": [
-      ".legal"
-    ],
-    "proposed_status": "a21-shipping",
-    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
-    "synthetic_sample": "Petitioner: Jane Q. Public (synthetic appellate caption)",
-    "term": "petitioner"
-  },
-  {
-    "aliases": [
-      "respondents",
-      "Resp."
-    ],
-    "category": "name",
-    "confidence": "high",
-    "cross_category": "docket_number_adjacency",
-    "fp_neighbors": [
-      "survey respondent",
-      "respondent burden",
-      "response time"
-    ],
-    "license_posture": "public-domain",
-    "locale": "en",
-    "notes": "Family law, admin proceedings, appeals.",
-    "polarity": "positive",
-    "primary_source_type": "federal-publication",
-    "proposed_doctypes": [
-      ".legal"
-    ],
-    "proposed_status": "a21-shipping",
-    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
-    "synthetic_sample": "Respondent: John R. Public (synthetic family-law caption)",
-    "term": "respondent"
-  },
-  {
-    "aliases": [
       "deceased",
       "the decedent"
     ],
@@ -1454,7 +1347,7 @@
     ],
     "license_posture": "public-domain",
     "locale": "en",
-    "notes": "F-49 reinstatement: probate/estate captions, decedent-name field on SSA-721.",
+    "notes": "Reinstated row: probate/estate captions, decedent-name field on SSA-721.",
     "polarity": "positive",
     "primary_source_type": "federal-publication",
     "proposed_doctypes": [
@@ -1482,7 +1375,7 @@
     ],
     "license_posture": "public-domain",
     "locale": "en",
-    "notes": "F-49 reinstatement: FOIA request forms; appears on agency-specific FOIA forms (e.g., DOJ Form OBD-118, IRS Form 4506).",
+    "notes": "Reinstated row: FOIA request forms; appears on agency-specific FOIA forms (e.g., DOJ Form OBD-118, IRS Form 4506).",
     "polarity": "positive",
     "primary_source_type": "federal-publication",
     "proposed_doctypes": [
@@ -2230,7 +2123,7 @@
     ],
     "license_posture": "public-domain",
     "locale": "en",
-    "notes": "F-47: Three-letter anchor; highest-FP keyword. Bare DEA must NEVER fire alone — engine requires secondary token (Number/#/No./Registration/Registrant/Form 224/222/363) or DEA-ID regex adjacency within narrow window. Documented in REDACTION_ENGINE.md per spec.",
+    "notes": "Bare-token gate: Three-letter anchor; highest-FP keyword. Bare DEA must NEVER fire alone — engine requires secondary token (Number/#/No./Registration/Registrant/Form 224/222/363) or DEA-ID regex adjacency within narrow window.",
     "polarity": "positive",
     "primary_source_type": "federal-publication",
     "proposed_doctypes": [
@@ -3573,7 +3466,7 @@
     ],
     "license_posture": "public-domain",
     "locale": "en",
-    "notes": "F-51: W-7 line 6f 'Previous ITIN/IRSN'. Distinct number type from ITIN; treat as ITIN-context evidence, not ITIN itself. Promote to separate `irsn` micro-category only if pilot data forces.",
+    "notes": "IRSN literal: W-7 line 6f 'Previous ITIN/IRSN'. Distinct number type from ITIN; treat as ITIN-context evidence, not ITIN itself. Promote to separate `irsn` micro-category only if pilot data forces.",
     "polarity": "positive",
     "primary_source_type": "federal-form",
     "proposed_doctypes": [
@@ -3761,10 +3654,13 @@
     ],
     "license_posture": "internal",
     "locale": "en",
-    "notes": "Self-authored equivalent for NUCC patient-record label; dob is a universal abbreviation in clinical contexts. Replaces the F-50 residual needs-review row per design 02 §11 (D5).",
+    "notes": "Self-authored equivalent for NUCC patient-record label; dob is a universal abbreviation in clinical contexts. Replaces the earlier needs-review row for the same label.",
     "polarity": "positive",
     "primary_source_type": "irs_pub_factual",
-    "proposed_doctypes": [],
+    "proposed_doctypes": [
+      ".generic",
+      ".medical"
+    ],
     "proposed_status": "a21-shipping",
     "source_url": "",
     "synthetic_sample": "Patient DOB: 01/15/1985 (synthetic)",
@@ -3785,10 +3681,13 @@
     ],
     "license_posture": "internal",
     "locale": "en",
-    "notes": "Self-authored equivalent for payer/insurance member-record label. Replaces the F-50 residual needs-review row per design 02 §11 (D5).",
+    "notes": "Self-authored equivalent for payer/insurance member-record label. Replaces the earlier needs-review row for the same label.",
     "polarity": "positive",
     "primary_source_type": "irs_pub_factual",
-    "proposed_doctypes": [],
+    "proposed_doctypes": [
+      ".generic",
+      ".medical"
+    ],
     "proposed_status": "a21-shipping",
     "source_url": "",
     "synthetic_sample": "Member Birth Date: 03/22/1972 (synthetic)",

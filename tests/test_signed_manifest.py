@@ -1,4 +1,4 @@
-"""SEC-6 — Signed gazetteer manifest tests.
+"""Signed gazetteer manifest tests.
 
 Covers:
   - Round-trip: sign + verify with the same key pair succeeds.

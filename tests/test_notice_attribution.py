@@ -1,4 +1,4 @@
-"""Guards on NOTICE.txt third-party attribution completeness (CND-07).
+"""Guards on NOTICE.txt third-party attribution completeness.
 
 The pipeline emits name Bloom and gazetteer artifacts derived from MIT-licensed
 inputs (Faker and bltlab/paranames). The MIT license requires its copyright and
@@ -9,13 +9,11 @@ artifact, so the repo-root NOTICE.txt must carry those rows. This module pins:
     OpenAddresses CC0) stay present;
   - the MIT inbound rows are structurally seeded (positive-substring — a bare
     "no unchecked box" check is vacuous if the rows were never seeded);
-  - the TODO(Jesse) checklist is fully discharged before release (no unchecked
-    ``[ ]`` markers and the MIT permission notice is reproduced).
+  - the MIT permission notice is reproduced and no unchecked ``[ ]`` marker
+    remains anywhere in the file.
 
-``test_notice_todo_block_discharged`` is intentionally RED until Jesse authors
-the MIT row text and checks the boxes — legal-text authorship is a
-Jesse-only hard stop. The iOS half lives in
-resecta/Tests/ResectaAppTests/NoticeFileTests.swift.
+NOTICE.txt rows are legal text: they change under an approved plan. The iOS
+half lives in resecta/Tests/ResectaAppTests/NoticeFileTests.swift.
 """
 
 from __future__ import annotations
@@ -54,18 +52,18 @@ def test_notice_seeds_mit_inbound_rows() -> None:
     assert "bltlab/paranames" in text, "NOTICE.txt is missing the bltlab/paranames MIT inbound row"
 
 
-def test_notice_todo_block_discharged() -> None:
-    """RED until Jesse authors the MIT rows and removes the ``[ ]`` markers.
+def test_notice_mit_rows_discharged() -> None:
+    """The MIT permission notice is present and no ``[ ]`` marker remains.
 
-    Intentional submission gate (CND-07): the MIT permission notice must be
-    reproduced and every checklist box checked before the Faker / paranames
-    derived Bloom artifacts ship.
+    Submission gate: the MIT permission notice must be reproduced and every
+    checklist box checked before the Faker / paranames derived Bloom
+    artifacts ship.
     """
     text = _notice_text()
     assert "[ ]" not in text, (
-        "NOTICE.txt still has unchecked TODO(Jesse) MIT attribution rows — Jesse "
-        "authors the row text and checks the boxes before release"
+        "NOTICE.txt still has an unchecked MIT attribution row — author the row "
+        "text and check the box under an approved plan before release"
     )
     assert "Permission is hereby granted" in text, (
-        "NOTICE.txt MIT rows lack the MIT permission notice — Jesse authors it"
+        "NOTICE.txt MIT rows lack the MIT permission notice"
     )

@@ -26,7 +26,7 @@ _SCHEMA_VERSION: Final[int] = 1
 # Per-term hit cap. The Swift classifier counts each term's hits up to
 # this cap, so a page cannot be tilted by stuffing one term. Raised from
 # the binary-presence cap of 1 (the A4 / G5 hardening decision) to 5 in
-# S4 per design 03 §3.5: cap 1 made logits nearly flat (max raw evidence
+# 5 at the calibration pass: cap 1 made logits nearly flat (max raw evidence
 # ~= vocabulary overlap), starving the temperature fit; cap 5 admits
 # repeated-vocabulary evidence while keeping the stuffing bound.
 _TERM_CAP_PER_DOC: Final[int] = 5

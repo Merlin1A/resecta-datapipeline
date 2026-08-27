@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   sources, and a supply-chain job (pip-audit, OSV-Scanner, SBOM); the dev tools
   are hash-pinned in `requirements-dev.lock`; `make lint` covers `scripts/`.
 
+### Changed
+
+- Curated context assets change under a written, approved change plan; the
+  reviewed negative-context sidecar is re-stamped by the same change — the
+  policy text is person-neutral throughout. Provenance prose in shipped assets
+  no longer cites private planning documents. Context assets: the
+  negative-context placeholder entry `abc corp.` is now `corp.`; multi-word
+  doctype keywords (never matchable) are single tokens; labeled license plates
+  carry their own context words; the bare `ein`/`mbi` suppression tokens are
+  label phrases; the FOIA and generic doctype vocabularies are rebalanced. The
+  routing-number builder raises PipelineError instead of asserting.
+
 ## 0.1.0 — 2026-06-24
 
 Initial public release.

@@ -4,7 +4,7 @@ Mirrors the Swift NPI detector contract: ten digits, prefix in {1, 2}, CMS
 Luhn with the 80840 prefix prepended. The Python reference checksum lives at
 ``resecta_data.vectors._checksum.cms_luhn``; live-grep verified 2026-04-26.
 
-F-9 ack: HYPOTHESIS_SEED=20260425 (per-test fixed seed via ``derandomize``).
+HYPOTHESIS_SEED=20260425 (per-test fixed seed via ``derandomize``).
 Override via env ``HYPOTHESIS_SEED=<int>`` for broader local runs.
 """
 

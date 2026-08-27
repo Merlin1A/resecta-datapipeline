@@ -2,7 +2,7 @@
 
 Synthetic-fixture tests: no dependency on the ~954 MB LFS-tracked
 ``paranames_full.tsv.gz``. The full-file smoke run is captured in the PR
-body once (§4B), not re-run by CI.
+body once, not re-run by CI.
 
 Invariants asserted:
   * the multiset of PER rows emitted across shards equals the input's

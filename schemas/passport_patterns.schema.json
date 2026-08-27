@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/passport_patterns.schema.json",
-  "title": "Per-country passport-number pattern gazetteer (D-14)",
-  "description": "Structural patterns (anchored regex + length + alphabet + sample) for the 11 shipping issuers. Promoted verbatim from src/resecta_data/gazetteers/passport_patterns/sources/passport_patterns_candidates.json after the candidates-file review workflow. Cuba (CU) is excluded entirely per F-37 OFAC sanctions posture; Guatemala (GT) is held as a V1.1+ swap candidate. Dominican Republic uses issuer_code DO (ISO 3166-1 alpha-2). The shipping row set is closed at the 11 enum values below. Row-level shape and audit-only fields (candidate_only, exclude_from_ship, exclusion_reason, ship_loose_vs_omit_analysis, format_attestation) are stripped by the builder before validation.",
+  "title": "Per-country passport-number pattern gazetteer",
+  "description": "Structural patterns (anchored regex + length + alphabet + sample) for the 11 shipping issuers. Promoted verbatim from src/resecta_data/gazetteers/passport_patterns/sources/passport_patterns_candidates.json after the candidates-file review workflow. Cuba (CU) is excluded entirely under an OFAC sanctions posture; Guatemala (GT) is held as a V1.1+ swap candidate. Dominican Republic uses issuer_code DO (ISO 3166-1 alpha-2). The shipping row set is closed at the 11 enum values below. Row-level shape and audit-only fields (candidate_only, exclude_from_ship, exclusion_reason, ship_loose_vs_omit_analysis, format_attestation) are stripped by the builder before validation.",
   "type": "object",
   "required": [
     "version",
@@ -38,7 +38,7 @@
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Verbatim from candidates JSON. Each entry names a research brief (e.g. 'W-R-4 (2026-04-22)').",
+      "description": "Verbatim from candidates JSON. Each entry names a research brief (e.g. 'passport-format research brief (2026-04-22)').",
       "items": {
         "type": "string",
         "minLength": 1
@@ -48,7 +48,7 @@
       "type": "array",
       "minItems": 11,
       "maxItems": 11,
-      "description": "Shipping rows in ascending issuer_code order. Fixed at 11 per F-36 scope decision.",
+      "description": "Shipping rows in ascending issuer_code order. Fixed at 11.",
       "items": {
         "type": "object",
         "required": [
@@ -83,7 +83,7 @@
               "US",
               "VN"
             ],
-            "description": "ISO 3166-1 alpha-2 restricted to the 11 V1 shipping issuers. Cuba (CU) is omitted per F-37 sanctions posture; Guatemala (GT) is V1.1+ candidate-only."
+            "description": "ISO 3166-1 alpha-2 restricted to the 11 V1 shipping issuers. Cuba (CU) is omitted under the OFAC sanctions posture; Guatemala (GT) is V1.1+ candidate-only."
           },
           "issuer_name": {
             "type": "string",
@@ -139,7 +139,7 @@
               "gov-work (Feist)",
               "needs-legal-review"
             ],
-            "description": "Per-row legal posture. §105 PD applies to US State Department publications. Gov-work (Feist) covers factual publications by other national governments (format facts are uncopyrightable under Feist v. Rural Tel.). 'needs-legal-review' applies to GB (F-38 OGL v3.0 attribution posture pending Jesse + counsel)."
+            "description": "Per-row legal posture. §105 PD applies to US State Department publications. Gov-work (Feist) covers factual publications by other national governments (format facts are uncopyrightable under Feist v. Rural Tel.). 'needs-legal-review' applies to GB, pending a decision on the OGL v3.0 attribution posture."
           },
           "license_notes": {
             "type": "string",
@@ -225,7 +225,7 @@
               "rationale"
             ],
             "additionalProperties": false,
-            "description": "Structured hand-off to Jesse + counsel for an F-item pending decision. Present on GB (F-38 OGL attribution A / B / C).",
+            "description": "Structured record of a pending legal decision (the attribution posture options A / B / C). Present on the GB row.",
             "properties": {
               "f_item": {
                 "type": "string",

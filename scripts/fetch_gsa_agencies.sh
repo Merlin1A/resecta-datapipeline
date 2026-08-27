@@ -26,10 +26,10 @@ fetch_lib::append_sources_row \
     "src/resecta_data/gazetteers/institutions/sources/federalregister_agencies.json" \
     "Public Domain" \
     "$URL" \
-    "Federal Register agencies API feed (D-01); ~444 rows on 2026-04-22 probe; NARA Office of the Federal Register + GPO; §105 PD; consumed by gazetteers/institutions.json (A3) rebuild scoped to federal_agency only."
+    "Federal Register agencies API feed; ~444 rows on 2026-04-22 probe; NARA Office of the Federal Register + GPO; §105 PD; consumed by gazetteers/institutions.json (A3) rebuild scoped to federal_agency only."
 
 echo ""
-echo "D-01 fetch complete."
+echo "Federal Register agencies fetch complete."
 echo "  live:   $LIVE_FILE"
 echo "  mirror: $MIRROR_DIR/$MIRROR_PREFIX-$(date -u +%Y-%m-%d).json"
 echo "  sha256: $(cat "$LIVE_FILE.sha256")"

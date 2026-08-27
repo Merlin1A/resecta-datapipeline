@@ -1,4 +1,4 @@
-"""Ed25519 signing for the gazetteer manifest (SEC-6).
+"""Ed25519 signing for the gazetteer manifest.
 
 This module signs ``build/gazetteers/gazetteer_manifest.json`` with an
 Ed25519 private key held at ``~/.resecta-data/manifest-private-key.pem``
@@ -22,7 +22,7 @@ Wire contract (paired with iOS CryptoKit ``Curve25519.Signing``):
   the same private key + same canonical manifest. This matches the
   pipeline's reproducibility invariants.
 
-Rotation cadence: per major release (SEC-6). This module does not
+Rotation cadence: per major release. This module does not
 implement automatic rotation; it provides the
 primitives that a release-prep step will call.
 

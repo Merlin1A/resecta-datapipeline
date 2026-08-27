@@ -1,7 +1,7 @@
-"""Determinism + schema + shape checks for the D-24 G8 bucket-recall builder.
+"""Determinism + schema + shape checks for the G8 bucket-recall builder.
 
-Spec §1.24 + F-10 (point estimate + sample size, no CI band). The artifact
-is dev/CI only -- not installed to the Swift Resources path.
+Point estimate + sample size, no CI band. The artifact is dev/CI only
+-- not installed to the Swift Resources path.
 """
 
 from __future__ import annotations

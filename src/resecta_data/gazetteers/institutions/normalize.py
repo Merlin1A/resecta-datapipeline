@@ -2,8 +2,6 @@
 
 Used by ``parse_fdic`` and ``parse_edgar`` to produce a consistent alias set from a
 raw institution name. Factored here so both parsers apply identical rules.
-
-Design reference: design 02 §6 "Business-suffix normalization rules".
 """
 
 from __future__ import annotations
@@ -14,7 +12,7 @@ from typing import Final
 # Business suffixes to strip when deriving the short alias. Applied in order —
 # the list is traversed left to right and the first matching suffix is stripped.
 # Longer suffixes (", national association") appear before their abbreviation
-# equivalents to avoid partial matches. See design 02 §6 lines 933-949.
+# equivalents to avoid partial matches.
 STRIP_SUFFIXES: Final[tuple[str, ...]] = (
     ", national association",
     " national association",

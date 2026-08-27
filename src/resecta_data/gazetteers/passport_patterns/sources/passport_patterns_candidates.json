@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generated_by": "chain-orchestration-1 Session 9",
-  "source_briefs": ["W-R-4 (2026-04-22)", "W-R-4.1 (2026-04-23)"],
+  "source_briefs": ["passport-format research brief (2026-04-22)", "passport-format research brief, follow-up (2026-04-23)"],
   "f_item_resolutions_pending": ["F-36", "F-37", "F-38"],
   "seed": 1776921890,
   "generated_date": "2026-04-23",
@@ -27,7 +27,7 @@
       "source_url": "https://ircc.canada.ca/english/helpcentre/answer.asp?qnum=1446",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "IRCC Help Centre documents legacy 2-letter-prefix format; canada.ca next-gen announcement (18-Jun-2023) covers the alpha-sandwich redesign. Crown copyright applies to canada.ca prose, but the format schema is a fact per Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991); Canada's standard non-commercial reproduction terms separately permit factual reuse. Attestation basis: IRCC Help Centre + canada.ca announcement + Feist. Microsoft Purview's Canadian-passport SIT still encodes only the legacy format -- useful third-party-DLP-lag signal. Note: W-R-4 §I.4 records length=8 for both formats, but the alpha-sandwich pattern string naively expands to 9 chars (1+6+2); inconsistency preserved literally per transcription-chain convention and flagged for Jesse's row-by-row review.",
+      "license_notes": "IRCC Help Centre documents legacy 2-letter-prefix format; canada.ca next-gen announcement (18-Jun-2023) covers the alpha-sandwich redesign. Crown copyright applies to canada.ca prose, but the format schema is a fact per Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991); Canada's standard non-commercial reproduction terms separately permit factual reuse. Attestation basis: IRCC Help Centre + canada.ca announcement + Feist. Microsoft Purview's Canadian-passport SIT still encodes only the legacy format -- useful third-party-DLP-lag signal. Note: the research brief records length=8 for both formats, but the alpha-sandwich pattern string naively expands to 9 chars (1+6+2); the inconsistency is preserved literally from the source and noted here.",
       "recent_format_changes": [
         {
           "transition_date": "2023-06-18",
@@ -50,7 +50,7 @@
       "source_url": "https://www.nia.gov.cn/",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Primary-source attestation per W-R-4.1 §II.7: NIA Information Technology Department public reply, inquiry 1435555564 (answered 2019-08-01) -- second-letter alphabet is A-Z excluding I and O; NIA '出入境证件简明手册' (Concise Handbook of Exit-Entry Documents) published on nia.gov.cn 2019-12-26. PRC-government factual publication is uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). EU Council PRADO CHN-AO-05001 corroborative only (no text reproduced); US State Dept Reciprocity Schedule -- China (§105 PD) also corroborative. W-R-4.1 §II.9 canonicalizes the stored pattern with the explicit I/O exclusion (same acceptance set as the W-R-4 §I.4 shipped union). Pre-2012 ordinary G-series and pre-2017-04-05 E-series single-letter books remain in circulation alongside post-2017 two-letter E-series books.",
+      "license_notes": "Primary-source attestation: NIA Information Technology Department public reply, inquiry 1435555564 (answered 2019-08-01) -- second-letter alphabet is A-Z excluding I and O; NIA '出入境证件简明手册' (Concise Handbook of Exit-Entry Documents) published on nia.gov.cn 2019-12-26. PRC-government factual publication is uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). EU Council PRADO CHN-AO-05001 corroborative only (no text reproduced); US State Dept Reciprocity Schedule -- China (§105 PD) also corroborative. The stored pattern carries the explicit I/O exclusion (the same acceptance set as the shipped union). Pre-2012 ordinary G-series and pre-2017-04-05 E-series single-letter books remain in circulation alongside post-2017 two-letter E-series books.",
       "recent_format_changes": [
         {
           "transition_date": "2017-04-05",
@@ -59,7 +59,7 @@
           "coexistence_window_notes": "Single-letter E-series pool exhausted ~2017-04-05 at ~100M books issued; NIA extended to 2-letter prefix (E + one letter from A-Z minus {I,O} + 7 digits). Pre-2012 G-series and pre-2017-04-05 single-letter E-series books remain valid through their expiration (10-year validity keeps legacy E-series in circulation through ~2027). G-series also retained in the shipped union."
         }
       ],
-      "post_v1_task": "Monitor nia.gov.cn policy pages ('政策文件' and '新闻发布') for post-EZ scheme announcement; production-traffic sentinel on any F######## or E[IO]######## appearance (NIA-excluded per inquiry 1435555564). Residual sentinel per W-R-4.1 §II.10.",
+      "post_v1_task": "Monitor nia.gov.cn policy pages ('政策文件' and '新闻发布') for post-EZ scheme announcement; production-traffic sentinel on any F######## or E[IO]######## appearance (NIA-excluded per inquiry 1435555564). Residual sentinel.",
       "confidence": "medium",
       "candidate_only": false
     },
@@ -74,7 +74,7 @@
       "source_url": "https://travel.state.gov/content/travel/en/us-visas/Visa-Reciprocity-and-Civil-Documents-by-Country/Cuba.html",
       "source_verified_date": "2026-04-23",
       "license_posture": "ceiling-documented",
-      "license_notes": "No authoritative primary-source regex exists. MINREX (misiones.cubaminrex.cu consular subsites for Norway/Mexico/Spain/Canada/Jamaica/Brazil/Germany), Gaceta Oficial 2023 reforms (validity + fees + prórroga elimination), OFAC/FinCEN Cuba-sanctions guidance, and ICAO PKD references all searched (W-R-4.1 §II.3). Best primary source located: US State Dept Reciprocity Schedule for Cuba (§105 PD) -- confirms issuing authority (Oficina de Identificación, Inmigración y Extranjería del Ministerio del Interior; DIIE), 10-year validity effective July 2023, non-ICAO non-EU compliance, and cover-color enumeration, but omits number length and character class. Gaceta Oficial 2023 reforms concern validity/fees only. Cuba absent from public ICAO PKD factual metadata. Candidate regexes circulating online trace to Wikipedia (CC-BY-SA, outside allowlist), commercial KYC SDKs (Regula/Jumio, rejected), or unsourced DLP community contributions. W-R-4.1 §II.3 upgrades posture from 'needs-legal-review' to 'ceiling-documented'; regex is `length: 9` here only because the schema field requires a single integer (loose 6-9 catch-all per `patterns`).",
+      "license_notes": "No authoritative primary-source regex exists. MINREX (misiones.cubaminrex.cu consular subsites for Norway/Mexico/Spain/Canada/Jamaica/Brazil/Germany), Gaceta Oficial 2023 reforms (validity + fees + prórroga elimination), OFAC/FinCEN Cuba-sanctions guidance, and ICAO PKD references all searched. Best primary source located: US State Dept Reciprocity Schedule for Cuba (§105 PD) -- confirms issuing authority (Oficina de Identificación, Inmigración y Extranjería del Ministerio del Interior; DIIE), 10-year validity effective July 2023, non-ICAO non-EU compliance, and cover-color enumeration, but omits number length and character class. Gaceta Oficial 2023 reforms concern validity/fees only. Cuba absent from public ICAO PKD factual metadata. Candidate regexes circulating online trace to Wikipedia (CC-BY-SA, outside allowlist), commercial KYC SDKs (Regula/Jumio, rejected), or unsourced DLP community contributions. The posture is 'ceiling-documented' rather than 'needs-legal-review'; regex is `length: 9` here only because the schema field requires a single integer (loose 6-9 catch-all per `patterns`).",
       "format_attestation": "none-found",
       "ship_loose_vs_omit_analysis": {
         "f_item": "F-37",
@@ -89,18 +89,18 @@
         ],
         "order_of_magnitude_hit_rate": "~1-5 hits per page in typical legal/medical documents under the loose regex",
         "options": [
-          "A -- ship ungated with low-confidence marker (precision collapses to <1%; effectively an unguarded alphanumeric detector -- W-R-4.1 §II.3 discourages)",
-          "B -- ship gated behind context signals (MRZ 'CUB' nationality field OR explicit 'Cuba'/'cubano'/'La Habana'/'MINREX' co-occurrence within N tokens OR Cuban-passport doctype indicator); preserves precision; requires small detector-layer gating mechanism adjacent to F-35 SSN-vs-DL ambiguity pattern",
-          "C -- omit Cuba row entirely for V1; flag as blocked-on-primary-source in V1_1_NOTES.md; let generic alphanumeric fallback catch the field"
+          "A -- ship ungated with low-confidence marker (precision collapses to <1%; effectively an unguarded alphanumeric detector -- discouraged)",
+          "B -- ship gated behind context signals (MRZ 'CUB' nationality field OR explicit 'Cuba'/'cubano'/'La Habana'/'MINREX' co-occurrence within N tokens OR Cuban-passport doctype indicator); preserves precision; requires a small detector-layer gating mechanism adjacent to the SSN-vs-DL ambiguity pattern",
+          "C -- omit Cuba row entirely for V1; flag as blocked-on-primary-source; let generic alphanumeric fallback catch the field"
         ],
         "default_recommendation": "B"
       },
-      "post_v1_task": "Corpus-sample Cuban passport numbers from consented redaction runs; file a documented request to DIIE via MINREX DACCRE for format publication (W-R-4.1 §II.9 row 11 directive).",
+      "post_v1_task": "Corpus-sample Cuban passport numbers from consented redaction runs; file a documented request to DIIE via MINREX DACCRE for format publication.",
       "recent_format_changes": [],
       "confidence": "low",
       "candidate_only": false,
       "exclude_from_ship": true,
-      "exclusion_reason": "F-37 CLOSED 2026-04-23 by Jesse — Cuba omitted entirely for V1 on sanctions grounds (OFAC CACR 31 CFR Part 515, Cuba Restricted List, LIBERTAD Act Title III). Row retained in candidates file as audit artifact; builder must skip."
+      "exclusion_reason": "Cuba is omitted entirely for V1 on sanctions grounds (OFAC CACR 31 CFR Part 515, Cuba Restricted List, LIBERTAD Act Title III). The row stays in the candidates file as an audit artifact; the builder skips it."
     },
     {
       "issuer_code": "DO",
@@ -113,7 +113,7 @@
       "source_url": "https://pasaportes.gob.do/",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Candidate-only row per W-R-4.1 §II.2 Q1 resolution; slot in ONLY if Jesse swaps CA or GB for DR via F-36 scope-swap decision. DGP (Dirección General de Pasaportes, pasaportes.gob.do) and MIREX (servicios360.mirex.gob.do) do not publish an explicit format statement; schema is inferred from converging secondary evidence: PRADO DOM-AO-02001 (first issued 01/08/2015) + PRADO DOM-AO-01001 (2004-) specimen metadata, industry descriptions, multiple independent forum threads confirming '3 letras + 6 dígitos' (letter prefix encodes issuing office, e.g. SD Santo Domingo, PP Puerto Plata). US State Dept Reciprocity Schedule -- Dominican Republic (§105 PD) corroborative. No ICAO 9303 text reproduced. Wikipedia (en/es) corroborative only. Biometric e-passport rollout announced repeatedly 2023-2025 (most recent target Oct 2025 per President Abinader 3-Sep-2025); schema expected to carry over. Booklet validity 6 years. Do not silently ship at high confidence without legal review (DGP/MIREX silence on explicit regex).",
+      "license_notes": "Candidate-only row at authoring time; the builder's promotion override ships it in the 11-issuer set (it fills the slot Cuba's exclusion freed). DGP (Dirección General de Pasaportes, pasaportes.gob.do) and MIREX (servicios360.mirex.gob.do) do not publish an explicit format statement; schema is inferred from converging secondary evidence: PRADO DOM-AO-02001 (first issued 01/08/2015) + PRADO DOM-AO-01001 (2004-) specimen metadata, industry descriptions, multiple independent forum threads confirming '3 letras + 6 dígitos' (letter prefix encodes issuing office, e.g. SD Santo Domingo, PP Puerto Plata). US State Dept Reciprocity Schedule -- Dominican Republic (§105 PD) corroborative. No ICAO 9303 text reproduced. Wikipedia (en/es) corroborative only. Biometric e-passport rollout announced repeatedly 2023-2025 (most recent target Oct 2025 per President Abinader 3-Sep-2025); schema expected to carry over. Booklet validity 6 years. Do not silently ship at high confidence without legal review (DGP/MIREX silence on explicit regex).",
       "recent_format_changes": [],
       "confidence": "medium",
       "candidate_only": true
@@ -129,7 +129,7 @@
       "source_url": "https://www.gov.uk/government/publications/basic-passport-checks/basic-passport-checks-accessible",
       "source_verified_date": "2026-04-23",
       "license_posture": "needs-legal-review",
-      "license_notes": "HMPO 'Basic passport checks' on gov.uk, corroborated by the Home Office UCD Manual passport-details pattern (design.homeoffice.gov.uk). HMPO content on gov.uk is Crown Copyright under Open Government Licence v3.0 -- attribution-required, CC-BY-comparable, sits outside the brief's strict permissive allowlist. The regex itself is a factual description and reproducible under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991); surrounding explanatory prose must not be copied verbatim. 9-digit scheme stable since 1988; 2015 Series B redesign and 2020 post-Brexit polycarbonate redesign left number format untouched. A separate passport serial number (three alpha + four numeric + laser-perforated check symbol) exists as a security element and is explicitly out of scope -- not the passport number. F-38 tracks Jesse's attribution-posture pick; see pending_decision_memo.",
+      "license_notes": "HMPO 'Basic passport checks' on gov.uk, corroborated by the Home Office UCD Manual passport-details pattern (design.homeoffice.gov.uk). HMPO content on gov.uk is Crown Copyright under Open Government Licence v3.0 -- attribution-required, CC-BY-comparable, sits outside the brief's strict permissive allowlist. The regex itself is a factual description and reproducible under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991); surrounding explanatory prose must not be copied verbatim. 9-digit scheme stable since 1988; 2015 Series B redesign and 2020 post-Brexit polycarbonate redesign left number format untouched. A separate passport serial number (three alpha + four numeric + laser-perforated check symbol) exists as a security element and is explicitly out of scope -- not the passport number. The attribution-posture pick is a pending legal decision; see pending_decision_memo.",
       "pending_decision_memo": {
         "f_item": "F-38",
         "grounding_facts": [
@@ -168,7 +168,7 @@
       "source_url": "https://servicios.igm.gob.gt/web/en/servicios/identificacionint/pasaportes/validatePasaporte",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Candidate-only row per W-R-4.1 §II.2 Q1 resolution; slot in ONLY if Jesse swaps CA or GB for GT via F-36 scope-swap decision. Facts sourced from IGM's own public verifier (servicios.igm.gob.gt validator) and public-sector announcements: igm.gob.gt/informacion-pasaportes/; igm.gob.gt/wp-content/uploads/2024/04/RAZONAMIENTO-DE-PASAPORTE.pdf. IGM's own public verifier prose states `para efectos de trámites que requieran 9 dígitos, deberá utilizar los últimos 9 dígitos del resultado de la búsqueda.` Factual publication by Guatemalan government; facts are uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). US State Dept Reciprocity Schedule -- Guatemala (§105 PD) corroborative. Copa Airlines industry bulletin COM-24-131 (23-Jul-2024) reproduces IGM's factual announcement; no rights issue for facts. Legacy 15-digit internal control numbers still appear in pre-July-2024 documents; auxiliary legacy pattern `^[0-9]{15}$` recommended for historical document sets. Wikipedia corroborative only.",
+      "license_notes": "Candidate-only row: GT ships only if a later change plan swaps it into the 11-issuer set. Facts sourced from IGM's own public verifier (servicios.igm.gob.gt validator) and public-sector announcements: igm.gob.gt/informacion-pasaportes/; igm.gob.gt/wp-content/uploads/2024/04/RAZONAMIENTO-DE-PASAPORTE.pdf. IGM's own public verifier prose states `para efectos de trámites que requieran 9 dígitos, deberá utilizar los últimos 9 dígitos del resultado de la búsqueda.` Factual publication by Guatemalan government; facts are uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). US State Dept Reciprocity Schedule -- Guatemala (§105 PD) corroborative. Copa Airlines industry bulletin COM-24-131 (23-Jul-2024) reproduces IGM's factual announcement; no rights issue for facts. Legacy 15-digit internal control numbers still appear in pre-July-2024 documents; auxiliary legacy pattern `^[0-9]{15}$` recommended for historical document sets. Wikipedia corroborative only.",
       "recent_format_changes": [
         {
           "transition_date": "2024-07-23",
@@ -191,7 +191,7 @@
       "source_url": "https://www.passportindia.gov.in/AppOnlineProject/pdf/ApplicationformInstructionBooklet-V3.0.pdf",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Ministry of External Affairs, Passport Seva instruction booklet (V3.0 PDF). Government of India publication; format rules are factual and uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). Strict regex reflects Passport Seva's own structural constraints (no Q/X/Z prefix, first post-letter digit non-zero, last digit non-zero); lenient regex is a safe superset. India's 2024 e-passport pilot and 2024-2025 rollout did NOT change the number format (biometric-redesign-kept-number-format cluster per W-R-4 §I.5). No format transition within 10-year valid-passport window.",
+      "license_notes": "Ministry of External Affairs, Passport Seva instruction booklet (V3.0 PDF). Government of India publication; format rules are factual and uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). Strict regex reflects Passport Seva's own structural constraints (no Q/X/Z prefix, first post-letter digit non-zero, last digit non-zero); lenient regex is a safe superset. India's 2024 e-passport pilot and 2024-2025 rollout did NOT change the number format (the biometric-redesign-kept-number-format cluster). No format transition within 10-year valid-passport window.",
       "recent_format_changes": [],
       "confidence": "high",
       "candidate_only": false
@@ -230,7 +230,7 @@
       "source_url": "https://sidofqa.segob.gob.mx/notas/docFuente/5630645",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "DOF (Diario Oficial de la Federación) Acuerdo of 23-Sep-2021 establishing the content of Mexican electronic passports (mirrored at sidofqa.segob.gob.mx/notas/docFuente/5630645), Article III.4: attests post-Oct-2021 biometric libreta as 9 characters (letter N + 8 digits, laser-perforated serial + 2D barcode). Mexican-government factual publication is uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). W-R-4.1 §II.5 tightens W-R-4's `{min:8, max:9}` union to fixed length 9 and raises confidence to HIGH on primary-source attestation. Corroboration: travel.state.gov Mexico Reciprocity Schedule (§105 PD); PRADO MEX-AO-03001 / MEX-AO-03002. Leading character class kept permissive ([A-Z]) to accommodate historical series (A, B, C, E, F, G, N have all been used by SRE over time; no publication guarantees future stability at {G, N} only).",
+      "license_notes": "DOF (Diario Oficial de la Federación) Acuerdo of 23-Sep-2021 establishing the content of Mexican electronic passports (mirrored at sidofqa.segob.gob.mx/notas/docFuente/5630645), Article III.4: attests post-Oct-2021 biometric libreta as 9 characters (letter N + 8 digits, laser-perforated serial + 2D barcode). Mexican-government factual publication is uncopyrightable under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). The follow-up brief tightens the earlier `{min:8, max:9}` union to fixed length 9 and raises confidence to HIGH on primary-source attestation. Corroboration: travel.state.gov Mexico Reciprocity Schedule (§105 PD); PRADO MEX-AO-03001 / MEX-AO-03002. Leading character class kept permissive ([A-Z]) to accommodate historical series (A, B, C, E, F, G, N have all been used by SRE over time; no publication guarantees future stability at {G, N} only).",
       "recent_format_changes": [
         {
           "transition_date": "2021-10-05",
@@ -276,7 +276,7 @@
       "source_url": "https://www.migracion.gob.sv/",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Dirección General de Migración y Extranjería (migracion.gob.sv) + Ministerio de Relaciones Exteriores (rree.gob.sv/servicios-consulares/pasaportes-se/). Salvadoran government publications for factual procedural content, reproducible as facts under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). DGME does NOT publish an explicit regex or character-composition spec; 9-character alphanumeric pattern is inferred from PRADO SLV-AO-02002 specimen-class metadata (EU Council Secretariat factual; first issued 13-Dec-2010, format 88x125mm, 48 pages, blue cover) + Central American regional passport conventions + ICAO MRZ 9-character document-number cap. US State Dept Reciprocity Schedule -- El Salvador (§105 PD) corroborative on existence + 6-year validity. Format has not verifiably changed through 2010 biometric introduction and 2021-2023 pasaporteenlinea.migracion.gob.sv modernization. W-R-4.1 §II.6 upgrades confidence from 'low-to-medium' to MEDIUM with documented ceiling; see ceiling_rationale and post_v1_tasks. format_attestation: 'inferential -- no DGME/Diario Oficial publication located'.",
+      "license_notes": "Dirección General de Migración y Extranjería (migracion.gob.sv) + Ministerio de Relaciones Exteriores (rree.gob.sv/servicios-consulares/pasaportes-se/). Salvadoran government publications for factual procedural content, reproducible as facts under Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991). DGME does NOT publish an explicit regex or character-composition spec; 9-character alphanumeric pattern is inferred from PRADO SLV-AO-02002 specimen-class metadata (EU Council Secretariat factual; first issued 13-Dec-2010, format 88x125mm, 48 pages, blue cover) + Central American regional passport conventions + ICAO MRZ 9-character document-number cap. US State Dept Reciprocity Schedule -- El Salvador (§105 PD) corroborative on existence + 6-year validity. Format has not verifiably changed through 2010 biometric introduction and 2021-2023 pasaporteenlinea.migracion.gob.sv modernization. Confidence is MEDIUM with a documented ceiling; see ceiling_rationale and post_v1_tasks. format_attestation: 'inferential -- no DGME/Diario Oficial publication located'.",
       "ceiling_rationale": "DGME has not published a regex/length as of research date (migracion.gob.sv, rree.gob.sv, and Transparencia El Salvador all searched; Diario Oficial de El Salvador searches did not surface a regulation publishing the format). Highest confidence achievable without corpus-sample, LAIP request, or direct DGME inquiry is MEDIUM. Inference chain: US State Dept §105 PD existence + validity + PRADO SLV-AO-02002 specimen + community convergence on 8-9-char alphanumeric consistent with other CA-4 passports.",
       "post_v1_tasks": [
         "V-ES-1: Corpus-sample Salvadoran passport numbers from consented redaction runs, n >= 100, empirically derive length/charset distribution.",
@@ -298,7 +298,7 @@
       "source_url": "https://travel.state.gov/content/travel/en/passports/passport-help/next-generation-passport.html",
       "source_verified_date": "2026-04-23",
       "license_posture": "§105 PD",
-      "license_notes": "US Department of State passport-program website. Works prepared by federal employees in the course of their duties are non-copyrightable under 17 U.S.C. § 105 and enter the public domain on creation -- the cleanest row in the set and the only pure §105 federal-PD source. Regex union accepts pre-2021 all-numeric 9-digit books (still valid through ~2031) and the 2021-present Next Generation Passport format (one uppercase letter + eight digits). Passport cards (`^C[0-9]{8}$`) are a different document and intentionally excluded. The page-28 'Passport Book Number' (US-specific inventory serial, a.k.a. 'booklet number' or 'inventory control number' -- requested as a separate field on DS-160 / DS-260) is deliberately excluded from this gazetteer per W-R-4.1 §II.8 scoping paragraph; this artifact targets the bio-page passport number uniformly (the MRZ document-number field), not the page-28 control value.",
+      "license_notes": "US Department of State passport-program website. Works prepared by federal employees in the course of their duties are non-copyrightable under 17 U.S.C. § 105 and enter the public domain on creation -- the cleanest row in the set and the only pure §105 federal-PD source. Regex union accepts pre-2021 all-numeric 9-digit books (still valid through ~2031) and the 2021-present Next Generation Passport format (one uppercase letter + eight digits). Passport cards (`^C[0-9]{8}$`) are a different document and intentionally excluded. The page-28 'Passport Book Number' (US-specific inventory serial, a.k.a. 'booklet number' or 'inventory control number' -- requested as a separate field on DS-160 / DS-260) is deliberately excluded from this gazetteer by scope; this artifact targets the bio-page passport number uniformly (the MRZ document-number field), not the page-28 control value.",
       "recent_format_changes": [
         {
           "transition_date": "2021",
@@ -321,7 +321,7 @@
       "source_url": "https://xuatnhapcanh.gov.vn",
       "source_verified_date": "2026-04-23",
       "license_posture": "gov-work (Feist)",
-      "license_notes": "Immigration Department, Ministry of Public Security (xuatnhapcanh.gov.vn). Vietnam's Law on Intellectual Property Art. 15 excludes administrative and legal documents from copyright; format facts are additionally uncopyrightable under a Feist-analogous argument (Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991)). July 2022 dark-blue cover and March 2023 chip addition changed physical security features only -- one-letter-plus-eight-digit number scheme preserved across the redesign (biometric-redesign-kept-number-format cluster per W-R-4 §I.5). No format transition within 10-year valid-passport window.",
+      "license_notes": "Immigration Department, Ministry of Public Security (xuatnhapcanh.gov.vn). Vietnam's Law on Intellectual Property Art. 15 excludes administrative and legal documents from copyright; format facts are additionally uncopyrightable under a Feist-analogous argument (Feist Publications, Inc. v. Rural Tel. Serv. Co., 499 U.S. 340 (1991)). July 2022 dark-blue cover and March 2023 chip addition changed physical security features only -- one-letter-plus-eight-digit number scheme preserved across the redesign (the biometric-redesign-kept-number-format cluster). No format transition within 10-year valid-passport window.",
       "recent_format_changes": [],
       "confidence": "medium",
       "candidate_only": false

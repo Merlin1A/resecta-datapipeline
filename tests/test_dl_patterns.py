@@ -1,13 +1,13 @@
-"""Tests for the per-state driver-license-pattern gazetteer (D-13).
+"""Tests for the per-state driver-license-pattern gazetteer.
 
-Covers schema conformance, determinism, the Disposition §2 + §8 envelope
-substitution (11 envelope rows ship the canonical AAMVA M1 envelope with
+Covers schema conformance, determinism, the envelope-row substitution
+(11 envelope rows ship the canonical AAMVA M1 envelope with
 the per-state format claim retracted), the 3 statute-anchored rows
 (NC/TN/UT) carrying state-statute pin citations, the 5-state
 ``dln_overlap_note`` restriction (AR/HI/ID/LA/MS), the ``_advisory_note``
-propagation (F-32 Tier 2 advisory per Disposition delegation 2026-04-26),
-and the citation-discipline guard against Skyhigh / MyShn / NTSI lineage
-on the four F-39 envelope rows (IL/WA/NV/NJ).
+propagation (a Tier 2 advisory note that rides through the builder
+verbatim), and the citation-discipline guard against Skyhigh / MyShn /
+NTSI lineage on the four envelope rows that carry it (IL/WA/NV/NJ).
 
 See ``src/resecta_data/gazetteers/dl_patterns/build.py`` for the
 builder and ``schemas/dl_patterns.schema.json`` for the shape.
@@ -97,19 +97,19 @@ _EXPECTED_STATE_CODES = frozenset(
     }
 )
 
-# Disposition §2 (F-25 envelope): AK MT SC SD WV WY DC.
-# Disposition §8 (F-39 envelope): IL WA NV NJ.
+# Envelope rows, first subset: AK MT SC SD WV WY DC.
+# Envelope rows, second subset (also checked for aggregator-lineage citations): IL WA NV NJ.
 _ENVELOPE_STATES = frozenset({"AK", "MT", "SC", "SD", "WV", "WY", "DC", "IL", "WA", "NV", "NJ"})
 
-# Disposition §2 (F-25 statute-anchored).
+# Statute-anchored rows.
 _STATUTE_ANCHORED_STATES = frozenset({"NC", "TN", "UT"})
 
-# F-39 envelope subset — citations to Skyhigh / MyShn / NTSI are
-# specifically retired here per Disposition §11 ingestion-of-record
-# discipline.
+# Envelope-row subset also checked against aggregator citations —
+# Skyhigh / MyShn / NTSI lineage is retired here as an
+# ingestion-of-record discipline.
 _F39_ENVELOPE_STATES = frozenset({"IL", "WA", "NV", "NJ"})
 
-# F-35 SSN/DLN two-way ambiguity. ``dln_overlap_note`` is permitted only
+# SSN/DLN two-way ambiguity. ``dln_overlap_note`` is permitted only
 # on these 5 jurisdictions (legacy 9-digit DL visually indistinguishable
 # from SSN).
 _DLN_OVERLAP_STATES = frozenset({"AR", "HI", "ID", "LA", "MS"})
@@ -145,7 +145,7 @@ def test_build_dl_patterns_shape_and_count(payload: dict[str, Any]) -> None:
 
 
 def test_build_dl_patterns_envelope_rows(payload: dict[str, Any]) -> None:
-    """11 envelope rows ship the canonical AAMVA M1 envelope per legal-ref §8.4."""
+    """11 envelope rows ship the canonical AAMVA M1 envelope."""
     rows_by_code = {row["state_code"]: row for row in payload["rows"]}
     for state in sorted(_ENVELOPE_STATES):
         row = rows_by_code[state]
@@ -153,8 +153,7 @@ def test_build_dl_patterns_envelope_rows(payload: dict[str, Any]) -> None:
             f"{state} envelope row carries a non-canonical pattern: {row['patterns']!r}"
         )
         assert row["state_format_claimed"] is False, (
-            f"{state} envelope row claims state-format (must be retracted per "
-            "legal-ref §8.4 line 1357)"
+            f"{state} envelope row claims state-format (must be retracted for envelope rows)"
         )
         assert row["attestation"] == "aamva-envelope"
         assert row["license_posture"] == "aamva-envelope"
@@ -178,12 +177,9 @@ def test_build_dl_patterns_statute_anchored_rows(payload: dict[str, Any]) -> Non
 
 
 def test_build_dl_patterns_advisory_note_propagated(payload: dict[str, Any]) -> None:
-    """F-32 Tier 2 advisory rides through the builder verbatim."""
+    """The Tier 2 advisory note rides through the builder verbatim."""
     advisory = payload.get("_advisory_note")
-    assert isinstance(advisory, str) and advisory, (
-        "_advisory_note missing from shipping payload (F-32 Tier 2 advisory per "
-        "Disposition delegation 2026-04-26)"
-    )
+    assert isinstance(advisory, str) and advisory, "_advisory_note missing from shipping payload"
     candidates = load_json(CANDIDATES_PATH)
     assert payload["_advisory_note"] == candidates["_advisory_note"]
 
@@ -202,7 +198,7 @@ def test_build_dl_patterns_deterministic(tmp_build_dir: Path) -> None:
 
 
 def test_build_dl_patterns_dln_overlap_note_states(payload: dict[str, Any]) -> None:
-    """``dln_overlap_note`` appears only on AR/HI/ID/LA/MS rows (F-35 two-way)."""
+    """``dln_overlap_note`` appears only on AR/HI/ID/LA/MS rows."""
     actual = {row["state_code"] for row in payload["rows"] if "dln_overlap_note" in row}
     assert actual == _DLN_OVERLAP_STATES, (
         f"dln_overlap_note states diverged from {_DLN_OVERLAP_STATES}: got {actual}"
@@ -210,15 +206,14 @@ def test_build_dl_patterns_dln_overlap_note_states(payload: dict[str, Any]) -> N
 
 
 def test_build_dl_patterns_no_aggregator_cites_on_F39_rows(payload: dict[str, Any]) -> None:
-    """IL/WA/NV/NJ rows must not cite Skyhigh / MyShn / NTSI per Disposition §11."""
+    """IL/WA/NV/NJ rows must not cite Skyhigh / MyShn / NTSI."""
     rows_by_code = {row["state_code"]: row for row in payload["rows"]}
     for state in sorted(_F39_ENVELOPE_STATES):
         row = rows_by_code[state]
         haystack = (f"{row.get('source_url', '')} {row.get('license_notes', '')}").lower()
         for token in _AGGREGATOR_LINEAGE_TOKENS:
             assert token not in haystack, (
-                f"{state} F-39 envelope row leaks aggregator-lineage token "
-                f"{token!r} (Disposition §11 ingestion-of-record discipline)"
+                f"{state} envelope row leaks aggregator-lineage token {token!r}"
             )
 
 
@@ -254,9 +249,8 @@ def test_no_wall_clock_leak(payload: dict[str, Any]) -> None:
     """generated_date is lifted from the candidates file, not from wall-clock."""
     candidates = load_json(CANDIDATES_PATH)
     assert payload["generated_date"] == candidates["generated_date"]
-    # Candidates file is authored 2026-04-26 (D-13 session 1); pin the
-    # expectation so a wall-clock regression is caught even if the
-    # candidates file drifts.
+    # The candidates file is authored 2026-04-26; pin the expectation so a
+    # wall-clock regression is caught even if the candidates file drifts.
     assert payload["generated_date"] == "2026-04-26"
 
 
@@ -272,5 +266,5 @@ def test_license_posture_distribution(payload: dict[str, Any]) -> None:
     assert postures.count("permissive-OSS-MIT") == 26
     assert postures.count("state-statute-anchored") == 3
     assert postures.count("aamva-envelope") == 11
-    # Disposition §2 + legal-ref §8.4 line 1371 retired the label.
+    # The needs-legal-review label was retired.
     assert postures.count("needs-legal-review") == 0

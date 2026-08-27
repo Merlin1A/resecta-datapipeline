@@ -43,7 +43,7 @@ DEST_FILE="$DEST_DIR/hud_zip_crosswalk_${YEAR}${LOWER_Q}.csv"
 
 if [ -f "$DEST_FILE" ]; then
     echo "File already exists: $DEST_FILE" >&2
-    echo "Refusing to overwrite. Source files are immutable (CLAUDE.md §2.7)." >&2
+    echo "Refusing to overwrite. Source files are immutable." >&2
     exit 1
 fi
 

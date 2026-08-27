@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/doctype_keywords.schema.json",
   "title": "Document-type classifier keywords",
-  "description": "Five-class keyword dictionary consumed by DocumentTypeClassifier.swift. Classes are court, medical, financial, foia, generic. Per-class term caps enforce binary presence at the Swift side (plan A4 / G5 adversarial hardening — no frequency weighting, no keyword-stuffing leverage). Structural regex bonuses are declared here but applied in Swift; each pattern is pre-validated against the 200-char / nested-quantifier rule.",
+  "description": "Five-class keyword dictionary consumed by DocumentTypeClassifier.swift. Classes are court, medical, financial, foia, generic. Per-class term caps enforce binary presence at the Swift side (adversarial hardening — no frequency weighting, no keyword-stuffing leverage). Structural regex bonuses are declared here but applied in Swift; each pattern is pre-validated against the 200-char / nested-quantifier rule.",
   "type": "object",
   "required": [
     "version",
@@ -63,7 +63,7 @@
           "structural_bonuses": {
             "type": "array",
             "maxItems": 8,
-            "description": "Regex patterns whose presence adds a small bonus to this class's raw score. Patterns are pre-validated against the 200-char cap and nested-quantifier heuristic (SEARCH_AND_REDACT.md §9.4). The Swift side applies the bonus as a fixed per-pattern increment; it is not frequency-weighted.",
+            "description": "Regex patterns whose presence adds a small bonus to this class's raw score. Patterns are pre-validated against the 200-char cap and the nested-quantifier heuristic. The Swift side applies the bonus as a fixed per-pattern increment; it is not frequency-weighted.",
             "items": {
               "type": "object",
               "required": ["id", "pattern", "bonus", "rationale"],

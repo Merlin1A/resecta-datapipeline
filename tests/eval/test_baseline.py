@@ -1,4 +1,4 @@
-"""Determinism + schema + hand-computed-metric checks for the S3 baseline.
+"""Determinism + schema + hand-computed-metric checks for the baseline.
 
 Builds a small synthetic ``_cells.json`` payload inline (no real Swift output
 needed), runs ``build_baseline`` twice, and asserts the two emissions are
@@ -6,7 +6,7 @@ byte-identical via ``dump_canonical_json``; validates against
 ``schemas/g8_detection_baseline.schema.json``; and pins a few metric values
 computed by hand (e.g. ssn family TP=8, FP=2 -> precision 0.8).
 
-See CONTRACT.md File 1.
+See ``src/resecta_data/eval/baseline.py`` for the implementation.
 """
 
 from __future__ import annotations

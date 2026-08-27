@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_compare_verdict.schema.json",
   "title": "G8 compare verdict (eval before/after)",
-  "description": "Verdict produced by resecta_data.eval.compare from two derived g8_detection_baseline.json dicts (a BEFORE and an AFTER). Pure arithmetic over the frozen baseline cells: the four-clause §3 predicate per scorer family and over the grand-total aggregate, plus the per-doctype / per-demographic slice non-regression guard. Dev/eval artifact: not installed to the Swift Resources path, not produced by make build. Carries both input SHA-256 digests for provenance.",
+  "description": "Verdict produced by resecta_data.eval.compare from two derived g8_detection_baseline.json dicts (a BEFORE and an AFTER). Pure arithmetic over the frozen baseline cells: the four-clause predicate (precision uplift, relative family-FPR cut, recall floor, and per-slice non-regression) per scorer family and over the grand-total aggregate, plus the per-doctype / per-demographic slice non-regression guard. Dev/eval artifact: not installed to the Swift Resources path, not produced by make build. Carries both input SHA-256 digests for provenance.",
   "type": "object",
   "required": [
     "schema_version",
@@ -51,23 +51,23 @@
         "delta_p": {
           "type": "number",
           "minimum": 0,
-          "description": "Minimum precision uplift demanded by C1, as a fraction."
+          "description": "Minimum precision uplift demanded by the precision clause, as a fraction."
         },
         "delta_f_rel": {
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "Minimum relative family-FPR cut demanded by C2, as a fraction."
+          "description": "Minimum relative family-FPR cut demanded by the family-FPR clause, as a fraction."
         },
         "eps": {
           "type": "number",
           "minimum": 0,
-          "description": "Recall floor slack allowed by C3, as a fraction."
+          "description": "Recall floor slack allowed by the recall clause, as a fraction."
         },
         "delta_slice": {
           "type": "number",
           "minimum": 0,
-          "description": "Maximum tolerated per-slice precision drop in C4, as a fraction."
+          "description": "Maximum tolerated per-slice precision drop in the slice non-regression clause, as a fraction."
         }
       }
     },
@@ -82,7 +82,7 @@
     },
     "aggregate": {
       "$ref": "#/$defs/aggregateVerdict",
-      "description": "The grand-total verdict: the four-clause predicate over totals plus the C4 slice non-regression guard."
+      "description": "The grand-total verdict: the four-clause predicate over totals plus the slice non-regression guard."
     }
   },
   "$defs": {
@@ -90,7 +90,7 @@
       "type": "object",
       "additionalProperties": true,
       "required": ["clause", "win", "regressed"],
-      "description": "One predicate clause result carrying two senses: win (the §3 improvement bar is met) and regressed (the metric got worse beyond tolerance). Failing to improve is not a regression. Extra numeric fields carry the before/after measured values and the clause-specific slack.",
+      "description": "One predicate clause result carrying two senses: win (the clause's improvement bar is met) and regressed (the metric got worse beyond tolerance). Failing to improve is not a regression. Extra numeric fields carry the before/after measured values and the clause-specific slack.",
       "properties": {
         "clause": {
           "type": "string",
@@ -127,7 +127,7 @@
         },
         "non_regression_only": {
           "type": "boolean",
-          "description": "True for a family clean on G8 (MRN/EIN): the C1 precision clause does not gate (a precision drop with still-zero FP is not flagged), while the C2 FP-growth and C3 recall-drop clauses still gate."
+          "description": "True for a family clean on G8 (MRN/EIN): the precision clause does not gate (a precision drop with still-zero FP is not flagged), while the FP-growth and recall-drop clauses still gate."
         },
         "regressed_clauses": {
           "type": "array",
@@ -157,7 +157,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "regression", "clauses", "regressed_clauses"],
-      "description": "The grand-total verdict. Like a family verdict but its clause list also carries the C4 slice non-regression result.",
+      "description": "The grand-total verdict. Like a family verdict but its clause list also carries the slice non-regression result.",
       "properties": {
         "name": {
           "type": "string",
@@ -165,11 +165,11 @@
         },
         "regression": {
           "type": "boolean",
-          "description": "True when a gating clause regressed on the aggregate (including the C4 slice guard)."
+          "description": "True when a gating clause regressed on the aggregate (including the slice non-regression guard)."
         },
         "win": {
           "type": "boolean",
-          "description": "True when the aggregate clears every gating clause's improvement bar, including the C4 slice non-regression clause."
+          "description": "True when the aggregate clears every gating clause's improvement bar, including the slice non-regression clause."
         },
         "non_regression_only": {
           "type": "boolean",
@@ -183,7 +183,7 @@
         "clauses": {
           "type": "array",
           "items": { "$ref": "#/$defs/clause" },
-          "description": "The aggregate clause results, including the C4 slice non-regression clause."
+          "description": "The aggregate clause results, including the slice non-regression clause."
         },
         "low_confidence": {
           "type": "boolean",

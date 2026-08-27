@@ -59,10 +59,10 @@ _CATEGORIES: Final[tuple[str, ...]] = (
     "account",
     "mrn",
     "name",
-    # search-impl S2 (design 01 §4): ABA routing number. NOTE: the May-7
+    # ABA routing number. NOTE: the May-7
     # Swift score dumps predate this category — a sweep against them sees
     # an empty candidate grid for it (degenerate selection, then clamped).
-    # The S4 runbook re-dumps from Swift before the real calibration run.
+    # The Swift score dumps are re-generated before the real calibration run.
     "routingNumber",
 )
 
@@ -99,38 +99,37 @@ _PRIOR_SMOOTHING: Final[float] = 1.0
 _PRIOR_CLAMP_MIN: Final[float] = 1.0e-6
 _PRIOR_CLAMP_MAX: Final[float] = 1.0 - 1.0e-6
 
-# Verified 2026-06-10; S2 ceilings updated 2026-06-11. Each value is the
+# Verified 2026-06-10; ceilings updated 2026-06-11. Each value is the
 # physical maximum a live detector can emit. These are NOT thresholds —
 # they are envelope bounds used to clamp the sweep output so calibrated
 # values can never exceed max - _FEASIBILITY_MARGIN.  Update this table
 # whenever a WS1 detector change raises a category's ceiling.
 #
-# Address note: S2 item 1.6 routes spatial addresses (assembler max 0.80)
-# through resolveOverlaps + posterior + W4, so the envelope is the spatial
+# Address note: spatial addresses route (assembler max 0.80)
+# through resolveOverlaps + posterior + the gate, so the envelope is the spatial
 # max 0.80 (was the 0.70 regex max while spatial bypassed the gate).
 #
-# DOB note: S2 item 1.1 (D4) shipped the label-anchored financial path
-# (PIIDetector.detectDOBs emits fixed 0.85), raising the ceiling from the
+# DOB note: the label-anchored financial path
+# (PIIDetector.detectDOBs emits fixed 0.85) raised the ceiling from the
 # 0.50 DOBDetector textual max.
 #
 # The 8 ungated categories (EIN, ITIN, CC, email, phone, DL, passport,
 # plate) are not in the current _CATEGORIES tuple. They are pre-populated
 # here for when WS2 item 1.7 adds them to presets.  'gated-as-of' = None
-# means "not yet in the W4 gate."
+# means "not yet in the gated set."
 _DETECTOR_ACHIEVABLE_MAX: Final[dict[str, float]] = {
-    # Currently gated (9 categories in W4)
+    # Currently gated (9 categories)
     "ssn": 0.95,  # SSNContextKeywords.swift:18-56 boostedConfidence
     "name": 0.85,  # PIIDetector.swift:1109 = 0.70 + max boost 0.15
     "mrn": 0.92,  # MRNContextKeywords.swift:15-48
     "npi": 0.90,  # NPIDetector.swift:20-27
     "dea": 0.90,  # DEADetector.swift:20-27
     "account": 0.75,  # AccountDetector.swift:33-74 via scorer profile
-    "address": 0.80,  # AddressSpatialAssembler.swift max 0.80 (S2 item 1.6
-    #                   routes spatial through the W4 gate)
-    "dob": 0.85,  # PIIDetector.detectDOBs() fixed 0.85 (S2 item 1.1, D4
+    "address": 0.80,  # AddressSpatialAssembler.swift max 0.80 (spatial
+    #                   addresses route through the gate)
+    "dob": 0.85,  # PIIDetector.detectDOBs() fixed 0.85 (the
     #               label-anchored financial path)
     "routingNumber": 0.88,  # RoutingNumberDetector.swift boostedConfidence
-    #                         (S2 item 1.8)
     # Not yet gated (WS2-1.7 will add these; pre-populated for that PR)
     "ein": 0.85,  # PIIDetector.swift EIN path (no wireName yet)
     "itin": 0.85,  # PIIDetector.swift ITIN path (no wireName yet)
@@ -251,7 +250,7 @@ def _compose_posterior_with_mode(
         Calibrates to the training distribution; inflated priors produce
         degenerate thresholds (the name=0.98 path).
     fresh:  Ignore the corpus prior; use neutral 0.5, so posterior equals
-        raw_score. Matches the actual W4 gate behavior on the first scan of
+        raw_score. Matches the actual gate behavior on the first scan of
         a new document (fresh prior mean = 0.5).
     mixed:  Average of the corpus and fresh posteriors. A hedge that
         captures both in-session and first-page behavior.
@@ -562,10 +561,10 @@ def finalize(
 
     The sweep only produces values for the gated detector categories
     (``_CATEGORIES``), but the shipping file also carries hand-set rows for
-    categories outside the W4 gate (8 such rows since search-impl S3 item
-    1.7). When ``shipping_path`` is given and exists, those unswept rows are
-    carried forward into the promoted payload; a wholesale promote would
-    silently delete them (S4 calibration finding, 2026-06-11).
+    categories outside the gate (8 such rows). When ``shipping_path`` is given
+    and exists, those unswept rows are carried forward into the promoted
+    payload; a wholesale promote would silently delete them (a calibration
+    finding, 2026-06-11).
 
     Refuses to run if the input has already been finalized
     (status != "sweep_raw") to prevent double-promotion.

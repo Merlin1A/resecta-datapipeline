@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# fetch_ssa_babynames.sh — fetch SSA baby-names national + per-state archives (D-07).
+# fetch_ssa_babynames.sh — fetch SSA baby-names national + per-state archives.
 # §105 PD. Provenance and SHA-256 are recorded in SOURCES.md.
 #
 # Replaces scripts/fetch_ssa_baby_names.sh (single-year only).
@@ -26,7 +26,7 @@ fetch_lib::append_sources_row \
     "src/resecta_data/gazetteers/sources/ssa_given_names/names.zip" \
     "Public Domain" \
     "$NATIONAL_URL" \
-    "SSA national baby-names archive (D-07; multi-year yob<YYYY>.txt files 1880→present; §105 PD; consumed by A1/A2 given-names Bloom regen)."
+    "SSA national baby-names archive (multi-year yob<YYYY>.txt files 1880→present; §105 PD; consumed by A1/A2 given-names Bloom regen)."
 
 # Per-state archive
 fetch_lib::probe_url "$STATE_URL"
@@ -35,11 +35,11 @@ fetch_lib::append_sources_row \
     "src/resecta_data/gazetteers/sources/ssa_given_names/namesbystate.zip" \
     "Public Domain" \
     "$STATE_URL" \
-    "SSA per-state baby-names archive (D-07; per-state yobYYYY-style files; §105 PD; consumed by A1/A2 demographic-bucket extension via state-specific given-name distribution)."
+    "SSA per-state baby-names archive (per-state yobYYYY-style files; §105 PD; consumed by A1/A2 demographic-bucket extension via state-specific given-name distribution)."
 
 echo ""
-echo "D-07 fetch complete."
+echo "SSA baby-names fetch complete."
 echo "  national: $NATIONAL_FILE  (sha: $(cat "$NATIONAL_FILE.sha256"))"
 echo "  per-state: $STATE_FILE  (sha: $(cat "$STATE_FILE.sha256"))"
 echo ""
-echo "Existing on-disk yob2024.txt remains unchanged (Option A from d07-kickoff.md)."
+echo "Existing on-disk yob2024.txt remains unchanged."

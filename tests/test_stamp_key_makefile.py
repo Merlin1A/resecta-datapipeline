@@ -122,7 +122,7 @@ def _rule(db: str, target: str) -> tuple[list[str], str]:
 
 def test_every_stamp_covers_common_deps(make_db: str) -> None:
     """cli.py and every common/*.py module must stay in every stamp's
-    closure — they are the irreducible shared writer set (verifier A C2)."""
+    closure — they are the irreducible shared writer set."""
     common_files = {
         p.relative_to(REPO_ROOT).as_posix()
         for p in (REPO_ROOT / "src/resecta_data/common").glob("*.py")

@@ -1,7 +1,4 @@
-"""Test vector generators — NPI Luhn, DEA checksum, SSN structural (Phase 1).
-
-See ../../REDACTION_ENGINE.md §4.3.
-"""
+"""Test vector generators — NPI Luhn, DEA checksum, SSN structural (Phase 1)."""
 
 from __future__ import annotations
 

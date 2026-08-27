@@ -5,8 +5,6 @@ exercising the Swift ``RoutingNumberDetector`` pattern, ABA checksum
 (weights 3-7-1-3-7-1-3-7-1, sum congruent to 0 mod 10), valid first-two-digit
 prefix enforcement (ranges 01-12, 21-32, 61-72, 80), and routing context-keyword
 requirement.
-
-See design doc 01-detection-engine.md §4.
 """
 
 from __future__ import annotations
@@ -15,6 +13,7 @@ import random
 from typing import Any, Final
 
 from resecta_data.common.determinism import seeded_context
+from resecta_data.common.exceptions import PipelineError
 
 _GENERATED_BY: Final[str] = "resecta-data/vectors/routing_number"
 _SCHEMA_VERSION: Final[int] = 1
@@ -159,8 +158,10 @@ def build(seed: int) -> dict[str, Any]:
     ]
     for routing_num, keyword, note in design_positives:
         digits = [int(c) for c in routing_num]
-        assert _is_valid_prefix(digits), f"Design-positive {routing_num}: bad prefix"
-        assert _aba_checksum(digits) == 0, f"Design-positive {routing_num}: bad checksum"
+        if not _is_valid_prefix(digits):
+            raise PipelineError(f"routing_number: design-positive {routing_num}: bad prefix")
+        if _aba_checksum(digits) != 0:
+            raise PipelineError(f"routing_number: design-positive {routing_num}: bad checksum")
         vectors.append(
             {
                 "routing_number": routing_num,
@@ -258,7 +259,7 @@ def build(seed: int) -> dict[str, Any]:
         # no routing keyword supplied. `valid` carries DETECTOR semantics
         # (mirrors ein_vectors: shape/structure gates only) — the detector
         # still emits these, at base confidence 0.50; suppression below the
-        # balanced 0.60 cutoff happens at the orchestrator's W4 gate, not
+        # balanced 0.60 cutoff happens at the orchestrator's preset gate, not
         # in the detector. has_context=False is what pins the base-vs-boost
         # confidence expectation on the Swift side.
         for _ in range(_NO_CONTEXT_COUNT):
@@ -275,7 +276,7 @@ def build(seed: int) -> dict[str, Any]:
                         f"Valid ABA (prefix {digits[0] * 10 + digits[1]:02d}, "
                         f"checksum 0) with no routing context keyword: the "
                         f"detector emits base confidence 0.50; the balanced "
-                        f"preset's W4 gate (0.60) is what withholds it."
+                        f"preset's threshold (0.60) is what withholds it."
                     ),
                 }
             )

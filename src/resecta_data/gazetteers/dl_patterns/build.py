@@ -1,33 +1,33 @@
 """Promote the pre-reviewed dl-pattern candidates into the shipping artifact.
 
-The per-state driver-license-number pattern gazetteer (D-13 in the V1 data
-requirements catalog) is produced by a two-stage workflow:
+The per-state driver-license-number pattern gazetteer is produced by a
+two-stage workflow:
 
-1. The CC-DERIVE D-13 orchestration emits
+1. An authoring pass writes
    ``src/resecta_data/gazetteers/dl_patterns/sources/dl_patterns_candidates.json``
-   from W-R-3 + W-R-5 + the 2026-04-25 V1 shipping dispositions (§2 + §8).
-   The file is reviewed row-by-row by Jesse and becomes immutable
-   once committed.
+   from the two driver-license research briefs and the 2026-04-25 shipping
+   dispositions. Once committed the file changes only under an approved
+   change plan.
 2. This builder reads that candidates file, strips any audit-only keys
-   (none defined for D-13 today; the strip step is a structural mirror of
+   (none defined today; the strip step is a structural mirror of
    the passport_patterns builder against future audit-field additions),
    sorts defensively, and canonicalizes the payload.
 
 License posture is baked into the candidates file (this builder is a
 pure transcription, not a reclassifier):
 
-* **F-25.** NC, TN, UT ship tight per-state regex anchored to
-  state-statute primary publication. AK, MT, SC, SD, WV, WY, DC ship the
+* **Statute-anchored rows.** NC, TN, UT ship tight per-state regex anchored
+  to state-statute primary publication. AK, MT, SC, SD, WV, WY, DC ship the
   canonical AAMVA M1 envelope ``^[A-Z0-9]{8,13}$`` with the per-state
   format claim retracted.
-* **F-39.** IL, WA, NV, NJ ship under the same AAMVA-envelope rule;
-  aggregator lineage (Skyhigh / MyShn / NTSI) is retired from
-  ``source_url`` and ``license_notes`` under ingestion-of-record
-  discipline.
-* **F-32 (Tier 2 advisory).** The candidates file's top-level
-  ``_advisory_note`` carries the WA specimen-image audit summary. The
-  advisory ships as a JSON-only field on the shipping artifact (no
-  separate audit deliverable). This builder propagates the note verbatim.
+* **Aggregator-retired rows.** IL, WA, NV, NJ ship under the same
+  AAMVA-envelope rule; aggregator lineage (Skyhigh / MyShn / NTSI) is
+  retired from ``source_url`` and ``license_notes`` under
+  ingestion-of-record discipline.
+* **Advisory note.** The candidates file's top-level ``_advisory_note``
+  carries the WA specimen-image audit summary. The advisory ships as a
+  JSON-only field on the shipping artifact (no separate audit deliverable).
+  This builder propagates the note verbatim.
 
 Determinism rules apply: no wall-clock content;
 ``generated_date`` is lifted verbatim from the candidates file.
@@ -55,8 +55,8 @@ _CANDIDATES_PATH: Final[Path] = (
 # Total shipping rows: 50 states + DC.
 _EXPECTED_ROW_COUNT: Final[int] = 51
 
-# Audit-only row keys produced by the candidates-file workflow. Empty for
-# D-13 today (no staging fields exist on the row schema; the per-row
+# Audit-only row keys produced by the candidates-file workflow. Empty
+# today (no staging fields exist on the row schema; the per-row
 # review surface lives in `license_notes` + `f_flags`). Retained as a
 # structural mirror of passport_patterns/build.py so a future audit-only
 # field addition (e.g. ``_internal_note``) can be filtered without

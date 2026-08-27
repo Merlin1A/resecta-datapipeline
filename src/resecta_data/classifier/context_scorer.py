@@ -1,4 +1,4 @@
-"""In-band learned context-scorer emitter (C1 augment FP-suppression).
+"""In-band learned context-scorer emitter (false-positive-suppression augmentation).
 
 The context scorer is one additive log-odds term applied at the on-device
 posterior seam (``DetectionOrchestrator.swift:424`` →
@@ -13,8 +13,8 @@ by ``PresetThresholdVector.wireName(for:)``, scored against the canonical
 13-feature contract (the single index authority shared by the File-5 fire
 dump, the Swift seam builder ``contextFeatures(...)``, and this emitter).
 
-B03 shipped a PLACEHOLDER (every ``w_family`` 0, identity). B04 fleshes out the
-in-band fit: ``build(status="candidates", corpus_path=..., fire_features_path=...)``
+A PLACEHOLDER ships first (every ``w_family`` 0, identity); a later build step fleshes
+out the in-band fit: ``build(status="candidates", corpus_path=..., fire_features_path=...)``
 reads the committed File-5 fire dump (``build/corpus/g8_fire_features.json`` —
 pre-computed features, NOT a device dump; ``_calibration_io.load_score_dump`` /
 ``load_softmax_dump`` are NEVER imported here — that is a hard stop) and the
@@ -23,9 +23,9 @@ then fits one logistic regression per fittable family by Newton-IRLS + L2 (bias
 unpenalized, pure stdlib — no numpy/scipy) with deterministic 5-fold
 out-of-fold-NLL λ selection. The trainer emits ``status="candidates"``; the
 final-named artifact stays the byte-identical ``status="placeholder"`` identity
-(promotion to ``calibrated`` + install is the Jesse-gated B05 step).
+(promotion to ``calibrated`` and the install happen under an approved change plan).
 
-``build(status="placeholder")`` is unchanged from B03: an input-independent
+``build(status="placeholder")`` is unchanged from the initial placeholder: an input-independent
 all-identity payload that reads neither the corpus nor the fire dump, so the
 final ``context_scorer.json`` stays byte-for-byte the w=0 baseline.
 
@@ -55,7 +55,7 @@ _MODULE_NAME: Final[str] = "resecta_data.classifier.context_scorer"
 _SCHEMA_VERSION: Final[int] = 1
 
 # The canonical 13-feature order — must equal ContextFeatureContract.featureOrder
-# (Swift) and the File-5 dump's feature_order (plan 04 §9). SINGLE authority.
+# (Swift) and the File-5 dump's feature_order. SINGLE authority.
 FEATURE_ORDER: Final[tuple[str, ...]] = (
     "kw_positive_window",
     "kw_negative_window",
@@ -73,13 +73,13 @@ FEATURE_ORDER: Final[tuple[str, ...]] = (
 )
 
 # The five scored families, keyed by PresetThresholdVector.wireName(for:).
-# MRN's wireName is "mrn" (its cell_category_key is "medicalrecord" — D-5).
+# MRN's wireName is "mrn" (its cell_category_key is "medicalrecord").
 FAMILIES: Final[tuple[str, ...]] = ("account", "phone", "mrn", "ein", "itin")
 
 # status enum, mirrored by schemas/context_scorer.schema.json.
 _STATUSES: Final[frozenset[str]] = frozenset({"placeholder", "candidates", "calibrated"})
 
-# Fit hyper-parameters (D-9 / plan 04 §3.4) — all fixed, no RNG, no wall-clock.
+# Fit hyper-parameters — all fixed, no RNG, no wall-clock.
 _L2_GRID: Final[tuple[float, ...]] = (0.5, 1.0, 2.0, 5.0)
 _KFOLDS: Final[int] = 5
 _FOLD_MULT: Final[int] = 2654435761  # Knuth multiplicative hash (stable, no RNG)
@@ -103,7 +103,7 @@ _NOTES: Final[str] = (
     "identity placeholder pending the harness verdict and sign-off."
 )
 
-# EXACT B03 placeholder notes — the final context_scorer.json must stay
+# EXACT placeholder notes — the final context_scorer.json must stay
 # byte-identical (sha256 add576680…); do not edit this string.
 _PLACEHOLDER_NOTES: Final[str] = (
     "Per-family logistic context false-positive-suppression term, additive in "
@@ -113,7 +113,7 @@ _PLACEHOLDER_NOTES: Final[str] = (
     "in-band Newton-IRLS+L2 fit over the committed File-5 dump lands in B04."
 )
 
-# B05 calibrated (installed) notes. The promotion ships the SAME fitted weights
+# Calibrated (installed) notes. The promotion ships the SAME fitted weights
 # as the candidates; only the status field and these notes differ. Mechanism
 # language only — assert_safe-checked at emit.
 _CALIBRATED_NOTES: Final[str] = (
@@ -129,8 +129,8 @@ _CALIBRATED_NOTES: Final[str] = (
 )
 
 # The families promoted to w_family 1 in the calibrated (installed) final — the
-# per-family kill switch (D-10). ONLY families that cleared the orchestrator-path
-# §3 before/after predicate ship active (the B05 measurement: account precision
+# per-family kill switch. ONLY families that cleared the orchestrator-path
+# before/after predicate ship active (account precision
 # 0.50->1.00, phone 0.606->1.00, both with recall held-or-up and no per-doctype /
 # per-demographic slice regression on the synthetic G8 AFTER); every other family
 # ships identity even if its raw fit was active. mrn/ein/itin are single-class on
@@ -273,7 +273,7 @@ def _select_lambda(z_rows: list[list[float]], labels: list[float], seed: int) ->
     Folds are assigned by the stable index hash ``(k*2654435761+seed)%5`` (no
     RNG). For each candidate λ the out-of-fold NLL is summed across folds; the
     minimum wins, and an exact tie resolves to the largest λ (most regularized),
-    which damps single-feature over-reliance (D-14). CV is for selection ONLY —
+    which damps single-feature over-reliance. CV is for selection ONLY —
     the shipped weights are the full-data fit at the chosen λ.
     """
     n = len(labels)
@@ -314,7 +314,8 @@ def _select_lambda(z_rows: list[list[float]], labels: list[float], seed: int) ->
             best_nll = oof_nll
             best_lambda = l2
     # _L2_GRID is non-empty, so best_lambda is always set by the loop above.
-    assert best_lambda is not None  # _L2_GRID is a non-empty constant
+    if best_lambda is None:
+        raise PipelineError("context_scorer: the L2 grid search produced no lambda")
     return best_lambda
 
 
@@ -418,7 +419,7 @@ def _fit_families(
     The corpus is loaded (and schema-validated) for provenance — the fit reads
     PRE-COMPUTED features from the fire dump, never recomputed text features,
     and never a device score/softmax dump (a hard stop). Families are
-    keyed by the dump's ``family`` field (the wireName; MRN → ``"mrn"``, D-5).
+    keyed by the dump's ``family`` field (the wireName; MRN → ``"mrn"``).
 
     Returns ``(families, nll_by_family)`` where ``nll_by_family[F] =
     (nll_fit, nll_w0)`` for every fittable family (the ship-gate backstop input;
@@ -442,7 +443,7 @@ def _fit_families(
     seen_families = {f["family"] for f in fires}
     unknown = seen_families - set(FAMILIES)
     if unknown:
-        # D-5 guard: the dump must bucket by wireName ⊆ the five scored families.
+        # Guard: the dump must bucket by wireName ⊆ the five scored families.
         raise PipelineError(
             f"{fire_features_path}: fire 'family' values {sorted(unknown)} are not "
             f"in the scored set {sorted(FAMILIES)} (bucket by wireName, never cell_category_key)."
@@ -501,10 +502,10 @@ def _assert_train_nll_backstop(
 
 
 def _apply_calibrated_promote(families: dict[str, dict[str, Any]]) -> None:
-    """Zero any fittable family not in ``_CALIBRATED_PROMOTE`` (the B05 kill switch).
+    """Zero any fittable family not in ``_CALIBRATED_PROMOTE`` (the promote kill switch).
 
     A fittable family outside the promote set ships the identity block, so a
-    family that did not clear the §3 measurement never auto-ships active. Mutates
+    family that did not clear the before/after measurement never auto-ships active. Mutates
     ``families`` in place; the support counts are preserved for provenance. Here
     the set == the fittable families, so nothing is zeroed and the weights stay
     byte-identical to the candidates.
@@ -515,7 +516,7 @@ def _apply_calibrated_promote(families: dict[str, dict[str, Any]]) -> None:
             continue
         _LOGGER.warning(
             "context_scorer: family %r fitted (w_family %s) but is not in the "
-            "B05 promote set — shipping identity (w_family 0).",
+            "promote set — shipping identity (w_family 0).",
             name,
             block["w_family"],
         )
@@ -534,7 +535,7 @@ def _fit_active(
     """Fit the per-family blocks for a non-placeholder status; return (families, notes).
 
     ``candidates`` ships the raw fit; ``calibrated`` additionally applies the
-    per-family promote filter (the B05 kill switch) and the installed notes.
+    per-family promote filter (the promote kill switch) and the installed notes.
     """
     if corpus_path is None or fire_features_path is None or schemas_dir is None:
         raise PipelineError(

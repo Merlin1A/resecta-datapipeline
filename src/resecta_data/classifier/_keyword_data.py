@@ -7,7 +7,7 @@ field would recognize. This file does not require a SOURCES.md row because
 it contains no licensed content.
 
 Two Swift-side matching facts every entry must respect
-(DocumentTypeClassifier.swift, S4 calibration finding 2026-06-11):
+(DocumentTypeClassifier.swift, measured at the 2026-06-11 calibration pass):
 
 - Keywords match by exact single-token equality after lowercased-NFKC
   tokenization (split on non-alphanumeric except ``-`` and ``'``).
@@ -18,8 +18,8 @@ Two Swift-side matching facts every entry must respect
 
 Structural bonuses are short regex fragments that mark format-level
 signals (for example ``v\\.`` for case captions). Each pattern stays under
-the 200-character cap and avoids nested quantifiers per
-SEARCH_AND_REDACT.md §9.4.
+the 200-character cap and avoids nested quantifiers (the engine's regex
+safety rule).
 """
 
 from __future__ import annotations
@@ -89,24 +89,24 @@ COURT_STRUCTURAL: Final[tuple[tuple[str, str, float, str], ...]] = (
     ),
     (
         "docket_number",
-        r"(?i)\bNo\.\s*\d{2,}-[A-Z]{1,4}-\d{3,}\b",
+        r"(?i)\bNo\.\s*(?:\d{1,2}:)?\d{2,}-[A-Z]{1,4}-\d{3,}\b",
         0.10,
-        "Docket-number shape ('No. 23-CV-1234') is a common court-filing header.",
+        "Docket-number shape ('No. 23-CV-1234' or 'No. 1:23-cv-01234') is a court-filing header.",
     ),
 )
 
 
 # Medical documents: clinical vocabulary, pharmacy, record headers.
 # The list combines the original hand-curated clinical vocabulary with two
-# federal / NLM-sourced additions introduced in C7:
+# federal / NLM-sourced additions:
 #   - 25 physician-specialty titles derived from the BLS SOC 2018 structure
 #     (29-1200 series "Physicians and Surgeons"), Public Domain per
 #     17 U.S.C. § 105. Source file: gazetteers/institutions/sources/
 #     bls_soc_2018.xlsx (SOURCES.md row bls_soc_2018).
 #   - ~50 top-level MeSH-derived medical category words from the NLM MeSH
 #     release. NLM MeSH is redistributable under the NLM MeSH Terms &
-#     Conditions (pd-allowlist-clean per decision M19). The NOTICE
-#     acknowledgment is routed to Jesse.
+#     Conditions (on the public-domain allowlist). The NOTICE
+#     acknowledgment is added under an approved plan.
 MEDICAL_KEYWORDS: Final[tuple[str, ...]] = (
     "admission",
     "allergy",
@@ -120,7 +120,6 @@ MEDICAL_KEYWORDS: Final[tuple[str, ...]] = (
     "bacteria",
     "biochemistry",
     "biopsy",
-    "blood pressure",
     "cancer",
     "carcinoma",
     "cardiologist",
@@ -199,7 +198,6 @@ MEDICAL_KEYWORDS: Final[tuple[str, ...]] = (
     "podiatrist",
     "prescription",
     "procedure",
-    "progress note",
     "protein",
     "psychiatrist",
     "pulmonary",
@@ -211,9 +209,9 @@ MEDICAL_KEYWORDS: Final[tuple[str, ...]] = (
     "renal",
     "respiratory",
     "rheumatologist",
-    "soap note",
+    "soap",
     "specimen",
-    "surgeon general",
+    "surgeon",
     "surgery",
     "symptom",
     "syndrome",
@@ -227,7 +225,7 @@ MEDICAL_KEYWORDS: Final[tuple[str, ...]] = (
     "urologist",
     "vaccine",
     "virus",
-    "vital signs",
+    "vital",
     "vitals",
     "vitamin",
     "ward",
@@ -262,9 +260,9 @@ MEDICAL_STRUCTURAL: Final[tuple[tuple[str, str, float, str], ...]] = (
 
 
 # Financial documents: invoices, statements, banking and accounting vocab,
-# plus tax-form/payroll vocabulary (S4 2026-06-11: the original list was
-# invoice-flavored, so W-2s lost to the generic class — see
-# session-04b-finding-generic-absorption.md). Single tokens only; 'w-2'
+# plus tax-form/payroll vocabulary (added at the 2026-06-11 calibration pass:
+# the original list was invoice-flavored, so W-2s lost to the generic
+# class). Single tokens only; 'w-2'
 # survives tokenization because '-' is kept in tokens.
 FINANCIAL_KEYWORDS: Final[tuple[str, ...]] = (
     "account",
@@ -284,7 +282,7 @@ FINANCIAL_KEYWORDS: Final[tuple[str, ...]] = (
     "deposit",
     "discount",
     "dividend",
-    "due date",
+    "due",
     "earnings",
     "employee",
     "employer",
@@ -348,7 +346,6 @@ FINANCIAL_STRUCTURAL: Final[tuple[tuple[str, str, float, str], ...]] = (
 FOIA_KEYWORDS: Final[tuple[str, ...]] = (
     "agency",
     "appeal",
-    "ask",
     "classified",
     "correspondence",
     "custodian",
@@ -356,39 +353,26 @@ FOIA_KEYWORDS: Final[tuple[str, ...]] = (
     "deliberative",
     "disclosure",
     "exemption",
-    "fee waiver",
+    "waiver",
     "foia",
-    "freedom of information",
+    "freedom",
     "glomar",
-    "gov",
     "government",
-    "information",
     "investigation",
-    "law enforcement",
-    "letter",
+    "enforcement",
     "memorandum",
-    "narrow",
     "officer",
-    "open records",
     "personnel",
     "privacy",
     "privileged",
-    "privilege log",
     "production",
-    "public",
-    "public records",
     "records",
     "redacted",
     "redaction",
     "release",
-    "release in full",
-    "release in part",
     "request",
     "requester",
     "responsive",
-    "reviewed",
-    "scope",
-    "search",
     "sensitive",
     "sunshine",
     "transparency",
@@ -413,13 +397,15 @@ FOIA_STRUCTURAL: Final[tuple[tuple[str, str, float, str], ...]] = (
 
 
 # Generic class: correspondence / memo / office-circular vocabulary.
-# S4 2026-06-11 rewrite (session-04b-finding-generic-absorption.md): the
+# Rewritten at the 2026-06-11 calibration pass: the
 # original list was universal document furniture ('address', 'date',
 # 'email', 'name', 'number', 'page', 'phone', ...) that any header block
 # matches, so generic capped out on nearly every document and absorbed
 # all medical and W-2 docs. Terms here must be characteristic of plain
 # correspondence and must NOT appear in routine headers of the other
-# four classes. Structural bonus list stays deliberately empty.
+# four classes; the letter vocabulary (salutations, closings, e-mail furniture)
+# is here so letter-shaped pages lean generic rather than foia. Structural
+# bonus list stays deliberately empty.
 GENERIC_KEYWORDS: Final[tuple[str, ...]] = (
     "acknowledge",
     "agenda",
@@ -427,19 +413,30 @@ GENERIC_KEYWORDS: Final[tuple[str, ...]] = (
     "appreciate",
     "approve",
     "attachment",
+    "attention",
+    "attn",
     "author",
+    "best",
     "business",
+    "cc",
     "client",
+    "com",
     "company",
     "confidential",
+    "contact",
     "cordially",
     "courtesy",
+    "dear",
     "department",
     "draft",
     "enclosed",
+    "enclosure",
     "folder",
     "forward",
     "greetings",
+    "hello",
+    "http",
+    "https",
     "inquiry",
     "invitation",
     "letter",
@@ -448,11 +445,18 @@ GENERIC_KEYWORDS: Final[tuple[str, ...]] = (
     "message",
     "newsletter",
     "paragraph",
+    "please",
+    "questions",
     "regarding",
     "regards",
     "reminder",
     "reply",
     "sincerely",
+    "subject",
+    "thank",
+    "thanks",
+    "wishes",
+    "www",
 )
 
 GENERIC_STRUCTURAL: Final[tuple[tuple[str, str, float, str], ...]] = ()

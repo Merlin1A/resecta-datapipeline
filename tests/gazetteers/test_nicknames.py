@@ -1,4 +1,4 @@
-"""Tests for the nicknames sidecar builder (search-impl S5, design 02 §7).
+"""Tests for the nicknames sidecar builder.
 
 Coverage:
 - Schema validation of the built payload.

@@ -9,8 +9,7 @@ consumed by ``NicknameGazetteer`` in the Swift engine to widen given-name
 lookups via nickname→canonical resolution.  Bloom filters and signing
 artifacts are unchanged by this builder.
 
-See design ``02-negative-context-and-data.md §7 Item 2.8`` and
-``schemas/nicknames.schema.json`` for the full wire contract.
+See ``schemas/nicknames.schema.json`` for the full wire contract.
 """
 
 from __future__ import annotations

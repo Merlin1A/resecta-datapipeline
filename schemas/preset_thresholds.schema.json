@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/preset_thresholds.schema.json",
   "title": "Preset threshold vectors (candidates)",
-  "description": "Conservative / Balanced / Aggressive per-category threshold vectors consumed by SettingsState.swift. Phase 3 emits *_candidates.json only; final values come from the Phase 3b G9 sweep against Swift-side softmax dumps. Do not promote a candidates file to the shipped name without Jesse's review.",
+  "description": "Conservative / Balanced / Aggressive per-category threshold vectors consumed by SettingsState.swift. Phase 3 emits *_candidates.json only; final values come from the Phase 3b sweep against Swift-side softmax dumps. Do not promote a candidates file to the shipped name without a change plan approved by the maintainer.",
   "type": "object",
   "required": [
     "version",

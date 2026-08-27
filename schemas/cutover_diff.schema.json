@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/cutover_diff.schema.json",
   "title": "Builder cutover diff (legacy → rebuild)",
-  "description": "Advisory diff artifact emitted alongside a builder rewire under STRAT §10.4 row §D1 (= A1 1:1) or §D7 (G1 PARTIAL [BINDING]). Each diff covers one rebuilt artifact: legacy_only lists keys present only in the pre-rewire output, rebuild_only lists keys present only in the post-rewire output, and keyed_diff lists keys present in both with field-level differences. Summary counts mirror the array lengths and are surfaced verbatim in DONE-marker prose for PR review.",
+  "description": "Advisory diff artifact emitted alongside a builder rewire; each diff covers one rebuilt artifact: legacy_only lists keys present only in the pre-rewire output, rebuild_only lists keys present only in the post-rewire output, and keyed_diff lists keys present in both with field-level differences. Summary counts mirror the array lengths and are surfaced in the PR description for review.",
   "type": "object",
   "required": [
     "version",

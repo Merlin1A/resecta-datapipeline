@@ -126,8 +126,7 @@ def parse_gsa_agencies(path: Path) -> list[InstitutionEntry]:
     """
     if not path.is_file():
         raise MissingSourceError(
-            f"GSA federal agency crosswalk not found at {path}. "
-            "Run `make sources` to fetch, or check CLAUDE.md §1.4."
+            f"GSA federal agency crosswalk not found at {path}. Run `make sources` to fetch."
         )
 
     with path.open("r", encoding=_SOURCE_ENCODING, newline="") as fh:

@@ -82,27 +82,27 @@ def build_manifest(
 def build_cutover_diff(filters: list[FilterBuildResult]) -> dict[str, Any]:
     """Return the legacy→rebuild cutover diff for the name-filter manifest.
 
-    Emitted alongside ``gazetteer_manifest.json`` under the
-    cc-derive-rebuild S3 chain (STRAT §10.4 row §D1 family — A1/A2 1:1,
-    advisory). The diff covers the manifest's ``filters[]`` entries
+    Emitted alongside ``gazetteer_manifest.json`` as part of the name-filter
+    rebuild; the surname/given-name filters are 1:1 wire-stable and this
+    diff is advisory. The diff covers the manifest's ``filters[]`` entries
     (surnames + given-names): ``legacy_only`` lists source identifiers
     retired in the rebuild, ``rebuild_only`` lists source identifiers
     added in the rebuild, and ``keyed_diff`` lists filter names whose
     FPR / size / sources lineage changed.
 
-    The CC-SCRIPT fetcher chain (D-06 / D-07 / D-08) already routed the manifest's
+    The CC-SCRIPT fetcher chain already routed the manifest's
     source identifiers (``census_surnames``, ``ssa_given_names``,
     ``popnames_common_surnames``, ``popnames_common_forenames``, etc.)
     onto vintage-pinned CC-SCRIPT-managed paths; the manifest itself is
     dynamically built from ``_surname_ingest_specs()`` /
     ``_given_name_ingest_specs()`` in ``cli.py``. No legacy variant was
     retired in this rebuild, so the diff is **empty by construction** —
-    the verification-posture stub attests that A1+A2 carry no
-    shipped-vs-rebuild divergence.
+    the verification-posture stub attests that the surname and
+    given-name filters carry no shipped-vs-rebuild divergence.
 
-    The diff is **advisory** under the §D1 family (A1/A2 — 1:1
-    wire-stable; no Jesse sign required at S3) — used for PR-review
-    context, consolidated into the S4 PR description.
+    The diff is **advisory** (the surname/given-name filters are 1:1
+    wire-stable) — used for PR-review context, consolidated into the
+    PR description.
 
     Args:
         filters: The post-rebuild filter list. Accepted to keep the

@@ -19,7 +19,7 @@ dependencies = [
     "jsonschema>=4.22,<5",
     "faker>=25.0,<26",
     "mmh3>=5.0,<6",
-    # SEC-6 — Ed25519 signing for gazetteer_manifest.json (paired iOS PR).
+    # Ed25519 signing for gazetteer_manifest.json (verified by the iOS engine).
     # Chosen over PyNaCl: cryptography is already on the Apache-2.0-compatible
     # allowlist, has stricter type stubs, and bundles the same audited
     # Ed25519 primitive used by CryptoKit on the Swift side.
@@ -86,7 +86,6 @@ select = [
 ignore = [
     "ANN401",  # Allow Any in explicit positions (JSON deserialization)
     "PLR0913", # Too many arguments (builders often have many)
-    "S101",    # assert is fine in tests
     "ISC001",  # conflicts with formatter
 ]
 
@@ -94,6 +93,9 @@ ignore = [
 "tests/**" = ["ANN", "S101", "PLR2004"]
 "src/resecta_data/cli.py" = ["T20"]  # click.echo is permitted here
 "scripts/**" = ["T20"]  # standalone CLI tools that report to stdout by design
+# Two type-narrowing asserts on the shard writer; the script's bytes key the
+# paranames shard lock rows, so it is edited only on a host with the corpus.
+"scripts/shard_paranames.py" = ["S101"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["resecta_data"]

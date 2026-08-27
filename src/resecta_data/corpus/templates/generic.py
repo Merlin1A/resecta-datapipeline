@@ -70,8 +70,8 @@ def emit(
         sb.append_pii(recipient.full_name, "name")
     sb.append(",\n\n")
 
-    # The letter body carries the generic-class keyword surface (S4
-    # 2026-06-11 de-furniture: 'inquiry', 'appreciate', 'business',
+    # The letter body carries the generic-class keyword surface (2026-06-11
+    # de-furniture: 'inquiry', 'appreciate', 'business',
     # 'forward', 'reply', 'newsletter', 'enclosed', 'regards' — the old
     # header-furniture terms no longer score).
     sb.append("Thank you for your recent inquiry. Your reference number ")

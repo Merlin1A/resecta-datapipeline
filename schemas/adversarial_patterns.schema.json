@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/adversarial_patterns.schema.json",
   "title": "Adversarial pattern templates",
-  "description": "Test-fixture catalog of text fragments designed to probe detector false-positive behavior and classifier keyword-stuffing resistance (plan item G5). Records in the column_header_label category additionally carry a bbox_context array describing header/data row layout.",
+  "description": "Test-fixture catalog of text fragments designed to probe detector false-positive behavior and classifier keyword-stuffing resistance. Records in the column_header_label category additionally carry a bbox_context array describing header/data row layout.",
   "type": "object",
   "required": ["version", "generated_by", "seed", "patterns"],
   "additionalProperties": false,
@@ -72,7 +72,7 @@
           },
           "source_plan_ref": {
             "type": "string",
-            "description": "Reference to the plan item that motivates this fragment, for example 'G5' or 'REDACTION_ENGINE.md 4.3'."
+            "description": "A short provenance description of the fragment — what detector shape it exercises and why it must be suppressed or flagged."
           },
           "notes": {
             "type": "string",

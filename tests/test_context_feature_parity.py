@@ -1,6 +1,6 @@
 """Swift<->Python context-feature parity (Python side).
 
-The C1 scorer's 13 features must be computed identically wherever they are
+The context scorer's 13 features must be computed identically wherever they are
 produced: the Swift seam builder `contextFeatures(match:doctype:effectiveDoctype:
 pageText:)` (RedactionEngine `Detection/Scoring/ContextFeatures.swift`), the
 File-5 fire dump, and any Python feature reconstruction. This module ports that

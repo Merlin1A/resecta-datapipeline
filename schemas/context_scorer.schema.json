@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/context_scorer.schema.json",
-  "title": "Context scorer weights (C1 augment FP-suppression)",
-  "description": "Per-family logistic context false-positive-suppression weights consumed on-device by Detection/Scoring/ContextScorerWeights.swift as one additive log-odds term at the posterior seam. Decode by family name (never index). status 'placeholder' (B03) and 'candidates' (B04) stay in build/; promotion to 'calibrated' + install is Jesse-gated.",
+  "title": "Context scorer weights (FP-suppression augment)",
+  "description": "Per-family logistic context false-positive-suppression weights consumed on-device by Detection/Scoring/ContextScorerWeights.swift as one additive log-odds term at the posterior seam. Decode by family name (never index). status 'placeholder' and 'candidates' stay in build/; the calibrated final is promoted under an approved change plan.",
   "type": "object",
   "required": [
     "version",
@@ -28,7 +28,7 @@
     "status": {
       "type": "string",
       "enum": ["placeholder", "candidates", "calibrated"],
-      "description": "B03 ships 'placeholder' (every w_family 0, identity). B04 emits 'candidates' (trained, locked). 'calibrated' is the Jesse-gated installed final."
+      "description": "'placeholder' ships with every w_family 0 (identity). 'candidates' is trained and locked. 'calibrated' is the installed final, promoted under an approved change plan."
     },
     "notes": {
       "type": "string",
@@ -47,7 +47,7 @@
       "type": "object",
       "required": ["account", "phone", "mrn", "ein", "itin"],
       "additionalProperties": false,
-      "description": "One logistic block per scored family, keyed by PresetThresholdVector.wireName(for:). MRN's key is 'mrn' (its cell_category_key is 'medicalrecord' — D-5).",
+      "description": "One logistic block per scored family, keyed by PresetThresholdVector.wireName(for:). MRN's key is 'mrn' (its cell_category_key is 'medicalrecord').",
       "properties": {
         "account": { "$ref": "#/$defs/family" },
         "phone": { "$ref": "#/$defs/family" },

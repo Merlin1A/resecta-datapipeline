@@ -3,10 +3,9 @@
 This file contains attribution and acknowledgement for third-party data sources used
 by the resecta-datapipeline build artifacts.
 
-Created 2026-04-26 as part of the D-05 closure (Disposition §1 substrate substitution
-to OpenAddresses CC0 + OpenStreetMap ODbL). Future attribution rows for other
-bundled data sources (e.g., Voter File CC-BY per D-31, when V1 release unblocks)
-will be added by Jesse in separate commits per CLAUDE.md §3.
+Created 2026-04-26 when the address substrate moved to OpenAddresses CC0 +
+OpenStreetMap ODbL. Attribution rows for other bundled data sources are added
+under an approved plan when those sources ship.
 
 ---
 
@@ -16,7 +15,7 @@ This product includes data derived from OpenStreetMap, © OpenStreetMap contribu
 available under the Open Database License (ODbL) 1.0. See
 https://www.openstreetmap.org/copyright. Per ODbL §4.3, substantial use of
 OSM-derived data is acknowledged here; insubstantial fact-extraction (US
-street-suffix vocabulary frequency rank for the D-05 street_suffix gazetteer) is
+street-suffix vocabulary frequency rank for the street_suffix gazetteer) is
 not share-alike-encumbered.
 
 ---
@@ -29,8 +28,6 @@ attribution is required by license, but acknowledgement is provided for provenan
 audit.
 
 ---
-
-## TODO(Jesse): none remaining — discharged below.
 
 ## Third-party MIT-licensed inputs
 

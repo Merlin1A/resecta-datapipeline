@@ -12,10 +12,11 @@ to isolate one field) and assert:
 - verdict logic: before==after is a clean no-regression; a degraded AFTER is a
   REGRESSION on the correct family AND clause; MRN/EIN are non-regression-only
   (a precision drop with still-0 FP is not flagged, an FP growth is); ITIN
-  absence is tolerated; C2 reads ``precision_with_decoys`` (not ``1-precision``);
-  ``low_confidence`` is reported, not gated.
+  absence is tolerated; the C2_family_fpr clause reads ``precision_with_decoys``
+  (not ``1-precision``); ``low_confidence`` is reported, not gated.
 
-See ``04-implementation-plan.md`` §5.2 / ``05-final-plan.md`` §3.
+See ``src/resecta_data/eval/compare.py`` for the implementation and
+``schemas/g8_compare_verdict.schema.json`` for the shape.
 """
 
 from __future__ import annotations
@@ -234,12 +235,12 @@ def test_mrn_precision_drop_with_zero_fp_is_not_flagged() -> None:
     # (precision = TP/(TP+FP) is always 1.0 when FP=0), so we hand-build two
     # baselines where ONLY the precision field differs, holding the decoy-FPR
     # (precision_with_decoys) and FP at the clean value. This isolates the rule:
-    # the C1 PRECISION clause must NOT gate MRN/EIN.
+    # the C1_precision clause must NOT gate MRN/EIN.
     before = _hand_baseline(mrn_precision=1.0)
     after = _hand_baseline(mrn_precision=0.70)  # precision "dropped", still 0 FP
     verdict = build_compare(before, after, _TH)
     mrn = _family(verdict, "mrn")
-    # C1 is present and shows the drop, but it does NOT gate -> no regression.
+    # C1_precision is present and shows the drop, but it does NOT gate -> no regression.
     assert mrn["non_regression_only"] is True
     assert mrn["regression"] is False
     assert "C1_precision" not in mrn["regressed_clauses"]
@@ -248,15 +249,15 @@ def test_mrn_precision_drop_with_zero_fp_is_not_flagged() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# C2 reads precision_with_decoys, not 1 - precision
+# C2_family_fpr reads precision_with_decoys, not 1 - precision
 # --------------------------------------------------------------------------- #
 
 
 def test_c2_reads_precision_with_decoys_not_precision() -> None:
     # account BEFORE: a decoy-clean state. AFTER: decoys begin to fire so
-    # precision_with_decoys drops while raw precision stays 1.0. C2 must catch
-    # the decoy-FPR regression; a (wrong) 1-precision read would see FPR 0->0
-    # and miss it.
+    # precision_with_decoys drops while raw precision stays 1.0. C2_family_fpr
+    # must catch the decoy-FPR regression; a (wrong) 1-precision read would
+    # see FPR 0->0 and miss it.
     before = _baseline({"account_financial_white": _cell(100, 0, 0)})
     after = _baseline({"account_financial_white": _cell(100, 0, 0, adv_total=20, adv_fired=20)})
     acc_before = before["per_family"]["account"]
@@ -422,7 +423,7 @@ def _hand_baseline(*, mrn_precision: float) -> dict[str, Any]:
     """A hand-built baseline letting MRN's precision be set independently of FP.
 
     Holds MRN's FP and precision_with_decoys at the clean (0-FP) value so only
-    the C1 PRECISION input varies -- isolating the non-regression-only rule.
+    the C1_precision input varies -- isolating the non-regression-only rule.
     """
     clean = _aggregate_cell()
     doctype = {d: _aggregate_cell() for d in ("court", "medical", "financial", "foia", "generic")}

@@ -133,5 +133,5 @@ def assert_safe(text: str, *, context: str = "<unspecified>") -> None:
     lines = [f"Banned phrase(s) in text destined for {context}:"]
     for h in hits:
         lines.append(f"  - {h.phrase!r} at offset {h.start}: ...{h.excerpt!r}...")
-    lines.append("See CLAUDE.md §5 for the safe-patterns rule.")
+    lines.append("See CONTRIBUTING.md (mechanism-description language) for the safe-patterns rule.")
     raise PipelineError("\n".join(lines))

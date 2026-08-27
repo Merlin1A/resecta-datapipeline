@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_bucket_recall.schema.json",
   "title": "G8 bucket-stratified recall (V1 one-off)",
-  "description": "Per-bucket recall measurement of the surnames Bloom filter against the G8 synthetic corpus. V1 transparency-copy input replacing the 81.70 pt population-composition figure; per F-10 (option a) point estimate + sample size only, no confidence-interval band. V1.1+ W-K refines.",
+  "description": "Per-bucket recall measurement of the surnames Bloom filter against the G8 synthetic corpus. V1 transparency-copy input replacing the 81.70 pt population-composition figure; ships point estimate + sample size only, no confidence-interval band. A later release may refine this.",
   "type": "object",
   "required": [
     "metric",
@@ -24,7 +24,7 @@
     "version": {
       "type": "string",
       "const": "v1",
-      "description": "Artifact version. V1.1+ W-K refines this metric."
+      "description": "Artifact version. A later release refines this metric."
     },
     "generated_by": {
       "type": "string",
@@ -55,7 +55,7 @@
     },
     "ci_band": {
       "type": "null",
-      "description": "Per F-10 ack option a: V1 ships point estimate + sample size only. Always null in V1; V1.1+ W-K may populate."
+      "description": "V1 ships point estimate + sample size only. Always null in V1; a later release may populate this."
     },
     "ci_band_note": {
       "type": "string",

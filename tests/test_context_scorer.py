@@ -1,10 +1,10 @@
 """Tests for the in-band context-scorer emitter.
 
-``status="placeholder"`` (the default, B03) stays an input-independent
-all-identity payload; ``status="candidates"`` (B04) runs the in-band
+``status="placeholder"`` (the default) stays an input-independent
+all-identity payload; ``status="candidates"`` runs the in-band
 Newton-IRLS+L2 fit over the committed File-5 fire dump and is exercised here
 against the real committed dump (when present) plus synthetic dumps that pin the
-single-class→identity rule, the train-NLL gate, and the D-5 family-key guard.
+single-class→identity rule, the train-NLL gate, and the family-key guard.
 """
 
 from __future__ import annotations
@@ -149,7 +149,7 @@ def test_candidates_requires_inputs() -> None:
 
 
 # -----------------------------------------------------------------------------
-# B04 — the in-band candidates fit
+# The in-band candidates fit
 # -----------------------------------------------------------------------------
 
 
@@ -266,7 +266,7 @@ def test_separable_family_passes_gate_ships_active(tmp_path: Path) -> None:
 
 @_NEED_REAL_CORPUS
 def test_off_contract_family_key_raises(tmp_path: Path) -> None:
-    """A dump 'family' value outside the five scored families is the D-5 guard
+    """A dump 'family' value outside the five scored families is guarded against
     (the dump must bucket by wireName, never cell_category_key) → raises."""
     dump = tmp_path / "bad_family.json"
     _write_dump(dump, [_fire("medicalrecord", "positive", [0.0] * 13, start=0)])

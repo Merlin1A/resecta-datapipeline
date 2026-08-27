@@ -1,10 +1,9 @@
-"""Equivalence guards for the S04 in-worker ingest aggregation.
+"""Equivalence guards for the in-worker ingest aggregation.
 
 The aggregated path (``aggregate_rows`` per spec → ``merge_aggregates`` fold,
 production entry ``ingest_sources_parallel``) must be byte-equivalent to the
 row-stream oracle (``merge(chain(*rows_per_spec))`` plus the raw stream's
-distinct source ids). Each test pins one divergence class from the S04 T1
-design note (s04-t1-design-ingest-aggregation.md §5):
+distinct source ids). Each test pins one divergence class:
 
 - D1 cross-spec duplicate keys (earliest spec wins)
 - D2 within-spec duplicate keys with conflicting demographics (first wins)
@@ -45,13 +44,13 @@ from resecta_data.common.exceptions import PipelineError
 
 
 def _oracle(row_lists: list[list[IngestedRow]]) -> tuple[IngestResult, tuple[str, ...]]:
-    """The pre-S04 semantics: merge the concatenated raw stream."""
+    """The pre-aggregation semantics: merge the concatenated raw stream."""
     rows = list(itertools.chain.from_iterable(row_lists))
     return merge(rows), tuple(sorted({r.source_id for r in rows}))
 
 
 def _aggregated(row_lists: list[list[IngestedRow]]) -> tuple[IngestResult, tuple[str, ...]]:
-    """The S04 path, minus the process pool (pure fold)."""
+    """The aggregated path, minus the process pool (pure fold)."""
     return merge_aggregates(aggregate_rows(rows) for rows in row_lists)
 
 

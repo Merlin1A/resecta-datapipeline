@@ -57,11 +57,11 @@ def test_manifest_filter_entries_cross_check_bloom_headers() -> None:
 
 
 def test_manifest_paranames_full_entry_validates_against_schema() -> None:
-    """Confirm `paranames_full` flows through as a `sources` string per M34.
+    """Confirm `paranames_full` flows through as a `sources` string.
 
-    M34 resolved that the manifest schema's `filters[*].sources` is an
-    array-of-strings, so adding a new source identifier appends cleanly
-    without a schema-version bump. C1 wires `paranames_full` into both the
+    The manifest schema's `filters[*].sources` is an array-of-strings, so
+    adding a new source identifier appends cleanly without a
+    schema-version bump. `paranames_full` is wired into both the
     surnames and given-names ingest paths; this test pins the contract by
     building a manifest with the new source ID and validating it.
     """
@@ -100,10 +100,11 @@ def test_manifest_paranames_full_entry_validates_against_schema() -> None:
 def test_manifest_census_spanish_full_entry_validates_against_schema() -> None:
     """Confirm `census_spanish_full` flows through as a `sources` string.
 
-    Same bc-OK basis as M34 (array-of-strings manifest schema). C2 wires
-    `census_spanish_full` into the surnames path only — the Census Spanish
-    Surname List has no given-name equivalent — so this test only asserts
-    the surnames filter carries the new source identifier.
+    The same array-of-strings manifest schema basis applies here.
+    `census_spanish_full` is wired into the surnames path only — the
+    Census Spanish Surname List has no given-name equivalent — so this
+    test only asserts the surnames filter carries the new source
+    identifier.
     """
     schema = load_schema(_SCHEMAS_DIR, "gazetteer_manifest")
     manifest = build_manifest(
@@ -168,8 +169,8 @@ def _sample_filters() -> list[FilterBuildResult]:
 def test_cutover_diff_schema() -> None:
     """Validate the verification-posture cutover-diff against the shared schema.
 
-    cc-derive-rebuild S3 reuses ``schemas/cutover_diff.schema.json`` (S1's
-    generic legacy→rebuild schema) for the name-filter manifest. Under
+    This reuses ``schemas/cutover_diff.schema.json`` (the generic
+    legacy→rebuild schema) for the name-filter manifest. Under
     verification-posture (no legacy variant retired in this rebuild) the
     diff is empty by construction.
     """

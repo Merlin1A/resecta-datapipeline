@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # fetch_edgar_companies.sh — fetch the SEC EDGAR company_tickers.json feed.
-# Spec: design 02 §6 (D3 pre-approved). §105 PD.
+# §105 PD.
 # Source: https://www.sec.gov/files/company_tickers.json
 #
 # SOURCES.md row description (avoid banned phrases):
@@ -10,13 +10,14 @@
 #   document-header anchoring.
 #
 # NOTE: This script is authored here but is designed to run on Linux where
-# the _fetch_lib.sh row-append helper uses flock (absent on macOS). Jesse runs
-# this script on a Linux host; see scripts/_fetch_lib.README.md.
+# the _fetch_lib.sh row-append helper uses flock (absent on macOS). Run this
+# script on a Linux host — the row-append helper needs flock; see
+# scripts/_fetch_lib.README.md.
 #
-# NOTE (Jesse Gate): The EDGAR top-500 curation criterion (keyword-classifier
+# NOTE: The EDGAR top-500 curation criterion (keyword-classifier
 # proxy for SIC 6000-6799) and the split into financial_institution vs. employer
-# categories are parked for Jesse's approval before this script runs. See
-# parse_edgar.py module docstring and design 02 §6 "Jesse Gates".
+# categories change only under an approved source plan. See
+# parse_edgar.py module docstring.
 #
 # SEC rate-limit guidance: the SEC requests a descriptive User-Agent identifying
 # the application and contact email. Use the format:

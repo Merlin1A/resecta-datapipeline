@@ -146,13 +146,12 @@ def test_full_corpus_schema_and_shape(tmp_build_dir: Path) -> None:
     validate_file(dest, _SCHEMAS, "g8_corpus")
     expected_total = 300 + 250 + 300 + 150 + 100
     assert len(payload["documents"]) == expected_total
-    # Calibration runbook no-go #3 (design 03 §3.4): the full corpus must
-    # carry at least 100 W-2 shaped financial docs.
+    # The full corpus must carry at least 100 W-2 shaped financial docs.
     tax_docs = [d for d in payload["documents"] if d.get("sub_template") == "financial_tax"]
     assert len(tax_docs) >= 100
 
 
-# ---- S4 corpus fixes (design 03 §3.2) ------------------------------------
+# ---- Corpus fixes ---------------------------------------------------------
 
 
 def test_financial_tax_split_and_shape() -> None:
@@ -170,7 +169,7 @@ def test_financial_tax_split_and_shape() -> None:
         assert "Employer identification number" in doc["text"]
         categories = {s["category"] for s in doc["pii_spans"]}
         assert {"ssn", "ein", "address"} <= categories
-        # Design §3.2: no routing numbers in the tax shape.
+        # No routing numbers in the tax shape.
         assert "routingNumber" not in categories
 
 

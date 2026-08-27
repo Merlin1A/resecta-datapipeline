@@ -1,1 +1,1 @@
-"""Build-time instrumentation builders (D-35 family)."""
+"""Build-time instrumentation builders."""

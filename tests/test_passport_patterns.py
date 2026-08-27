@@ -1,7 +1,7 @@
-"""Tests for the per-country passport-pattern gazetteer (D-14).
+"""Tests for the per-country passport-pattern gazetteer.
 
-Covers schema conformance, determinism, the closed 11-issuer F-36 ship
-set, the F-37 CU exclusion, the F-38 GB needs-legal-review posture, and
+Covers schema conformance, determinism, the closed 11-issuer ship set,
+the CU sanctions exclusion, the GB needs-legal-review posture, and
 the SV MEDIUM-confidence ceiling with post-V1 follow-up tasks. See
 ``src/resecta_data/gazetteers/passport_patterns/build.py`` for the
 builder and ``schemas/passport_patterns.schema.json`` for the shape.
@@ -79,7 +79,7 @@ def test_determinism(tmp_build_dir: Path) -> None:
 
 
 def test_row_count_is_eleven(payload: dict[str, Any]) -> None:
-    """F-36 closed with exactly 11 shipping rows."""
+    """The ship set is closed at exactly 11 shipping rows."""
     assert len(payload["rows"]) == _EXPECTED_SHIPPING_COUNT
 
 
@@ -90,31 +90,31 @@ def test_shipping_issuer_set(payload: dict[str, Any]) -> None:
 
 
 def test_cu_never_shipped(payload: dict[str, Any]) -> None:
-    """F-37 hard gate: Cuba is omitted entirely on OFAC sanctions grounds."""
+    """Hard gate: Cuba is omitted entirely on OFAC sanctions grounds."""
     issuer_codes = {row["issuer_code"] for row in payload["rows"]}
     assert "CU" not in issuer_codes, (
-        "CU appeared in the shipping artifact. F-37 CLOSED 2026-04-23 "
+        "CU appeared in the shipping artifact. Cuba is omitted "
         "excludes Cuba entirely; check candidates-file exclude_from_ship gate."
     )
 
 
 def test_gt_never_shipped(payload: dict[str, Any]) -> None:
-    """GT is candidate_only per F-36; shipping GT in V1 is a scope error."""
+    """GT is candidate_only; shipping GT in V1 is a scope error."""
     issuer_codes = {row["issuer_code"] for row in payload["rows"]}
     assert "GT" not in issuer_codes
 
 
 def test_gb_marked_needs_legal_review(payload: dict[str, Any]) -> None:
-    """F-38 OGL attribution posture: GB ships with pending_decision_memo."""
+    """OGL attribution posture: GB ships with pending_decision_memo."""
     gb = next(row for row in payload["rows"] if row["issuer_code"] == "GB")
     assert gb["license_posture"] == "needs-legal-review"
     memo = gb["pending_decision_memo"]
     assert memo["f_item"] == "F-38"
     # Options A / B / C must all be present — the memo is the hand-off
-    # to Jesse + counsel.
+    # for the pending legal decision.
     options_blob = " ".join(memo["options"])
     for marker in ("A -- ", "B -- ", "C -- "):
-        assert marker in options_blob, f"GB F-38 memo is missing option marker {marker!r}"
+        assert marker in options_blob, f"GB memo is missing option marker {marker!r}"
 
 
 def test_sv_medium_confidence_with_tasks(payload: dict[str, Any]) -> None:
@@ -195,7 +195,7 @@ def test_check_digit_policy_uniform(payload: dict[str, Any]) -> None:
 
 
 def test_license_posture_distribution(payload: dict[str, Any]) -> None:
-    """1 §105 PD (US) + 9 gov-work Feist + 1 needs-legal-review (GB), post-F-36."""
+    """1 §105 PD (US) + 9 gov-work Feist + 1 needs-legal-review (GB)."""
     postures = [row["license_posture"] for row in payload["rows"]]
     us_count = 1
     feist_count = 9
@@ -206,10 +206,10 @@ def test_license_posture_distribution(payload: dict[str, Any]) -> None:
 
 
 def test_do_promoted_despite_candidate_only_flag() -> None:
-    """Dominican Republic (DO) ships via F-36 post-closure override.
+    """Dominican Republic (DO) ships via the builder's promotion override.
 
-    The candidates file predates F-36 closure and still carries DO as
-    ``candidate_only: true``. The builder's post-F-36 promotion set
+    The candidates file predates the ship-set decision and still carries DO as
+    ``candidate_only: true``. The builder's promotion set
     promotes DO without mutating the candidates file. This test guards
     the override so a future candidates-file regen that flips DO's flag
     to ``false`` does not silently remove the override.
@@ -229,7 +229,7 @@ def test_do_promoted_despite_candidate_only_flag() -> None:
 
 
 def test_schema_rejects_gb_without_pending_decision_memo(payload: dict[str, Any]) -> None:
-    """Schema ``if/then`` forces GB to carry ``pending_decision_memo`` (F-38)."""
+    """Schema ``if/then`` forces GB to carry ``pending_decision_memo``."""
     mutated = {**payload, "rows": [dict(row) for row in payload["rows"]]}
     gb = next(row for row in mutated["rows"] if row["issuer_code"] == "GB")
     del gb["pending_decision_memo"]
@@ -256,12 +256,12 @@ def test_builder_raises_when_candidates_file_missing(tmp_path: Path) -> None:
 
 
 def test_builder_raises_when_issuer_set_diverges(tmp_path: Path) -> None:
-    """Promoting GT (candidate-only per F-36) trips the shipping-set guard."""
+    """Promoting GT (candidate-only) trips the shipping-set guard."""
     candidates = load_json(CANDIDATES_PATH)
     mutated = {**candidates, "entries": [dict(e) for e in candidates["entries"]]}
     gt = next(e for e in mutated["entries"] if e["issuer_code"] == "GT")
     gt["candidate_only"] = False
     mutated_path = tmp_path / "candidates.json"
     dump_canonical_json(mutated, mutated_path)
-    with pytest.raises(PipelineError, match="F-36"):
+    with pytest.raises(PipelineError, match="shipping issuer set diverges"):
         build_passport_patterns(_CANONICAL_SEED, candidates_path=mutated_path)

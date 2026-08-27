@@ -1,6 +1,6 @@
-"""Tests for the D-18 / A22 rule catalog.
+"""Tests for the rule catalog.
 
-Covers the W-I1 ``Done =`` acceptance check from spec §1.20 plus the
+Covers the cross-repo acceptance check (every Swift detector maps to a row) plus the
 structural / determinism guarantees:
 
 * **W-I1 acceptance** — every Swift detector symbol that emits into
@@ -19,7 +19,7 @@ structural / determinism guarantees:
   pii.bates.v1 (Bates detection dropped engine-side by the
   general-purpose pivot, Resecta PR #80) -- both tracked by the
   2026-06-10 W-I1 reconciliation, plus pii.routing_number.v1 added by
-  search-impl S2 task 11 (2026-06-11).
+  the routing-number detector (2026-06-11).
 * **rule_id pattern** — every ``rule_id`` matches the schema regex.
 * **uniqueness** — no two rows share a ``rule_id``.
 * **determinism** — two ``build()`` calls with the same seed return
@@ -55,7 +55,7 @@ _SOURCE_PATH = (
 _SCHEMAS_DIR = Path(__file__).parent.parent / "schemas"
 
 # Resecta sibling repo root (peer of DataPipeline). The W-I1 test reads
-# the Swift Detection/ tree from here. When running outside Jesse's local
+# the Swift Detection/ tree from here. When running outside the maintainer's local
 # layout (CI, contributor checkouts) the sibling may be absent — the test
 # skips rather than fails so non-Resecta environments aren't blocked.
 _RESECTA_DETECTION_DIR = (
@@ -145,7 +145,7 @@ def _swift_emitted_rule_ids() -> set[str]:
 
 def test_builder_emits_expected_count() -> None:
     """Catalog ships exactly 21 rows (19 original + 2 DRAW-2/DRAW-3 visual
-    detectors - 1 Bates + 1 routing-number from S2 task 11)."""
+    detectors - 1 Bates + 1 routing-number)."""
     payload = build_rule_catalog(CANONICAL_SEED)
     assert len(payload["entries"]) == _EXPECTED_ROW_COUNT
 
@@ -192,7 +192,7 @@ def test_family_is_pii() -> None:
 
 
 def test_version_baseline_is_one_zero() -> None:
-    """F-8: V1 baseline is `1.0` for every row; per-row bumps come later."""
+    """V1 baseline is `1.0` for every row; per-row bumps come later."""
     payload = build_rule_catalog(CANONICAL_SEED)
     for row in payload["entries"]:
         assert row["version"] == "1.0", row
@@ -234,7 +234,7 @@ def test_built_payload_validates_against_schema(tmp_build_dir: Path) -> None:
 
 
 # -----------------------------------------------------------------------------
-# W-I1 acceptance (spec §1.20)
+# Cross-repo acceptance: every Swift detector emit string maps to a catalog row
 # -----------------------------------------------------------------------------
 
 
@@ -243,7 +243,7 @@ def test_built_payload_validates_against_schema(tmp_build_dir: Path) -> None:
     reason="Resecta sibling not present; W-I1 cross-repo check requires Detection/",
 )
 def test_w_i1_every_swift_emit_string_has_a_catalog_row() -> None:
-    """W-I1 ``Done =`` (spec §1.20).
+    """Every Swift detector symbol that emits a ruleID maps to a catalog row.
 
     Surfaces drift in either direction:
 
@@ -253,14 +253,14 @@ def test_w_i1_every_swift_emit_string_has_a_catalog_row() -> None:
     * If the catalog drops an ``_emitted_rule_id`` that the Swift tree
       still emits, this test fails likewise.
 
-    The D-36 surface (``audit.*`` / ``icn.*`` / ``dd.*``) is permitted to
-    appear in Swift without a V1 catalog row — those rows ship in D-36's
-    chain per F-42 (spec §7.5).
+    The audit / ICN / DD surface (``audit.*`` / ``icn.*`` / ``dd.*``) is
+    permitted to appear in Swift without a V1 catalog row — those rows ship
+    with their own chain.
     """
     swift_emitted = _swift_emitted_rule_ids()
     catalog_emitted = _source_emitted_rule_ids()
 
-    # D-36 deferred surface — exempt until that chain ships catalog rows.
+    # Deferred surface — exempt until that chain ships catalog rows.
     d36_prefixes = ("audit.", "icn.", "dd.")
 
     # Defensive fallback strings inside ``defaultRuleID(for:)`` that a

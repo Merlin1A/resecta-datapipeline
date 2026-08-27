@@ -31,9 +31,9 @@ CATEGORIES: Final[tuple[str, ...]] = (
     "account",
     "mrn",
     "name",
-    # search-impl S2 (design 01 §4): ABA routing number.
+    # ABA routing number.
     "routingNumber",
-    # search-impl S3 (design 02 §2): 8 previously ungated categories.
+    # 8 previously ungated categories.
     # These categories are not swept by sweep_thresholds._CATEGORIES — the
     # score dump does not include them. Hand-set values carry through any
     # sweep+finalize round-trip unchanged (sweep skips categories not in
@@ -62,20 +62,20 @@ _CONSERVATIVE: Final[dict[str, float]] = {
     "dea": 0.60,
     "dob": 0.70,
     "address": 0.65,
-    # 0.3 (search-impl S1): account max is exactly 0.75 (AccountDetector
+    # Account max is exactly 0.75 (AccountDetector
     # scorer profile); 0.70 = max - 0.05 feasibility margin. The previous
     # 0.65 predated the envelope table; shipping and candidates now agree.
     "account": 0.70,
     "mrn": 0.70,
     "name": 0.65,
-    # search-impl S2 (design 01 §4 interface table): detector envelope is
+    # The detector envelope is
     # 0.50 base / 0.88 boosted; 0.70 requires a solid context keyword near
     # a checksum-valid number. Shipping and candidates agree on this row.
     "routingNumber": 0.70,
-    # search-impl S3 (design 02 §2): 8 previously ungated categories.
+    # 8 previously ungated categories.
     # Values clamped to detector achievable-max - 0.05 where the design
     # table specified at-max values (email 0.90->0.85, phone 0.80->0.75,
-    # DL/passport 0.80->0.75 per Jesse in-session 2026-06-11).
+    # DL/passport 0.80->0.75).
     "ein": 0.70,
     "itin": 0.78,
     "creditCard": 0.90,
@@ -95,10 +95,10 @@ _BALANCED: Final[dict[str, float]] = {
     "account": 0.55,
     "mrn": 0.55,
     "name": 0.50,
-    # search-impl S2: 0.60 auto-gates no-context routing candidates (base
+    # 0.60 auto-gates no-context routing candidates (base
     # 0.50) while passing strong-context ones (0.88).
     "routingNumber": 0.60,
-    # search-impl S3 (design 02 §2)
+    # 8 previously ungated categories
     "ein": 0.55,
     "itin": 0.65,
     "creditCard": 0.88,
@@ -118,11 +118,11 @@ _AGGRESSIVE: Final[dict[str, float]] = {
     "account": 0.40,
     "mrn": 0.40,
     "name": 0.35,
-    # search-impl S2: matches the shipping aggressive row. 0.50 = detector
-    # base, and the W4 gate drops only strictly-below candidates — so at
+    # Matches the shipping aggressive row. 0.50 = detector
+    # base, and the gate drops only strictly-below candidates — so at
     # aggressive even no-context candidates surface (intended posture).
     "routingNumber": 0.50,
-    # search-impl S3 (design 02 §2)
+    # 8 previously ungated categories
     "ein": 0.45,
     "itin": 0.50,
     "creditCard": 0.85,

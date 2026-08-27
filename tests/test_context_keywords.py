@@ -1,11 +1,11 @@
-"""Tests for the per-category positive context-keyword gazetteer (D-11 + D-12 + D-16 / A21).
+"""Tests for the per-category positive context-keyword gazetteer.
 
 Covers schema conformance, determinism, the closed 9-category shipping set,
-the A19 honorifics drop (engine-side per spec §4 #9), the staging-fields
-strip, F-47 bare DEA gate, F-51 IRSN literal flag, F-52 DOB-family
-windowed-matching note, F-46 doctype vocabulary translation, D-11 confidence
-backfill, the D-16 Bates ``.legal``-scoped anchor surface (spec §1.18 +
-§4 #14), and fail-loud guards for missing or divergent candidates files.
+the honorifics drop (engine-side), the staging-fields strip, the bare DEA
+gate, the IRSN literal flag, the DOB-family windowed-matching note, the
+doctype vocabulary translation, the lifted rows' confidence backfill, the
+Bates ``.legal``-scoped anchor surface, and fail-loud guards for missing or
+divergent candidates files.
 See ``src/resecta_data/gazetteers/context_keywords/build.py`` for the
 builder and ``schemas/context_keywords.schema.json`` for the shape.
 """
@@ -50,23 +50,23 @@ _EXPECTED_SHIPPING_CATEGORIES = frozenset(
 )
 
 _EXPECTED_PER_CATEGORY = {
-    "ssn": 15,  # +5 IRS TIN labels (search-impl S3 design 02 section 2.1)
+    "ssn": 15,  # +5 IRS TIN labels (search-and-redact release)
     "mrn": 13,
-    "bates": 21,  # D-11 base 11 + D-16 `.legal` anchors 10
-    "licenseplate": 11,
+    "bates": 21,  # lifted base 11 + `.legal` anchors 10
+    "licenseplate": 15,  # 11 lifted + 4 authored plate label words
     "dob": 26,
-    "name": 35,  # +5 IRS 1099/W-2 labels (search-impl S3 design 02 section 2.1)
+    "name": 31,  # +5 IRS 1099/W-2 labels; the four court role nouns are not positive anchors
     "npi": 29,
     "dea": 29,
     "itin": 28,
-    "ein": 6,  # EIN category infrastructure (search-impl S3 design 02 section 2.6)
+    "ein": 6,  # EIN category infrastructure (search-and-redact release)
 }
 _EXPECTED_TOTAL = sum(_EXPECTED_PER_CATEGORY.values())  # 213
 
-# D-16 contributes 10 ``.legal``-scoped Bates anchors. They share the
-# bates category with D-11's 11 doctype-unscoped baseline rows; the
-# distinguisher on the wire is ``doctypes == ["court"]`` (after F-46
-# translation of ``.legal`` → ``court``) versus D-11's ``doctypes == []``.
+# The Bates-anchor file contributes 10 ``.legal``-scoped anchors. They share
+# the bates category with the lift's 11 doctype-unscoped baseline rows; the
+# distinguisher on the wire is ``doctypes == ["court"]`` (after the
+# translation of ``.legal`` → ``court``) versus the lift's ``doctypes == []``.
 _EXPECTED_D16_BATES = 10
 
 # Wire-format core keys present on every row.
@@ -78,12 +78,12 @@ _WIRE_ALLOWED_KEYS = _WIRE_CORE_KEYS | _WIRE_OPTIONAL_KEYS
 # Staging fields that must never reach the wire format.
 _STAGING_KEYS = frozenset(
     {
-        # D-11 staging
+        # lift staging
         "proposed_status",
         "non_literal_flag",
         "source_swift_file",
         "source_swift_line",
-        # D-12 staging
+        # authored staging
         "proposed_doctypes",
         "fp_neighbors",
         "source_url",
@@ -96,7 +96,7 @@ _STAGING_KEYS = frozenset(
     }
 )
 
-# Wire doctype enum (engine 5-class). D-12 candidates use a dotted vocabulary
+# Wire doctype enum (engine 5-class). Authored candidates use a dotted vocabulary
 # (`.legal`, `.medical`, ...); the builder strips the leading `.` and renames
 # `legal` → `court`.
 _WIRE_DOCTYPE_ENUM = frozenset({"court", "financial", "foia", "generic", "medical"})
@@ -138,24 +138,24 @@ def test_determinism(tmp_build_dir: Path) -> None:
 
 
 def test_row_count_is_two_thirteen(payload: dict[str, Any]) -> None:
-    """D-11 + D-12 + D-16 produce exactly 213 a21-shipping rows after S3 additions."""
+    """The three candidate files produce exactly 213 a21-shipping rows."""
     assert len(payload["entries"]) == _EXPECTED_TOTAL
 
 
 def test_per_category_counts(payload: dict[str, Any]) -> None:
-    """D-11 + D-12 + D-16 per-category split sums to 213 (S3 adds ssn/name/ein rows)."""
+    """The per-category split sums to 213."""
     counts = dict(Counter(row["category"] for row in payload["entries"]))
     assert counts == _EXPECTED_PER_CATEGORY
 
 
 def test_shipping_categories_closed(payload: dict[str, Any]) -> None:
-    """Only the ten S3 detector categories ship; honorifics stay engine-side."""
+    """Only the ten detector categories ship; honorifics stay engine-side."""
     actual = {row["category"] for row in payload["entries"]}
     assert actual == _EXPECTED_SHIPPING_CATEGORIES
 
 
 def test_no_honorifics_shipped(payload: dict[str, Any]) -> None:
-    """A19 honorifics never ship into A21 (spec §4 #9)."""
+    """Honorifics never ship into the gazetteer."""
     categories = {row["category"] for row in payload["entries"]}
     assert "honorific" not in categories
     candidates = load_json(D11_CANDIDATES_PATH)
@@ -166,7 +166,7 @@ def test_no_honorifics_shipped(payload: dict[str, Any]) -> None:
 
 
 def test_polarity_uniform_positive(payload: dict[str, Any]) -> None:
-    """A21 ships positives only; negatives live in A5 (negative_context.json + drafts)."""
+    """The gazetteer ships positives only; negatives live in negative_context.json."""
     for row in payload["entries"]:
         assert row["polarity"] == "positive"
 
@@ -184,7 +184,7 @@ def test_sort_order_category_term(payload: dict[str, Any]) -> None:
 
 
 def test_no_staging_keys_leak(payload: dict[str, Any]) -> None:
-    """Staging fields (D-11 + D-12) never land on wire rows."""
+    """Staging fields (lift + authored) never land on wire rows."""
     for row in payload["entries"]:
         leaked = _STAGING_KEYS & set(row)
         assert not leaked, f"row {row!r} leaks staging key(s): {leaked}"
@@ -216,7 +216,7 @@ def test_generated_by_identifies_builder(payload: dict[str, Any]) -> None:
 
 
 def test_doctypes_translated_to_wire_vocabulary(payload: dict[str, Any]) -> None:
-    """F-46: candidates' dotted vocabulary (.legal/.medical/...) → wire enum.
+    """Candidates' dotted vocabulary (.legal/.medical/...) → wire enum.
 
     The wire format uses unprefixed engine doctype names (`court`, `medical`,
     `foia`, `financial`, `generic`). No row carries a leading-dot value or the
@@ -236,24 +236,24 @@ def test_doctypes_translated_to_wire_vocabulary(payload: dict[str, Any]) -> None
 
 
 def test_d11_rows_get_confidence_high_backfill(payload: dict[str, Any]) -> None:
-    """D-11 rows have no candidates-file confidence; builder backfills `high`.
+    """Lifted rows have no candidates-file confidence; builder backfills `high`.
 
-    D-11 baseline rows are doctype-unscoped (``doctypes == []``); D-16's
+    Lifted baseline rows are doctype-unscoped (``doctypes == []``); the Bates
     Bates ``.legal`` anchors live in the same `bates` category but carry
     ``doctypes == ["court"]`` and preserve their candidate-side confidence
-    (D-12-style projection). Scope the assertion to the D-11 surface by
+    (authored-style projection). Scope the assertion to the lifted surface by
     filtering out doctype-scoped rows.
     """
     d11_categories = {"bates", "licenseplate", "mrn", "ssn"}
     for row in payload["entries"]:
         if row["category"] in d11_categories and not row["doctypes"]:
             assert row["confidence"] == "high", (
-                f"D-11 row {row!r} should be backfilled to high confidence"
+                f"lifted row {row!r} should be backfilled to high confidence"
             )
 
 
 def test_bare_dea_carries_secondary_gate(payload: dict[str, Any]) -> None:
-    """F-47: the bare `DEA` row carries `detector_requires_secondary: true` + low confidence."""
+    """The bare `DEA` row carries `detector_requires_secondary: true` + low confidence."""
     bare_dea = [r for r in payload["entries"] if r["category"] == "dea" and r["term"] == "DEA"]
     assert len(bare_dea) == 1, "expected exactly one bare-DEA row"
     row = bare_dea[0]
@@ -262,7 +262,7 @@ def test_bare_dea_carries_secondary_gate(payload: dict[str, Any]) -> None:
 
 
 def test_irsn_carries_medium_flag_confidence(payload: dict[str, Any]) -> None:
-    """F-51: the IRSN literal carries `confidence: medium (flag)` to the wire."""
+    """The IRSN literal carries `confidence: medium (flag)` to the wire."""
     irsn = [r for r in payload["entries"] if r["term"] == "IRSN"]
     assert len(irsn) == 1, "expected exactly one IRSN row"
     assert irsn[0]["confidence"] == "medium (flag)"
@@ -270,7 +270,7 @@ def test_irsn_carries_medium_flag_confidence(payload: dict[str, Any]) -> None:
 
 
 def test_dob_family_carries_detector_note(payload: dict[str, Any]) -> None:
-    """F-52: the 13 DOB-family rows carry the windowed-matching detector_note.
+    """The 13 DOB-family rows carry the windowed-matching detector_note.
 
     Per the candidates file, exactly 13 of the 26 DOB rows carry the `birth`
     head-noun adjacency note. The other DOB rows are explicit literals
@@ -283,7 +283,7 @@ def test_dob_family_carries_detector_note(payload: dict[str, Any]) -> None:
 
 
 def test_no_x12_segment_literal_in_wire(payload: dict[str, Any]) -> None:
-    """Disposition §5: no X12 segment mnemonic ships as a literal `term` (legal-ref §10.3.1).
+    """No X12 segment mnemonic ships as a literal `term`.
 
     The X12 DMG*D8 surface is detected engine-side via the pattern-class regex
     ``(?<![A-Z0-9])[A-Z]{3}\\*[A-Z0-9]{2}(?![A-Z0-9])`` — the literal mnemonic
@@ -294,7 +294,7 @@ def test_no_x12_segment_literal_in_wire(payload: dict[str, Any]) -> None:
     offenders = [r["term"] for r in payload["entries"] if pattern.match(r["term"])]
     assert not offenders, (
         f"X12 segment mnemonic literal(s) shipped to wire: {offenders!r}; "
-        "Disposition §5 requires engine-side regex, not literal context-keyword."
+        "X12 segment mnemonics ship as engine-side regex, not literal context-keywords."
     )
 
 
@@ -308,13 +308,14 @@ def test_only_known_optional_flags_appear(payload: dict[str, Any]) -> None:
 
 
 def test_d12_authored_confidence_passthrough(payload: dict[str, Any]) -> None:
-    """D-12 rows preserve their candidates-file confidence verbatim (no backfill).
+    """Authored rows preserve their candidates-file confidence verbatim (no backfill).
 
-    The check is restricted to rows whose (category, term) key exists in D-12.
-    SSN rows that originated in D-11 (the Swift lift) are excluded; only the 5
-    new S3 D-12 SSN rows and 6 EIN rows are checked alongside the original 142
-    D-12 rows (dea 29 + dob 26 + itin 28 + name 35 + npi 29 = 147 original
-    D-12; ssn 5 + ein 6 = 11 S3 additions; total D-12 shipping rows = 158).
+    The check is restricted to rows whose (category, term) key exists in the
+    authored file. SSN rows that originated in the Swift lift are excluded;
+    only the 5 authored SSN rows and 6 EIN rows are checked alongside the
+    original authored rows (dea 29 + dob 26 + itin 28 + name 31 + npi 29
+    = 143; ssn 5 + ein 6 = 11 later additions; total authored shipping
+    rows = 154).
     """
     candidates = load_json(D12_CANDIDATES_PATH)
     by_term = {(c["category"], c["term"]): c["confidence"] for c in candidates}
@@ -327,44 +328,44 @@ def test_d12_authored_confidence_passthrough(payload: dict[str, Any]) -> None:
                 f" got {row['confidence']!r}"
             )
             seen += 1
-    assert seen == 158
+    assert seen == 154
 
 
 def test_d16_bates_legal_anchors_ship(payload: dict[str, Any]) -> None:
-    """D-16: 10 ``.legal``-scoped Bates anchors ship with ``doctypes == ["court"]``.
+    """The 10 ``.legal``-scoped Bates anchors ship with ``doctypes == ["court"]``.
 
     The candidates-side ``proposed_doctypes: [".legal"]`` translates to
-    wire ``doctypes: ["court"]`` per F-46. The anchors share the bates
-    category with D-11's 11 baseline rows; doctype scoping is what
+    wire ``doctypes: ["court"]``. The anchors share the bates
+    category with the lift's 11 baseline rows; doctype scoping is what
     distinguishes them on the wire. Confidence is preserved verbatim from
-    the candidates file (D-12-style projection) — no backfill applies to
-    D-16 rows.
+    the candidates file (authored-style projection) — no backfill applies to
+    the anchor rows.
     """
     d16_rows = [r for r in payload["entries"] if r["category"] == "bates" and r["doctypes"]]
     assert len(d16_rows) == _EXPECTED_D16_BATES, (
-        f"expected {_EXPECTED_D16_BATES} D-16 bates anchors, got {len(d16_rows)}"
+        f"expected {_EXPECTED_D16_BATES} bates anchors, got {len(d16_rows)}"
     )
     candidates = load_json(D16_CANDIDATES_PATH)
     expected_terms = {c["term"] for c in candidates}
     assert {r["term"] for r in d16_rows} == expected_terms
     for row in d16_rows:
         assert row["doctypes"] == ["court"], (
-            f"D-16 row {row['term']!r} expected doctypes=['court'], got {row['doctypes']!r}"
+            f"anchor row {row['term']!r} expected doctypes=['court'], got {row['doctypes']!r}"
         )
     by_term = {c["term"]: c["confidence"] for c in candidates}
     for row in d16_rows:
         assert row["confidence"] == by_term[row["term"]], (
-            f"D-16 row {row['term']!r}: candidate confidence "
+            f"anchor row {row['term']!r}: candidate confidence "
             f"{by_term[row['term']]!r} should pass through verbatim"
         )
 
 
 def test_d16_does_not_duplicate_d11_bates_terms(payload: dict[str, Any]) -> None:
-    """D-16 anchors are multi-word phrases that do not collide with D-11's single-word baseline.
+    """Bates anchors are multi-word phrases that do not collide with the lifted baseline.
 
-    The D-11 baseline (``bates``, ``deposition``, ``discovery``, ``exhibit``,
+    The lifted baseline (``bates``, ``deposition``, ``discovery``, ``exhibit``,
     ``foia``, ``produced``, ``production``, ``response``, ``responsive``,
-    ``stamp``, ``stamped``) is doctype-unscoped; the D-16 anchors are
+    ``stamp``, ``stamped``) is doctype-unscoped; the anchors are
     multi-word phrases scoped to ``[court]``. Guard against accidental
     re-introduction of an identical ``term`` in both sources, which would
     sort adjacently but ship as distinct rows.
@@ -376,25 +377,25 @@ def test_d16_does_not_duplicate_d11_bates_terms(payload: dict[str, Any]) -> None
         r["term"] for r in payload["entries"] if r["category"] == "bates" and r["doctypes"]
     }
     overlap = d11_bates_terms & d16_bates_terms
-    assert not overlap, f"D-11 and D-16 bates rows share term(s): {overlap}"
+    assert not overlap, f"lifted and anchor bates rows share term(s): {overlap}"
 
 
 def test_builder_raises_when_d11_candidates_missing(tmp_path: Path) -> None:
-    """Fail-loud: missing D-11 candidates is a build error."""
+    """Fail-loud: a missing lifted-candidates file is a build error."""
     missing = tmp_path / "does_not_exist.json"
     with pytest.raises(PipelineError, match="missing"):
         build_context_keywords(_CANONICAL_SEED, d11_candidates_path=missing)
 
 
 def test_builder_raises_when_d12_candidates_missing(tmp_path: Path) -> None:
-    """Fail-loud: missing D-12 candidates is a build error."""
+    """Fail-loud: a missing authored-candidates file is a build error."""
     missing = tmp_path / "does_not_exist.json"
     with pytest.raises(PipelineError, match="missing"):
         build_context_keywords(_CANONICAL_SEED, d12_candidates_path=missing)
 
 
 def test_builder_raises_when_d16_candidates_missing(tmp_path: Path) -> None:
-    """Fail-loud: missing D-16 candidates is a build error."""
+    """Fail-loud: a missing Bates-anchor file is a build error."""
     missing = tmp_path / "does_not_exist.json"
     with pytest.raises(PipelineError, match="missing"):
         build_context_keywords(_CANONICAL_SEED, d16_candidates_path=missing)
@@ -443,7 +444,7 @@ def test_builder_raises_when_total_count_diverges(tmp_path: Path) -> None:
 
 
 # -----------------------------------------------------------------------------
-# S3 EIN category infrastructure (design 02 sections 2.1 and 2.6)
+# EIN category infrastructure (search-and-redact release)
 # -----------------------------------------------------------------------------
 
 
@@ -455,20 +456,20 @@ def test_ein_category_in_schema() -> None:
 
 
 def test_ein_expected_count(payload: dict[str, Any]) -> None:
-    """The built artifact contains exactly 6 EIN rows (design 02 section 2.6)."""
+    """The built artifact contains exactly 6 EIN rows."""
     ein_rows = [e for e in payload["entries"] if e["category"] == "ein"]
     assert len(ein_rows) == 6, f"Expected 6 EIN rows in the built artifact, got {len(ein_rows)}"
 
 
 def test_ein_candidates_count() -> None:
-    """D-12 candidates file contains exactly 6 EIN rows."""
+    """The authored candidates file contains exactly 6 EIN rows."""
     candidates = load_json(D12_CANDIDATES_PATH)
     ein_candidates = [
         c
         for c in candidates
         if c["category"] == "ein" and c.get("proposed_status") == "a21-shipping"
     ]
-    assert len(ein_candidates) == 6, f"Expected 6 EIN candidates in D-12, got {len(ein_candidates)}"
+    assert len(ein_candidates) == 6, f"Expected 6 EIN candidates, got {len(ein_candidates)}"
 
 
 def test_ein_rows_financial_doctype(payload: dict[str, Any]) -> None:

@@ -1,6 +1,6 @@
 {
-  "reviewed_version": "e089ba3edecea9cabc93fff29b24096ca90650a618859d7f06713fab432ac291",
-  "reviewed_by": "jesse",
-  "reviewed_at": "2026-06-11",
-  "note": "S3 review iteration 2 (search-impl series): the 166-entry candidates re-approved in-session after the D1 gate flagged (ssn, financial) 'tax id' at 0.55 dropping label-boosted SSNs below the balanced cutoff on G8 financial invoices; de-weighted to 0.35 (design 02 section-2.3 ambiguous-term weight), Jesse-reviewed. Iteration 1 (same day) approved the original 166 entries against the design 02 section-4 disposition table, with the (ssn, court) A5 keep-list trio retained; the mechanical disposition check re-ran clean after the re-weight."
+  "reviewed_version": "dadedcab7de6b101f4275b4a1bdb7d2f17fbd275ba869ea565947405a4d6cc83",
+  "reviewed_by": "maintainer",
+  "reviewed_at": "2026-08-27",
+  "note": "Prose/provenance rewrite plus the keyword and scope edits of the two change plans approved on 2026-08-27 (the context-asset review, Tier A and Tier B): 171 entries — 'abc corp.' is 'corp.'; the bare 'ein' and 'mbi' suppression tokens are replaced by their label phrases (employer identification number / employer id / federal id / fein at 0.55; medicare number / medicare beneficiary identifier at 0.65, medicare id at 0.55); every other keyword, scope, weight and source_id is unchanged. Rationale text no longer cites private planning documents."
 }

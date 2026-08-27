@@ -1,7 +1,7 @@
-"""F5 guard: the verify-determinism rebuild must re-parse from an EMPTY ingest cache.
+"""The verify-determinism rebuild must re-parse from an EMPTY ingest cache.
 
 Once ``_ingest_cache/`` left the hash-lock surface (``iter_build_artifacts``
-exclusion, speed S01 #8), the lockfile no longer transitively pins the parse
+exclusion), the lockfile no longer transitively pins the parse
 output — the side-by-side rebuild's fresh re-parse became the SOLE verifier
 of parse-level determinism. These tests pin the two mechanisms that keep it
 sole and sound:
