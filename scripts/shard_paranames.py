@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import os
 import sys
 import tempfile
 from collections.abc import Iterator
@@ -91,7 +92,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     default_input = (
         repo_root / "src/resecta_data/gazetteers/sources/paranames/paranames_full.tsv.gz"
     )
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--shards", type=int, default=8)
     parser.add_argument("--input", type=Path, default=default_input)
     parser.add_argument("--output-dir", type=Path, default=None)
@@ -165,15 +168,10 @@ def _write_shards(
 
     def _open_shard(idx: int) -> tuple[gzip.GzipFile, Path]:
         final_name = f"paranames_full_shard_{idx:02d}.tsv.gz"
-        final_path = output_dir / final_name
-        tmp_fd, tmp_name = tempfile.mkstemp(
-            prefix=f".{final_name}.", suffix=".tmp", dir=output_dir
-        )
+        tmp_fd, tmp_name = tempfile.mkstemp(prefix=f".{final_name}.", suffix=".tmp", dir=output_dir)
         tmp = Path(tmp_name)
         # Close the low-level fd; GzipFile manages its own file object.
-        import os as _os
-
-        _os.close(tmp_fd)
+        os.close(tmp_fd)
         # mtime=0 + compresslevel pinned → reproducible bytes.
         gz = gzip.GzipFile(
             filename=str(tmp),

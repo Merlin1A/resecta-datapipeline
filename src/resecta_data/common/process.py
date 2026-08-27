@@ -64,7 +64,10 @@ def request_parent_death_signal(sig: int = signal.SIGTERM) -> None:
     """
     if sys.platform != "linux":
         return
-    try:  # type: ignore[unreachable]
+    # unreachable fires only on non-Linux mypy hosts (the early return above
+    # is platform-conditional); unused-ignore silences the unused-ignore
+    # warning the same comment would otherwise raise on Linux.
+    try:  # type: ignore[unreachable, unused-ignore]
         libc = ctypes.CDLL("libc.so.6", use_errno=True)
         libc.prctl(_PR_SET_PDEATHSIG, sig, 0, 0, 0)
     except OSError:

@@ -44,7 +44,7 @@ source "$VENV_DIR/bin/activate"
 
 # --- Early exit when inputs are unchanged --------------------------------------
 # The Makefile re-runs this script whenever pyvenv.cfg is older than
-# pyproject.toml / requirements.lock — which checkout-time mtime churn causes
+# pyproject.toml / the lockfiles — which checkout-time mtime churn causes
 # constantly — and a fully-satisfied `pip install --require-hashes` still
 # costs ~2.3 s. A content stamp under .venv/ lets a re-run with byte-identical
 # inputs skip pip entirely; any real edit changes the sha and falls through
@@ -59,10 +59,10 @@ h = hashlib.sha256()
 for name in sys.argv[1:]:
     with open(name, "rb") as f:
         h.update(f.read())
-print(h.hexdigest())' requirements.lock pyproject.toml
+print(h.hexdigest())' requirements.lock requirements-dev.lock pyproject.toml
 }
 
-if [ -f requirements.lock ] && [ -f pyproject.toml ] && [ -f "$STAMP_FILE" ]; then
+if [ -f requirements.lock ] && [ -f requirements-dev.lock ] && [ -f pyproject.toml ] && [ -f "$STAMP_FILE" ]; then
     if [ "$(cat "$STAMP_FILE")" = "$(input_sha)" ]; then
         echo "Bootstrap inputs unchanged (sha256 stamp match); skipping pip install."
         touch "$VENV_DIR/pyvenv.cfg"
@@ -76,27 +76,30 @@ python -m pip install --quiet --upgrade "pip>=24.0,<25" "setuptools>=68" "wheel"
 
 # --- Install dependencies from lockfile --------------------------------------
 
-if [ ! -f "requirements.lock" ]; then
-    echo "ERROR: requirements.lock is missing" >&2
-    echo "       Run scripts/freeze_deps.sh to generate it" >&2
-    exit 1
-fi
+for LOCK in requirements.lock requirements-dev.lock; do
+    if [ ! -f "$LOCK" ]; then
+        echo "ERROR: $LOCK is missing" >&2
+        echo "       Run scripts/freeze_deps.sh to generate it" >&2
+        exit 1
+    fi
+done
 
-echo "Installing pinned dependencies from requirements.lock"
-python -m pip install --quiet --require-hashes -r requirements.lock || {
-    # Fallback for initial bootstrap when hashes aren't yet present
-    echo "  (retrying without --require-hashes for initial bootstrap)"
-    python -m pip install --quiet -r requirements.lock
-}
+# Every dependency — runtime and dev — installs hash-verified from the two
+# lockfiles. There is no unpinned fallback: an install that cannot be
+# verified is not a bootstrap.
+echo "Installing pinned dependencies from requirements.lock + requirements-dev.lock"
+python -m pip install --quiet --require-hashes -r requirements.lock -r requirements-dev.lock
 
 # --- Install this package in editable mode ------------------------------------
+# --no-deps: every dependency is already installed from the lockfiles above;
+# letting pip resolve here would reintroduce unpinned installs.
 
-echo "Installing resecta-data (editable) with dev extras"
-python -m pip install --quiet -e ".[dev]"
+echo "Installing resecta-data (editable)"
+python -m pip install --quiet -e . --no-deps
 
 # --- Record success ------------------------------------------------------------
 # Stamp + cfg touch come LAST so any pip failure above aborts (set -e) before
-# success is recorded. The pyvenv.cfg touch closes B1: the Makefile rule
+# success is recorded. The pyvenv.cfg touch matters because the Makefile rule
 # `$(VENV_DIR)/pyvenv.cfg: pyproject.toml requirements.lock` keys on the cfg
 # mtime, but `python -m venv` writes the cfg once at creation — so checkout
 # mtimes kept it permanently stale and pip re-ran on every make invocation.

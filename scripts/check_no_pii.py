@@ -22,17 +22,40 @@ from pathlib import Path
 _EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 _PERSONAL_DOMAINS = frozenset(
     {
-        "protonmail.com", "proton.me", "pm.me", "gmail.com", "googlemail.com",
-        "icloud.com", "me.com", "mac.com", "outlook.com", "hotmail.com",
-        "live.com", "yahoo.com", "ymail.com", "aol.com", "fastmail.com",
-        "gmx.com", "zoho.com",
+        "protonmail.com",
+        "proton.me",
+        "pm.me",
+        "gmail.com",
+        "googlemail.com",
+        "icloud.com",
+        "me.com",
+        "mac.com",
+        "outlook.com",
+        "hotmail.com",
+        "live.com",
+        "yahoo.com",
+        "ymail.com",
+        "aol.com",
+        "fastmail.com",
+        "gmx.com",
+        "zoho.com",
     }
 )
 _ALLOW_SUFFIX = ("@resecta.app", "@users.noreply.github.com")
 _ALLOW_DOMAINS = frozenset({"example.com", "example.org", "example.net", "domain.tld"})
 _SCAN_GLOBS = (
-    "*.py", "*.sh", "*.bash", "*.md", "*.txt", "*.toml",
-    "*.cfg", "*.ini", "*.yml", "*.yaml", "Makefile", "GNUmakefile",
+    "*.py",
+    "*.sh",
+    "*.bash",
+    "*.md",
+    "*.txt",
+    "*.toml",
+    "*.cfg",
+    "*.ini",
+    "*.yml",
+    "*.yaml",
+    "Makefile",
+    "GNUmakefile",
 )
 
 

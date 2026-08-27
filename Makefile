@@ -277,7 +277,7 @@ check-python: ## Verify Python version matches .python-version
 		fi; \
 	fi
 
-$(VENV_DIR)/pyvenv.cfg: pyproject.toml requirements.lock
+$(VENV_DIR)/pyvenv.cfg: pyproject.toml requirements.lock requirements-dev.lock
 	@$(MAKE) check-python
 	@scripts/bootstrap.sh
 
@@ -775,13 +775,13 @@ sources: bootstrap ## Fetch raw inputs (the ONLY network target — see CLAUDE.m
 
 .PHONY: lint
 lint: bootstrap ## Run ruff check and format check
-	$(RUFF) check src tests
-	$(RUFF) format --check src tests
+	$(RUFF) check src tests scripts
+	$(RUFF) format --check src tests scripts
 
 .PHONY: format
 format: bootstrap ## Apply ruff formatting
-	$(RUFF) format src tests
-	$(RUFF) check --fix src tests
+	$(RUFF) format src tests scripts
+	$(RUFF) check --fix src tests scripts
 
 .PHONY: typecheck
 typecheck: bootstrap ## Run mypy --strict
@@ -869,6 +869,12 @@ determinism-check-force: bootstrap
 .PHONY: hash-check-only
 hash-check-only: bootstrap
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock
+
+# Hash-verify only what the current host actually built; entries for
+# artifacts that need the large fetched sources are reported as skipped.
+.PHONY: hash-check-built-only
+hash-check-built-only: bootstrap
+	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock --built-only
 
 .PHONY: hash-check
 hash-check: bootstrap build hash-check-only ## Verify asset_hashes.lock matches current build

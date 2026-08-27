@@ -1,0 +1,49 @@
+# Hermetic pull-request gate: everything below runs from the git-tracked tree
+# and the two hash-pinned lockfiles — no network access after bootstrap.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONHASHSEED: "0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Bootstrap (hash-verified lockfiles)
+        run: scripts/bootstrap.sh
+      - name: PII guard
+        run: python3 scripts/check_no_pii.py
+      - name: Lint
+        run: make lint
+      - name: Typecheck
+        run: make typecheck
+      - name: Tests
+        run: make test
+      - name: Pure-code builders
+        run: make vectors fuzz adversarial zip-scf corpus classifier gazetteers context rules
+      - name: Schema validation
+        run: make schema-check-only
+      - name: Hash check (built artifacts only)
+        run: make hash-check-built-only

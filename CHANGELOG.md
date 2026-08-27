@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ## Unreleased
 
+### Added
+
+- GitHub Actions: a hermetic pull-request gate (lint, types, tests, pure-code
+  builders, schema and hash checks), a weekly full-verify workflow with cached
+  sources, and a supply-chain job (pip-audit, OSV-Scanner, SBOM); the dev tools
+  are hash-pinned in `requirements-dev.lock`; `make lint` covers `scripts/`.
+
 ## 0.1.0 — 2026-06-24
 
 Initial public release.

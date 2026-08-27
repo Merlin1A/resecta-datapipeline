@@ -33,8 +33,21 @@ pip-compile \
     --output-file=requirements.lock \
     pyproject.toml
 
+# The runtime lock constrains the dev compile so the two lockfiles never
+# disagree on a shared transitive pin (pip refuses to install both otherwise).
+echo "Compiling requirements-dev.lock from pyproject.toml (dev extra)"
+pip-compile \
+    --quiet \
+    --extra dev \
+    --constraint requirements.lock \
+    --generate-hashes \
+    --resolver=backtracking \
+    --strip-extras \
+    --output-file=requirements-dev.lock \
+    pyproject.toml
+
 echo ""
-echo "requirements.lock regenerated."
+echo "requirements.lock and requirements-dev.lock regenerated."
 echo ""
 echo "Review the diff carefully. Unexpected transitive changes are a red flag."
-echo "Commit both pyproject.toml and requirements.lock together."
+echo "Commit pyproject.toml and both lockfiles together."

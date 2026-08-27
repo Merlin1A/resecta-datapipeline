@@ -1,0 +1,88 @@
+# Weekly full verification: hydrates the large fetched sources (SHA-256
+# validated, cached between runs) and runs the complete verify sequence —
+# the remote twin of a local `make verify` after `make sources`.
+name: verify
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONHASHSEED: "0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  full-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Read the pinned paranames SHA-256 from SOURCES.md
+        id: paranames
+        run: |
+          sha="$(awk -F'|' '$2 ~ /paranames_full\.tsv\.gz/ { gsub(/ /, "", $6); print $6 }' SOURCES.md)"
+          if [ -z "$sha" ]; then
+            echo "SOURCES.md paranames row not found" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - name: Restore the paranames corpus and shards
+        id: cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            src/resecta_data/gazetteers/sources/paranames/paranames_full.tsv.gz
+            src/resecta_data/gazetteers/sources/paranames/shards
+          key: paranames-${{ steps.paranames.outputs.sha }}
+      - name: Fetch the paranames corpus (cache miss only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: scripts/fetch_paranames.sh
+      - name: Build the paranames shards (cache miss only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          scripts/bootstrap.sh
+          make paranames-shards
+      - name: Full verify
+        run: RESECTA_FORCE_DETERMINISM=1 RESECTA_CI=1 scripts/ci_verify.sh
+
+  # Scheduled workflows are disabled by the platform after 60 days without
+  # repository commits. When main has been quiet for ~50 days this job pushes
+  # an empty commit to a dedicated ci-keepalive side branch (never to main),
+  # which counts as activity and keeps the schedules enabled.
+  keepalive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Refresh the ci-keepalive branch when main is quiet
+        run: |
+          last="$(git log -1 --format=%ct HEAD)"
+          now="$(date +%s)"
+          age_days=$(( (now - last) / 86400 ))
+          echo "Last commit on the default branch: ${age_days} days ago"
+          if [ "$age_days" -lt 50 ]; then
+            echo "Recent activity; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-keepalive
+          git commit --allow-empty -m "Keep scheduled workflows enabled"
+          git push --force origin ci-keepalive

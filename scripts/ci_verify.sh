@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# scripts/ci_verify.sh — local verification sequence (lint -> typecheck ->
-# test -> build -> schema/hash checks). There is no remote CI runner; this
-# script and `gmake verify` are the verification gates.
+# scripts/ci_verify.sh — full verification sequence (lint -> typecheck ->
+# test -> build -> schema/hash checks). The weekly remote verify workflow
+# runs this script on a hosted runner; it is also the local smoke check
+# alongside `gmake verify`.
 #
 # Invariants:
 #   - No network access after bootstrap

@@ -16,7 +16,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEST_DIR="$REPO_ROOT/src/resecta_data/gazetteers/sources/paranames"
 DEST_FILE="$DEST_DIR/paranames_full.tsv.gz"
-URL="https://github.com/bltlab/paranames/releases/latest/download/paranames.tsv.gz"
+# Pinned to the release whose asset matches the SOURCES.md SHA-256 row;
+# a "latest" URL would silently change bytes under us on a new upstream release.
+URL="https://github.com/bltlab/paranames/releases/download/v2024.05.07.0/paranames.tsv.gz"
 
 if [ -f "$DEST_FILE" ]; then
     echo "File already exists: $DEST_FILE" >&2
@@ -26,14 +28,33 @@ fi
 
 mkdir -p "$DEST_DIR"
 
+EXPECTED_SHA256="$(awk -F'|' '$2 ~ /paranames_full\.tsv\.gz/ { gsub(/ /, "", $6); print $6 }' "$REPO_ROOT/SOURCES.md")"
+if [ -z "$EXPECTED_SHA256" ]; then
+    echo "ERROR: could not read the paranames_full.tsv.gz SHA-256 row from SOURCES.md" >&2
+    exit 1
+fi
+
 echo "Fetching $URL"
 echo "(this is a large file; expect several minutes on a typical connection)"
 curl --fail --show-error --location --output "$DEST_FILE" "$URL"
 
+if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL_SHA256="$(sha256sum "$DEST_FILE" | awk '{print $1}')"
+else
+    ACTUAL_SHA256="$(shasum -a 256 "$DEST_FILE" | awk '{print $1}')"
+fi
+if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+    echo "ERROR: SHA-256 mismatch for $DEST_FILE" >&2
+    echo "       expected (SOURCES.md): $EXPECTED_SHA256" >&2
+    echo "       actual:                $ACTUAL_SHA256" >&2
+    echo "       The download is deleted; the upstream asset does not match the pinned row." >&2
+    rm -f "$DEST_FILE"
+    exit 1
+fi
+
 echo ""
 echo "Wrote $DEST_FILE"
-echo "SHA-256:"
-shasum -a 256 "$DEST_FILE" | awk '{print $1}'
+echo "SHA-256 verified against SOURCES.md: $ACTUAL_SHA256"
 echo ""
 echo "Next steps:"
 echo "  1. Filter to PER entities with >=5 sitelinks before adopting."

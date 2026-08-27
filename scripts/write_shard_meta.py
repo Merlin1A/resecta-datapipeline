@@ -21,6 +21,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -48,8 +49,9 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: no shards matching {_SHARD_GLOB} under {shard_dir}", file=sys.stderr)
         return 1
 
+    parent_sha256 = _sha256(parent)
     payload = {
-        "parent_sha256": _sha256(parent),
+        "parent_sha256": parent_sha256,
         "parent_path": str(parent),
         "script_commit": _resolve_script_commit(),
         "shard_count": len(shard_paths),
@@ -61,8 +63,7 @@ def main(argv: list[str]) -> int:
 
     _atomic_write_json(output, payload)
     print(
-        f"Wrote {output} ({payload['shard_count']} shards, "
-        f"parent sha256 {payload['parent_sha256'][:16]}...)",
+        f"Wrote {output} ({len(shard_paths)} shards, parent sha256 {parent_sha256[:16]}...)",
         file=sys.stderr,
     )
     return 0
@@ -110,8 +111,10 @@ def _resolve_script_commit() -> str:
     ``make paranames-shards`` keeps working during local iteration.
     """
     try:
-        result = subprocess.run(
-            ["git", "rev-parse", f"HEAD:{_SHARD_SCRIPT_REL}"],
+        # Fixed argv, no shell; git deliberately resolves from PATH so the
+        # script works wherever the checkout lives.
+        result = subprocess.run(  # noqa: S603
+            ["git", "rev-parse", f"HEAD:{_SHARD_SCRIPT_REL}"],  # noqa: S607
             capture_output=True,
             check=True,
             text=True,
@@ -123,20 +126,16 @@ def _resolve_script_commit() -> str:
 
 def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    encoded = (
-        json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
-    ).encode("utf-8")
-    tmp_fd, tmp_name = tempfile.mkstemp(
-        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    encoded = (json.dumps(payload, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode(
+        "utf-8"
     )
+    tmp_fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
     tmp_path = Path(tmp_name)
     try:
-        import os as _os
-
-        with _os.fdopen(tmp_fd, "wb") as fh:
+        with os.fdopen(tmp_fd, "wb") as fh:
             fh.write(encoded)
             fh.flush()
-            _os.fsync(fh.fileno())
+            os.fsync(fh.fileno())
         tmp_path.replace(path)
     except Exception:
         if tmp_path.exists():
