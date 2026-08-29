@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- Documentation: shorter code of conduct; README/CONTRIBUTING/SECURITY trimmed and corrected.
 - Curated context assets change under a written, approved change plan; the
   reviewed negative-context sidecar is re-stamped by the same change — the
   policy text is person-neutral throughout. Provenance prose in shipped assets

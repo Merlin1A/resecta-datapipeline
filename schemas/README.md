@@ -47,7 +47,7 @@ test suite to exercise the validator.
 - `g8_bucket_recall.schema.json` — per-bucket recall of the surnames Bloom filter against the G8 corpus
 - `negative_corpus.schema.json` — deterministic no-PII negative corpus
 - `doctype_softmax_dump.schema.json` / `detector_score_dump.schema.json` — the Swift-produced calibration dumps the Phase 3b `calibrate` targets consume
-- `demographic_coverage.schema.json`, `nicknames.schema.json`, `bundle_size.schema.json`, `cutover_diff.schema.json` — the Phase 2/3 sidecars and probes
+- `nicknames.schema.json`, `bundle_size.schema.json`, `cutover_diff.schema.json` — the Phase 2/3 sidecars and probes
 
 ## Conventions
 

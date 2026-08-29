@@ -44,17 +44,15 @@ real download follows redirects via `curl --location`. The rule is
 ### `fetch_lib::download_with_sha <url> <dest> [<ua>]`
 Downloads `<url>` to `<dest>` via `curl --fail --silent --show-error
 --location`. Captures SHA-256 into `<dest>.sha256` (single 64-char hex line,
-LF-terminated). Refuses to overwrite `<dest>` —
-on cache-hit, calls `verify_sidecar` (or writes a sidecar if absent) and
-returns 0. Default UA = `Wget/1.21` (proven against ssa.gov per
-`fetch_ssa_baby_names.sh:42-46`).
+LF-terminated). Refuses to overwrite `<dest>`: on a cache hit it calls `verify_sidecar`, or
+writes a sidecar if absent, and returns 0. Default UA = `Wget/1.21` (proven against ssa.gov per
+`fetch_ssa_babynames.sh:24`).
 
 ### `fetch_lib::write_dated_mirror <live_path> <mirror_dir> <prefix>`
 Writes a dated copy of `<live_path>` at
 `<mirror_dir>/<prefix>-YYYY-MM-DD.<ext>` (UTC date) plus a sidecar.
 Refuses to overwrite an existing dated mirror with a different SHA-256
 (Failure Mode #2 — drift between same-day re-fetches).
-**Only the Federal Register agencies fetcher calls this.**
 
 ### `fetch_lib::append_sources_row <rel_path> <license> <url> <description>`
 Atomically appends a 6-column row to `SOURCES.md`:
@@ -84,7 +82,7 @@ it instead of sourcing it.
 The `<description>` and `<url>` arguments to `append_sources_row` cite
 **ingestion-of-record only** — the upstream the build pipeline actually
 fetches. Do not cite original-of-original sources or historical-derivation
-lineages; `SOURCES.md` records the ingestion-of-record source only.
+lineages.
 
 ## Manually curated files
 

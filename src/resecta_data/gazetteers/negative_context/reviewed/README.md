@@ -11,8 +11,6 @@ committed here and staged from here — the build never writes it.
 Curated context assets change only under a written change plan approved by
 the maintainer before the edit — the asset, the rows or fields, the reason,
 and the regeneration and verification steps. No row-by-row review afterwards.
-The sidecar drift check stays as a mechanical tripwire the same change
-re-stamps.
 
 A change to this gazetteer therefore lands as one commit that carries the
 edited builder inputs (`_scope_rules.py`), the rebuilt candidates, the updated
