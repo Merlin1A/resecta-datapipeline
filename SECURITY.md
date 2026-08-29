@@ -8,7 +8,7 @@ seriously and welcome good-faith research.
 
 ## Reporting a vulnerability
 
-Please report suspected issues through either channel:
+Please report suspected issues through either of these channels:
 
 - **Email:** `security@resecta.app`.
 - **GitHub Security Advisories:** open a private advisory on this repository's
@@ -62,8 +62,8 @@ been addressed and coordinated disclosure has been agreed upon.
 - **License provenance.** Every raw dataset has a row in `SOURCES.md` with its
   license, retrieval URL, retrieval date, and hash.
 
-See `CONTRIBUTING.md` for the verification workflow and the full list of hard
-stops (license judgments, dependency additions, calibration artifacts).
+See `CONTRIBUTING.md` for the verification workflow and the full list of
+plan-sign-off changes.
 
 ## Coordinated disclosure
 

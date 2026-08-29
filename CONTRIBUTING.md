@@ -5,9 +5,8 @@ iOS app: it produces name Bloom filters, gazetteers, classifier dictionaries,
 calibration vectors, and test corpora, then copies them into the engine's
 `Resources/` tree. This document covers the workflow and the invariants that
 keep generated artifacts license-clean and reproducible, including the
-changes that need a written plan approved by the maintainer before the edit
-(curated context assets, license judgments, dependency additions) — see
-"Plan-sign-off changes" below for the full list.
+changes that need a written plan approved by the maintainer before the edit —
+see "Plan-sign-off changes" below for the full list.
 
 ## Setup
 
@@ -94,9 +93,7 @@ The same posture covers every change in this list:
 - legal-text authorship (`NOTICE.txt` rows);
 - any release or lockfile decision.
 
-Propose the written plan (the asset, the rows or fields, the reason, the
-regeneration and verification steps); edit after approval; no row-by-row
-review afterwards. The PR review confirms the plan was carried out.
+The PR review confirms the plan was carried out.
 
 ## Security
 
