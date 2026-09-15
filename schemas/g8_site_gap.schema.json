@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_site_gap.schema.json",
+  "title": "G8 site gap (Site B minus detector site)",
+  "description": "Produced by resecta_data.eval.sitegap from two derived g8_detection_baseline.json dicts: the detector-site trio (doctype-aware detection surfaced on the raw balanced cutoff) and the Site-B trio (the doctype-blind product path, scored families through the composed posterior). Per family and over the grand total it carries both sides' headline numbers, intervals and packet-tier block, and Site B minus detector on every differenced field. Pure arithmetic over the frozen baselines; dev/eval artifact, not installed, not produced by make build; both input digests carried for provenance.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "metric",
+    "detector_sha256",
+    "siteb_sha256",
+    "families",
+    "families_with_gap",
+    "per_family",
+    "totals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "generated_by": { "type": "string", "const": "resecta_data.eval.sitegap" },
+    "metric": { "type": "string", "const": "g8_site_gap" },
+    "detector_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the canonical-encoded detector-site baseline dict."
+    },
+    "siteb_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the canonical-encoded Site-B baseline dict."
+    },
+    "families": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every family present on either side, sorted."
+    },
+    "families_with_gap": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Families present on both sides whose delta moved beyond float dust, sorted."
+    },
+    "per_family": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/gapRow" }
+    },
+    "totals": { "$ref": "#/$defs/gapRow" }
+  },
+  "$defs": {
+    "wilson95": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      ]
+    },
+    "sideSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "precision", "recall", "f1", "f2", "precision_with_decoys",
+        "true_positives", "false_negatives", "false_positives", "adversarial_suppress_fired",
+        "support_n", "detections_n", "precision_wilson95", "recall_wilson95", "low_confidence", "per_tier"
+      ],
+      "properties": {
+        "precision": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f2": { "type": "number", "minimum": 0, "maximum": 1 },
+        "precision_with_decoys": { "type": "number", "minimum": 0, "maximum": 1 },
+        "true_positives": { "type": "integer", "minimum": 0 },
+        "false_negatives": { "type": "integer", "minimum": 0 },
+        "false_positives": { "type": "integer", "minimum": 0 },
+        "adversarial_suppress_fired": { "type": "integer", "minimum": 0 },
+        "support_n": { "type": "integer", "minimum": 0 },
+        "detections_n": { "type": "integer", "minimum": 0 },
+        "precision_wilson95": { "$ref": "#/$defs/wilson95" },
+        "recall_wilson95": { "$ref": "#/$defs/wilson95" },
+        "low_confidence": { "type": "boolean" },
+        "per_tier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["must", "should", "watch", "must_not"],
+          "properties": {
+            "must": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["total", "covered", "recall", "precision_option_c", "f2_option_c"],
+              "properties": {
+                "total": { "type": "integer", "minimum": 0 },
+                "covered": { "type": "integer", "minimum": 0 },
+                "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+                "precision_option_c": { "type": "number", "minimum": 0, "maximum": 1 },
+                "f2_option_c": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            },
+            "should": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["total", "covered", "recall"],
+              "properties": {
+                "total": { "type": "integer", "minimum": 0 },
+                "covered": { "type": "integer", "minimum": 0 },
+                "recall": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            },
+            "watch": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["total", "covered", "covered_rate"],
+              "properties": {
+                "total": { "type": "integer", "minimum": 0 },
+                "covered": { "type": "integer", "minimum": 0 },
+                "covered_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            },
+            "must_not": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["total", "fired", "fire_rate"],
+              "properties": {
+                "total": { "type": "integer", "minimum": 0 },
+                "fired": { "type": "integer", "minimum": 0 },
+                "fire_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "precision", "recall", "f1", "f2", "precision_with_decoys",
+        "true_positives", "false_negatives", "false_positives", "adversarial_suppress_fired", "per_tier"
+      ],
+      "description": "Site B minus detector. Ratios in [-1, 1]; counts are signed integers.",
+      "properties": {
+        "precision": { "type": "number", "minimum": -1, "maximum": 1 },
+        "recall": { "type": "number", "minimum": -1, "maximum": 1 },
+        "f1": { "type": "number", "minimum": -1, "maximum": 1 },
+        "f2": { "type": "number", "minimum": -1, "maximum": 1 },
+        "precision_with_decoys": { "type": "number", "minimum": -1, "maximum": 1 },
+        "true_positives": { "type": "integer" },
+        "false_negatives": { "type": "integer" },
+        "false_positives": { "type": "integer" },
+        "adversarial_suppress_fired": { "type": "integer" },
+        "per_tier": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "must_recall", "must_precision_option_c", "must_f2_option_c",
+            "should_recall", "watch_covered_rate", "must_not_fire_rate"
+          ],
+          "properties": {
+            "must_recall": { "type": "number", "minimum": -1, "maximum": 1 },
+            "must_precision_option_c": { "type": "number", "minimum": -1, "maximum": 1 },
+            "must_f2_option_c": { "type": "number", "minimum": -1, "maximum": 1 },
+            "should_recall": { "type": "number", "minimum": -1, "maximum": 1 },
+            "watch_covered_rate": { "type": "number", "minimum": -1, "maximum": 1 },
+            "must_not_fire_rate": { "type": "number", "minimum": -1, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "gapRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present_in", "detector", "siteb", "delta_siteb_minus_detector"],
+      "properties": {
+        "present_in": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": { "type": "string", "enum": ["detector", "siteb"] }
+        },
+        "detector": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sideSummary" }] },
+        "siteb": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sideSummary" }] },
+        "delta_siteb_minus_detector": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/delta" }] }
+      }
+    }
+  }
+}

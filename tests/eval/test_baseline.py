@@ -31,9 +31,14 @@ def _cell(
     adv_total: int = 0,
     adv_fired: int = 0,
     neg_ctx: int = 0,
+    tiers: dict[str, int] | None = None,
 ) -> dict[str, int]:
-    """Return one raw join cell in the contract's File-1 shape."""
-    return {
+    """Return one raw join cell in the contract's File-1 shape.
+
+    ``tiers`` adds the additive ``tier_*`` counters (1.2 P1.10); a cell
+    without them is the pre-extension shape and must still derive.
+    """
+    cell = {
         "true_positives": tp,
         "false_negatives": fn,
         "false_positives": fp,
@@ -41,6 +46,9 @@ def _cell(
         "adversarial_suppress_fired": adv_fired,
         "suppressed_by_negative_context": neg_ctx,
     }
+    if tiers:
+        cell.update(tiers)
+    return cell
 
 
 def _synthetic_cells() -> dict[str, Any]:
@@ -183,3 +191,119 @@ def test_malformed_cell_key_fails_loud() -> None:
     bad = {"cells": {"ssn_white": _cell(1, 0, 0)}}  # missing doctype token
     with pytest.raises(ValueError, match="does not end in a known"):
         build_baseline(bad)
+
+
+# ---- 1.2 P1.10: F2, Wilson intervals and the packet-tier bridge ----------
+
+
+def test_f2_and_wilson_beside_legacy_metrics() -> None:
+    fam = _run()["per_family"]["ssn"]
+    # P = R = 0.8 -> F2 = 5PR / (4P + R) = 0.8 as well.
+    assert fam["f2"] == pytest.approx(0.8)
+    lo, hi = fam["recall_wilson95"]
+    assert 0.0 <= lo < 0.8 < hi <= 1.0
+    lo_p, hi_p = fam["precision_wilson95"]
+    assert 0.0 <= lo_p < 0.8 < hi_p <= 1.0
+    # A zero-denominator slice carries null intervals, never a division.
+    foia = _run()["per_doctype"]["foia"]
+    assert foia["precision_wilson95"] is None
+    assert foia["recall_wilson95"] is None
+    assert foia["f2"] == 0.0
+
+
+def test_pre_extension_cells_derive_an_all_zero_tier_block() -> None:
+    """A cells file without tier_* counters (P1.1's) still derives, tiers zero."""
+    per_tier = _run()["per_family"]["ssn"]["per_tier"]
+    assert set(per_tier) == {"must", "should", "watch", "must_not"}
+    assert per_tier["must"] == {
+        "total": 0,
+        "covered": 0,
+        "recall": 0.0,
+        "recall_wilson95": None,
+        "precision_option_c": 1.0,  # nothing fired -> the Option-C 1.0
+        "f1_option_c": 0.0,
+        "f2_option_c": 0.0,
+    }
+    assert per_tier["must_not"]["fire_rate_wilson95"] is None
+    assert per_tier["watch"]["covered_rate"] == 0.0
+
+
+def _tiered_cells() -> dict[str, Any]:
+    """Two itin cells whose tier counters are hand-summable.
+
+    must 40/50 covered, should 6/10, watch 1/2, must_not 3 fired of 20.
+    """
+    return {
+        "cells": {
+            "itin_financial_white": _cell(
+                30,
+                10,
+                4,
+                adv_total=12,
+                adv_fired=2,
+                tiers={
+                    "tier_must_total": 30,
+                    "tier_must_covered": 25,
+                    "tier_should_total": 4,
+                    "tier_should_covered": 3,
+                    "tier_watch_total": 1,
+                    "tier_watch_covered": 1,
+                    "tier_must_not_total": 12,
+                    "tier_must_not_fired": 2,
+                },
+            ),
+            "itin_generic_black": _cell(
+                16,
+                4,
+                1,
+                adv_total=8,
+                adv_fired=1,
+                tiers={
+                    "tier_must_total": 20,
+                    "tier_must_covered": 15,
+                    "tier_should_total": 6,
+                    "tier_should_covered": 3,
+                    "tier_watch_total": 1,
+                    "tier_watch_covered": 0,
+                    "tier_must_not_total": 8,
+                    "tier_must_not_fired": 1,
+                },
+            ),
+        }
+    }
+
+
+def test_per_tier_hand_computed() -> None:
+    fam = build_baseline(_tiered_cells())["per_family"]["itin"]
+    tiers = fam["per_tier"]
+    must, should = tiers["must"], tiers["should"]
+    assert (must["total"], must["covered"]) == (50, 40)
+    assert must["recall"] == pytest.approx(0.8)
+    # Option-C precision: covered / (covered + must_not fired) = 40 / 43.
+    assert must["precision_option_c"] == pytest.approx(40 / 43)
+    p, r = 40 / 43, 0.8
+    assert must["f2_option_c"] == pytest.approx(5 * p * r / (4 * p + r))
+    assert must["f1_option_c"] == pytest.approx(2 * p * r / (p + r))
+    assert (should["total"], should["covered"]) == (10, 6)
+    assert should["recall"] == pytest.approx(0.6)
+    assert should["precision_option_c"] == pytest.approx(6 / 9)
+    assert tiers["watch"] == {"total": 2, "covered": 1, "covered_rate": 0.5}
+    must_not = tiers["must_not"]
+    assert (must_not["total"], must_not["fired"]) == (20, 3)
+    assert must_not["fire_rate"] == pytest.approx(0.15)
+    lo, hi = must_not["fire_rate_wilson95"]
+    assert lo < 0.15 < hi
+    # The legacy block is untouched by the tier counters: TP 46 / FN 14 / FP 5.
+    assert (fam["true_positives"], fam["false_negatives"], fam["false_positives"]) == (46, 14, 5)
+    # The tier block rolls up the doctype / demographic / totals axes too.
+    payload = build_baseline(_tiered_cells())
+    assert payload["totals"]["per_tier"]["must"]["total"] == 50
+    assert payload["per_doctype"]["generic"]["per_tier"]["should"]["covered"] == 3
+    assert payload["per_demographic"]["white"]["per_tier"]["must_not"]["fired"] == 2
+
+
+def test_tiered_payload_schema_validates(tmp_build_dir: Path) -> None:
+    payload = build_baseline(_tiered_cells())
+    dest = tmp_build_dir / "g8_detection_baseline_tiered.json"
+    dump_canonical_json(payload, dest)
+    validate_file(dest, _SCHEMAS, "g8_detection_baseline")

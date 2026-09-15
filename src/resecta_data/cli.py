@@ -94,7 +94,11 @@ from .corpus import build_g8_corpus, build_negative_corpus
 from .demographics import build as build_demographics
 from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
+from .eval import documents as eval_documents
 from .eval import run as eval_run
+from .eval.compare_documents import build_compare_documents
+from .eval.sitegap import build_site_gap
+from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
 from .gazetteers.address_components import build as build_address_components
 from .gazetteers.address_components import (
@@ -165,6 +169,11 @@ SCHEMA_ROUTES: dict[str, str] = {
     "vectors/routing_number_vectors.json": "routing_number_vectors",
     "gazetteers/zip_scf_states.json": "zip_scf_states",
     "fuzz/redos_payloads.json": "redos_payloads",
+    # T4.3 malformed-PDF fixtures. Schema-routed but deliberately absent from
+    # INSTALL_ROUTES: the set is a development input to the H4.2 robustness
+    # runner and never ships in the app bundle (same posture as
+    # g8_detection_baseline / g8_headroom).
+    "fuzz/pdf_mutations.json": "pdf_mutations",
     "adversarial/adversarial_patterns.json": "adversarial_patterns",
     # Phase 2
     "gazetteers/gazetteer_manifest.json": "gazetteer_manifest",
@@ -204,6 +213,11 @@ SCHEMA_ROUTES: dict[str, str] = {
     # (not shipped), like g8_bucket_recall / negative_corpus.
     "eval/g8_detection_baseline.json": "g8_detection_baseline",
     "eval/g8_headroom.json": "g8_headroom",
+    # 1.2 P1.10 — the Site-B minus detector-site join of two derived
+    # baselines (M12-02 arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
+    "eval/g8_site_gap.json": "g8_site_gap",
+    # 1.2 P0.5 — the four-clause comparator over documents_eval.json rows.
+    "eval/g8_compare_documents_verdict.json": "g8_compare_documents",
     # Phase 3b (produced only when Swift-side dumps are present under
     # build/calibration/).
     "classifier/doctype_temperature.json": "doctype_temperature",
@@ -1148,7 +1162,7 @@ def build_zip_scf_cmd(
 
 
 @build_group.command("fuzz")
-@click.argument("kind", type=click.Choice(["redos"]))
+@click.argument("kind", type=click.Choice(["redos", "pdf-mutations"]))
 @click.option(
     "--build-dir",
     type=click.Path(file_okay=False, path_type=Path),
@@ -1160,7 +1174,32 @@ def build_zip_scf_cmd(
     default=CANONICAL_SEED,
     show_default=True,
 )
-def build_fuzz_cmd(kind: str, build_dir: Path, seed: int) -> None:
+@click.option(
+    "--packet",
+    "packet_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Source PDF the pdf-mutations kind damages (a sample-doc checkout's "
+        "packet.pdf). Required for that kind; ignored otherwise. Nothing binary "
+        "is committed here -- the base is read at build time and its sha256 is "
+        "recorded in the manifest."
+    ),
+)
+@click.option(
+    "--count",
+    type=int,
+    default=DEFAULT_MUTATION_COUNT,
+    show_default=True,
+    help="How many pdf-mutations fixtures to emit, split evenly across the four families.",
+)
+def build_fuzz_cmd(
+    kind: str,
+    build_dir: Path,
+    seed: int,
+    packet_path: Path | None,
+    count: int,
+) -> None:
     """Build fuzz payload catalogs."""
     assert_hash_seed_pinned()
     if kind == "redos":
@@ -1168,6 +1207,21 @@ def build_fuzz_cmd(kind: str, build_dir: Path, seed: int) -> None:
         dest = build_dir / "fuzz" / "redos_payloads.json"
         dump_canonical_json(payload, dest)
         click.echo(f"Wrote {dest} ({len(payload['payloads'])} payloads)")
+        return
+
+    if packet_path is None:
+        raise click.UsageError("--packet is required for `build fuzz pdf-mutations`.")
+    mutation_set = build_pdf_mutations(seed, source=packet_path.read_bytes(), count=count)
+    fuzz_dir = build_dir / "fuzz"
+    for rel, data in mutation_set.files:
+        atomic_write_bytes(fuzz_dir / rel, data)
+    dest = fuzz_dir / "pdf_mutations.json"
+    dump_canonical_json(mutation_set.manifest, dest)
+    click.echo(
+        f"Wrote {dest} ({len(mutation_set.files)} fixtures under "
+        f"{fuzz_dir / MUTATIONS_DIRNAME}/; base sha256 "
+        f"{mutation_set.manifest['base_sha256'][:12]}...)"
+    )
 
 
 @build_group.command("adversarial")
@@ -1902,6 +1956,59 @@ def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Pa
     click.echo(f"Wrote {written['headroom']}")
 
 
+@build_group.command("eval-documents")
+@click.option(
+    "--manifest",
+    "manifest_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to documents.manifest.json (the T1.4 document manifest).",
+)
+@click.option(
+    "--gt-root",
+    "gt_root",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="Root that resolves the manifest's gt paths (a sample-doc checkout with variants/ built).",
+)
+@click.option(
+    "--hits-dir",
+    "hits_dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+    help="DocumentHarnessTests output directory (RESECTA_DOCS_OUT).",
+)
+@click.option(
+    "--out-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    required=True,
+    help="Directory for documents_eval.json.",
+)
+def build_eval_documents_cmd(
+    manifest_path: Path, gt_root: Path, hits_dir: Path, out_dir: Path
+) -> None:
+    """Derive the document-level Site-B eval from the H1.2 harness JSONs.
+
+    Joins each document's hits (per leg, per run) against its draw-time ground
+    truth under the Option-C match rule, and writes ``documents_eval.json``
+    (per-document metrics + pooled micro/macro + Wilson/BCa intervals + miss
+    attribution) into ``--out-dir`` via the canonical JSON writer. Dev/eval
+    only -- the artifact is not installed to the Swift Resources path.
+    """
+    assert_hash_seed_pinned()
+    written = eval_documents.main(manifest_path, gt_root, hits_dir, out_dir)
+    payload = load_json(written["eval"])
+    click.echo(
+        f"Wrote {written['eval']} "
+        f"({len(payload['per_document'])} documents; site={payload['site']})"
+    )
+    for pool_name, pool in payload["pools"].items():
+        click.echo(
+            f"  pool {pool_name}: micro-F2 {pool['micro_f2']:.4f} "
+            f"over {len(pool['documents'])} documents"
+        )
+
+
 # Precision deltas at the CLI are expressed in POINTS (a 5 means 5 precision
 # points); build_compare consumes FRACTIONS. One conversion, here, keeps the
 # unit contract consistent across CLI + comparator + tests.
@@ -1993,6 +2100,131 @@ def build_eval_compare_cmd(
         f"Wrote {out_path} (verdict={overall}; "
         f"families={len(verdict['families'])}, "
         f"aggregate regression={verdict['aggregate']['regression']})"
+    )
+
+
+@build_group.command("eval-compare-documents")
+@click.option(
+    "--before",
+    "before_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to the BEFORE documents_eval.json (the H1.3 document-level eval).",
+)
+@click.option(
+    "--after",
+    "after_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Path to the AFTER documents_eval.json.",
+)
+@click.option(
+    "--delta-p", type=float, default=5.0, show_default=True, help="C1 uplift, precision POINTS."
+)
+@click.option(
+    "--delta-f-rel",
+    type=float,
+    default=0.30,
+    show_default=True,
+    help="C2 relative FPR cut, fraction.",
+)
+@click.option(
+    "--eps", type=float, default=0.01, show_default=True, help="C3 recall floor slack, fraction."
+)
+@click.option(
+    "--delta-slice",
+    type=float,
+    default=3.0,
+    show_default=True,
+    help="C4 max per-category (row) / per-leg (aggregate) strict-precision drop, precision POINTS.",
+)
+@click.option(
+    "--out",
+    "out_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="Path for the g8_compare_documents_verdict.json output.",
+)
+def build_eval_compare_documents_cmd(
+    before_path: Path,
+    after_path: Path,
+    delta_p: float,
+    delta_f_rel: float,
+    eps: float,
+    delta_slice: float,
+    out_path: Path,
+) -> None:
+    """Decide the four-clause before/after predicate over document rows.
+
+    Reads two ``documents_eval.json`` dicts and applies the G8 comparator's
+    C1 / C2 / C3 to every ``(document, leg)`` row present on both sides (C4
+    over the row's per-category strict precision) and to the pooled aggregate
+    (C4 over the leg kinds). Writes the verdict to ``--out`` via the canonical
+    JSON writer. Same units as ``eval-compare``: ``--delta-p`` /
+    ``--delta-slice`` in precision POINTS, ``--eps`` / ``--delta-f-rel`` as
+    fractions. Pure arithmetic; dev/eval only.
+    """
+    assert_hash_seed_pinned()
+    before = load_json(before_path)
+    after = load_json(after_path)
+    thresholds = {
+        "delta_p": delta_p * _POINTS_TO_FRACTION,
+        "delta_f_rel": delta_f_rel,
+        "eps": eps,
+        "delta_slice": delta_slice * _POINTS_TO_FRACTION,
+    }
+    verdict = build_compare_documents(before, after, thresholds)
+    dump_canonical_json(verdict, out_path)
+    overall = "REGRESSION" if verdict["regression"] else "no-regression"
+    click.echo(
+        f"Wrote {out_path} (verdict={overall}; rows={len(verdict['rows'])}, "
+        f"skipped={len(verdict['rows_skipped'])}, "
+        f"aggregate regression={verdict['aggregate']['regression']})"
+    )
+
+
+@build_group.command("eval-sitegap")
+@click.option(
+    "--detector",
+    "detector_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Derived g8_detection_baseline.json of the detector-site trio (NOT _cells.json).",
+)
+@click.option(
+    "--siteb",
+    "siteb_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Derived g8_detection_baseline.json of the Site-B trio (NOT _cells.json).",
+)
+@click.option(
+    "--out",
+    "out_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    required=True,
+    help="Path for the g8_site_gap.json output.",
+)
+def build_eval_sitegap_cmd(detector_path: Path, siteb_path: Path, out_path: Path) -> None:
+    """Join the detector-site and Site-B derived baselines into the site gap.
+
+    Reads the two derived ``g8_detection_baseline.json`` dicts and writes
+    ``g8_site_gap.json`` (per family + grand total: both sides' headline
+    numbers, intervals and packet-tier block, and Site B minus detector on
+    every differenced field) to ``--out`` via the canonical JSON writer. Pure
+    arithmetic over the frozen baselines; dev/eval only.
+    """
+    assert_hash_seed_pinned()
+    detector = load_json(detector_path)
+    siteb = load_json(siteb_path)
+    gap = build_site_gap(detector, siteb)
+    dump_canonical_json(gap, out_path)
+    total = gap["totals"]["delta_siteb_minus_detector"]
+    click.echo(
+        f"Wrote {out_path} (grand-total Site B minus detector: "
+        f"precision {total['precision']:+.4f} recall {total['recall']:+.4f} "
+        f"f2 {total['f2']:+.4f}; families with a gap: "
+        f"{len(gap['families_with_gap'])} of {len(gap['families'])})"
     )
 
 

@@ -899,6 +899,47 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 	@echo "verify-fast PASSED — determinism-check NOT run; run 'gmake verify' before any install/ship step."
 
 # -----------------------------------------------------------------------------
+# G8 eval — corpus -> engine emitters -> scores in ONE invocation
+# -----------------------------------------------------------------------------
+# Rebuilds the G8 corpus (stamped), checks the engine's bundled test fixture
+# IS that corpus (or installs it when EVAL_INSTALL_CORPUS=1), runs the two G8
+# emitters of the engine TEST target on the host twice (`swift test`, no
+# simulator, no production code; the second run is the determinism twin and
+# the six trio files must be byte-identical), then derives the detector-site
+# and Site-B baselines and the site gap. Needs the sibling iOS checkout at
+# RESECTA_IOS_ROOT with a Swift toolchain. Everything lands under EVAL_OUT;
+# the evidence copy (run.json + SUMMARY.md) is a hand step, never automated.
+EVAL_OUT ?= $(BUILD_DIR)/eval/g8
+EVAL_INSTALL_CORPUS ?= 0
+ENGINE_PACKAGE := $(RESECTA_IOS_ROOT)/Packages/RedactionEngine
+ENGINE_SWIFT_TEST := swift test --package-path $(ENGINE_PACKAGE) --no-parallel
+EVAL_TRIO := g8_cells g8_raw_scores g8_fire_features g8_siteb_cells g8_siteb_raw_scores g8_siteb_fire_features
+
+.PHONY: eval
+eval: bootstrap corpus ## corpus -> both G8 emitters (host swift test, n=2) -> eval-baseline x2 -> eval-sitegap into EVAL_OUT
+	@test -d "$(ENGINE_PACKAGE)" || { echo "ERROR: engine package not found at $(ENGINE_PACKAGE); set RESECTA_IOS_ROOT." >&2; exit 1; }
+	@if [ "$(EVAL_INSTALL_CORPUS)" = "1" ]; then \
+		$(RESECTA_DATA) install-assets --build-dir $(BUILD_DIR) --resources-dir $(SWIFT_RESOURCES) --fixtures-dir $(SWIFT_FIXTURES); \
+	fi
+	@built=$$(shasum -a 256 $(BUILD_DIR)/corpus/g8_corpus.json | cut -d' ' -f1); \
+	fixture=$$(shasum -a 256 $(SWIFT_FIXTURES)/corpus/g8_corpus.json | cut -d' ' -f1); \
+	if [ "$$built" != "$$fixture" ]; then \
+		echo "ERROR: engine fixture corpus ($$fixture) != build/corpus ($$built); rerun with EVAL_INSTALL_CORPUS=1" >&2; exit 1; \
+	fi; echo "[eval] engine fixture corpus == build/corpus ($$built)"
+	@mkdir -p $(EVAL_OUT)/rerun $(EVAL_OUT)/eval-detector $(EVAL_OUT)/eval-siteb
+	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	@for f in $(EVAL_TRIO); do \
+		cmp -s $(EVAL_OUT)/$$f.json $(EVAL_OUT)/rerun/$$f.json || { echo "ERROR: $$f.json differs between the two emitter runs" >&2; exit 1; }; \
+	done; echo "[eval] six trio files byte-identical across the n=2 emitter runs"
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb
+	$(RESECTA_DATA) build eval-sitegap --detector $(EVAL_OUT)/eval-detector/g8_detection_baseline.json --siteb $(EVAL_OUT)/eval-siteb/g8_detection_baseline.json --out $(EVAL_OUT)/g8_site_gap.json
+	@echo "eval DONE -> $(EVAL_OUT) (trios + rerun/ twins, eval-detector/, eval-siteb/, g8_site_gap.json)"
+
+# -----------------------------------------------------------------------------
 # Sign gazetteer manifest (verified by the iOS engine)
 # -----------------------------------------------------------------------------
 # Ed25519-signs build/gazetteers/gazetteer_manifest.json and writes

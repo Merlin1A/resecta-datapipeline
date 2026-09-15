@@ -104,7 +104,7 @@
             "description": "Ground-truth PII annotations. Half-open [start, end) char offsets into text.",
             "items": {
               "type": "object",
-              "required": ["category", "start", "end", "value"],
+              "required": ["category", "start", "end", "value", "tier"],
               "additionalProperties": false,
               "properties": {
                 "category": {
@@ -121,8 +121,18 @@
                     "phone",
                     "email",
                     "routingNumber",
-                    "ein"
+                    "ein",
+                    "itin",
+                    "creditCard",
+                    "driversLicense",
+                    "passport",
+                    "licensePlate"
                   ]
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": ["must", "should", "watch", "must_not"],
+                  "description": "Packet-tier bridge: must (designed to fire), should (designed-marginal surface, off-headline), watch (routed to review, record-only), must_not (decoy the engine is designed to reject). Derived from expected_outcome (redact->must, flag->watch, suppress->must_not) unless a template assigns should explicitly."
                 },
                 "start": {
                   "type": "integer",
@@ -151,7 +161,7 @@
           },
           "adversarial_tags": {
             "type": "array",
-            "maxItems": 8,
+            "maxItems": 13,
             "items": {
               "type": "string",
               "enum": [
@@ -162,7 +172,12 @@
                 "keyword_stuffing",
                 "invisible_text",
                 "column_header_label",
-                "none"
+                "none",
+                "luhn_failed_card_number",
+                "itin_yy_out_of_range",
+                "dl_shape_no_jurisdiction",
+                "passport_shape_no_issuer",
+                "business_registration_plate_label"
               ]
             }
           }

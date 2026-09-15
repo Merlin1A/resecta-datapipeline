@@ -17,6 +17,19 @@ support N (TP + FN) is below ``_LOW_CONFIDENCE_SUPPORT``: a low-support
 demographic slice is reported with ``low_confidence: true`` rather than
 silently presented as a reliable number.
 
+1.2 P1.10 (C12-25 clause 2) -- the packet-tier bridge. The harness cells
+additionally carry eight ``tier_*`` counters (the same ground truth split by
+the packet tiers must / should / watch / must_not that the dp generator
+writes on every span). Every aggregate here derives a ``per_tier`` block from
+them: recall per tier with a Wilson interval, and for the must and should
+tiers an Option-C precision whose false-positive mass is the must_not spans
+that fired -- the document harness's precision rule (``eval/documents.py``),
+so the two ground-truth systems score on one denominator. The six legacy
+counts and their precision / recall / F1 are untouched; F2 (recall-weighted)
+and Wilson intervals on precision and recall are added beside them. A cells
+file from before the extension carries no ``tier_*`` counters and derives an
+all-zero ``per_tier`` block.
+
 See CONTRACT.md File 1; this module follows the pipeline's determinism
 (``common/determinism.py``) and mechanism-language
 (``common/mechanism_language.py``) rules.
@@ -30,6 +43,8 @@ from typing import Any, Final
 
 from resecta_data.common.io import sha256_bytes
 from resecta_data.common.mechanism_language import assert_safe
+
+from .documents import wilson_ci
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +91,68 @@ def _f1(precision: float, recall: float) -> float:
     if precision + recall == 0.0:
         return 0.0
     return 2.0 * precision * recall / (precision + recall)
+
+
+def _f_beta(precision: float, recall: float, beta: float) -> float:
+    """Return F-beta (``beta`` = 2 weights recall twice as much as precision).
+
+    ``0.0`` when the weighted denominator is zero, the same degenerate rule as
+    :func:`_f1` (which it reproduces at ``beta`` = 1).
+    """
+    b2 = beta * beta
+    denominator = b2 * precision + recall
+    if denominator == 0.0:
+        return 0.0
+    return (1.0 + b2) * precision * recall / denominator
+
+
+# The packet tiers in reporting order.
+_TIERS: Final[tuple[str, ...]] = ("must", "should", "watch", "must_not")
+
+
+def _scored_tier(total: int, covered: int, must_not_fired: int) -> dict[str, Any]:
+    """The per-tier block for a tier that carries recall AND Option-C precision.
+
+    ``precision_option_c`` = covered / (covered + must_not_fired): the tier's
+    hits over the hits plus the must_not spans that fired, the document
+    harness's rule (``documents._metric_view``), including its ``1.0`` when
+    nothing fired at all. F1 / F2 are over that precision and the tier's
+    recall.
+    """
+    recall = _safe_ratio(covered, total)
+    precision_denominator = covered + must_not_fired
+    precision = covered / precision_denominator if precision_denominator else 1.0
+    return {
+        "total": total,
+        "covered": covered,
+        "recall": recall,
+        "recall_wilson95": wilson_ci(covered, total),
+        "precision_option_c": precision,
+        "f1_option_c": _f_beta(precision, recall, 1.0),
+        "f2_option_c": _f_beta(precision, recall, 2.0),
+    }
+
+
+def _per_tier(counts: _Counts) -> dict[str, Any]:
+    """Derive the packet-tier block from the eight ``tier_*`` counters."""
+    must_not_fired = counts.tier_must_not_fired
+    return {
+        "must": _scored_tier(counts.tier_must_total, counts.tier_must_covered, must_not_fired),
+        "should": _scored_tier(
+            counts.tier_should_total, counts.tier_should_covered, must_not_fired
+        ),
+        "watch": {
+            "total": counts.tier_watch_total,
+            "covered": counts.tier_watch_covered,
+            "covered_rate": _safe_ratio(counts.tier_watch_covered, counts.tier_watch_total),
+        },
+        "must_not": {
+            "total": counts.tier_must_not_total,
+            "fired": must_not_fired,
+            "fire_rate": _safe_ratio(must_not_fired, counts.tier_must_not_total),
+            "fire_rate_wilson95": wilson_ci(must_not_fired, counts.tier_must_not_total),
+        },
+    }
 
 
 def _parse_cell_key(key: str) -> tuple[str, str, str]:
@@ -130,7 +207,28 @@ class _Counts:
         "false_negatives",
         "false_positives",
         "suppressed_by_negative_context",
+        "tier_must_covered",
+        "tier_must_not_fired",
+        "tier_must_not_total",
+        "tier_must_total",
+        "tier_should_covered",
+        "tier_should_total",
+        "tier_watch_covered",
+        "tier_watch_total",
         "true_positives",
+    )
+
+    # The additive packet-tier counters (1.2 P1.10). Absent from a cells file
+    # written before the extension, so they are read with a zero default.
+    _TIER_FIELDS: Final[tuple[str, ...]] = (
+        "tier_must_total",
+        "tier_must_covered",
+        "tier_should_total",
+        "tier_should_covered",
+        "tier_watch_total",
+        "tier_watch_covered",
+        "tier_must_not_total",
+        "tier_must_not_fired",
     )
 
     def __init__(self) -> None:
@@ -140,15 +238,25 @@ class _Counts:
         self.adversarial_suppress_total = 0
         self.adversarial_suppress_fired = 0
         self.suppressed_by_negative_context = 0
+        self.tier_must_total = 0
+        self.tier_must_covered = 0
+        self.tier_should_total = 0
+        self.tier_should_covered = 0
+        self.tier_watch_total = 0
+        self.tier_watch_covered = 0
+        self.tier_must_not_total = 0
+        self.tier_must_not_fired = 0
 
     def add(self, cell: dict[str, Any]) -> None:
-        """Fold one raw cell's six counts into this accumulator."""
+        """Fold one raw cell's six counts (+ the tier counters) into this accumulator."""
         self.true_positives += int(cell["true_positives"])
         self.false_negatives += int(cell["false_negatives"])
         self.false_positives += int(cell["false_positives"])
         self.adversarial_suppress_total += int(cell["adversarial_suppress_total"])
         self.adversarial_suppress_fired += int(cell["adversarial_suppress_fired"])
         self.suppressed_by_negative_context += int(cell["suppressed_by_negative_context"])
+        for field in self._TIER_FIELDS:
+            setattr(self, field, getattr(self, field) + int(cell.get(field, 0)))
 
 
 def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
@@ -168,7 +276,10 @@ def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
     Each denominator yields ``0.0`` when zero. ``support_n`` (TP + FN, the
     positive GT support) and ``detections_n`` (TP + FP, the surfaced
     detections of this kind) are carried so low-support slices can be flagged
-    downstream.
+    downstream. ``f2`` (recall-weighted) and the Wilson 95 % intervals on
+    precision and recall (``None`` on a zero denominator) sit beside the
+    legacy metrics; ``per_tier`` is the packet-tier block (see the module
+    docstring).
 
     Args:
         counts: A summed (or single-cell) count accumulator.
@@ -198,11 +309,15 @@ def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
         "support_n": support_n,
         "detections_n": detections_n,
         "precision": precision,
+        "precision_wilson95": wilson_ci(tp, detections_n),
         "recall": recall,
+        "recall_wilson95": wilson_ci(tp, support_n),
         "f1": _f1(precision, recall),
+        "f2": _f_beta(precision, recall, 2.0),
         "adversarial_suppression_fp_rate": _safe_ratio(fired, total),
         "family_false_positive_count": decoy_fp_count,
         "precision_with_decoys": _safe_ratio(tp, tp + decoy_fp_count),
+        "per_tier": _per_tier(counts),
     }
 
 
