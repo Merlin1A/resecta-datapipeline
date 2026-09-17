@@ -11,6 +11,15 @@ precision, recall, F1 and the F2 headline, per leg, with:
   merge credit for multi-span occurrences, then the CoNLL-strict category
   ratchet; tier mapping must_fire -> recall denominator, must_not_fire ->
   precision denominator, should_fire -> off-headline, watch -> record-only;
+- two join rules for the coverage credit, selected per run and named in the
+  output: ``union`` (the default) credits the union of the same-category
+  detections over one ground-truth box, so a value the product surfaced as
+  two adjacent hits (a token-split name) reads as covered; ``single`` credits
+  only the best single detection (the earlier rule, kept so the two can be
+  reported as a pair on the same hits). IoU stays single-best under both.
+  Every verdict row surfaces the covering category, the covering hit's text
+  (the ground truth already carries the value, so no new text leaves the run
+  directory), the credited fraction and the number of hits credited;
 - value-string span rules, strict and relaxed: STRICT is normalized string
   equality between the ground-truth value and the best-covering hit's text;
   RELAXED tolerates up to 2 characters of slack at each end (the i2b2
@@ -22,10 +31,18 @@ precision, recall, F1 and the F2 headline, per leg, with:
 - macro (mean over categories) beside micro (pooled counts), with categories
   under 30 must-fire occurrences flagged ``low_support``;
 - OCR-induced vs detector-induced miss attribution by CLEAN-TWIN re-detection:
-  every OCR-leg document here is a derived view of the born-digital packet
-  with identical occurrence ids, so a missed must-fire is OCR-induced when the
-  packet's own text leg strictly matched that occurrence (the detector fires
-  on the clean text) and detector-induced when it missed there too.
+  every OCR-leg document here is a derived view of a born-digital master
+  with identical occurrence ids, so a missed must-fire is OCR-induced when a
+  clean text leg strictly matched that occurrence (the detector fires on the
+  clean text) and detector-induced when it missed there too. The twin is the
+  document's OWN text leg when it ran one, else the first other document
+  whose text leg carries the occurrence id (the packet for packet-derived
+  variants, the capture masters for the capture variants); an id no text leg
+  carries stays unattributed. Among the OCR-induced misses, those whose value
+  survived recognition intact in the raw Vision lines but not in the
+  product-normalized lines (read from the harness's ``ocr-lines-run-<n>.json``
+  dump for the median run) are split out as ``normalizer_destroyed``; when no
+  dump exists for the run that class is reported unavailable, never inferred.
 
 Determinism: the bootstrap RNG is seeded (CANONICAL_SEED); no wall-clock, no
 hash-order dependence (rows are processed in manifest order, runs in filename
@@ -37,6 +54,7 @@ from __future__ import annotations
 import logging
 import math
 import random
+import re
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from statistics import NormalDist
@@ -49,6 +67,9 @@ from resecta_data.common.io import dump_canonical_json, load_json
 logger = logging.getLogger(__name__)
 
 EVAL_FILENAME: Final[str] = "documents_eval.json"
+
+JOIN_RULES: Final[tuple[str, ...]] = ("single", "union")
+DEFAULT_JOIN_RULE: Final[str] = "union"
 
 _COVER_THRESHOLD: Final[float] = 0.5
 _IOU_HEADLINE: Final[float] = 0.5
@@ -97,6 +118,34 @@ def _cover_frac(
     return _intersect(gt, det) / area if area > 0 else 0.0
 
 
+def _union_cover_frac(
+    gt: tuple[float, float, float, float],
+    dets: Sequence[tuple[float, float, float, float]],
+) -> float:
+    """Fraction of ``gt`` covered by the UNION of ``dets`` (exact, by coordinate compression)."""
+    area = gt[2] * gt[3]
+    if area <= 0 or not dets:
+        return 0.0
+    gx0, gy0, gx1, gy1 = gt[0], gt[1], gt[0] + gt[2], gt[1] + gt[3]
+    clipped: list[tuple[float, float, float, float]] = []
+    for r in dets:
+        x0, y0 = max(gx0, r[0]), max(gy0, r[1])
+        x1, y1 = min(gx1, r[0] + r[2]), min(gy1, r[1] + r[3])
+        if x1 > x0 and y1 > y0:
+            clipped.append((x0, y0, x1, y1))
+    if not clipped:
+        return 0.0
+    xs = sorted({c[0] for c in clipped} | {c[2] for c in clipped})
+    ys = sorted({c[1] for c in clipped} | {c[3] for c in clipped})
+    covered = 0.0
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+            cx, cy = (xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2
+            if any(c[0] <= cx <= c[2] and c[1] <= cy <= c[3] for c in clipped):
+                covered += (xs[i + 1] - xs[i]) * (ys[j + 1] - ys[j])
+    return min(covered / area, 1.0)
+
+
 def _norm_text(s: str) -> str:
     return " ".join(s.split()).casefold()
 
@@ -123,12 +172,58 @@ def _end_slack_match(a: str, b: str, k: int = _RELAXED_END_SLACK) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def join_occurrence(occ: dict[str, Any], dets: list[dict[str, Any]]) -> dict[str, Any]:
+def _check_rule(rule: str) -> None:
+    if rule not in JOIN_RULES:
+        raise PipelineError(f"unknown join rule {rule!r}; expected one of {JOIN_RULES}")
+
+
+def _best_cover(
+    gt: tuple[float, float, float, float], dets: list[dict[str, Any]], rule: str
+) -> tuple[float, str | None, str | None, int]:
+    """The coverage credit for one box: (fraction, category, text, hits credited).
+
+    ``single`` credits the best single detection (ties keep the earlier
+    detection). ``union`` starts from that single credit and lets a category's
+    union of detections over the box replace it only when the union is
+    STRICTLY larger, so the union rule can add credit but never re-label a
+    tie (a full-box detection of another category never displaces the
+    single winner it merely equals); categories are visited in hit order.
+    The text is the best single hit's of the credited category (the
+    value-text rules stay single-hit).
+    """
+    best_cover, best_cat, best_text = 0.0, None, None
+    by_cat: dict[str, list[tuple[tuple[float, float, float, float], float, str | None]]] = {}
+    for d in dets:
+        r = (d["rect"][0], d["rect"][1], d["rect"][2], d["rect"][3])
+        c = _cover_frac(gt, r)
+        if c > best_cover:
+            best_cover, best_cat, best_text = c, _canon(d["category"]), d.get("text")
+        if c > 0:
+            by_cat.setdefault(_canon(d["category"]), []).append((r, c, d.get("text")))
+    single_n = 1 if best_cat is not None else 0
+    if rule == "single" or not by_cat:
+        return best_cover, best_cat, best_text, single_n
+    union_cover, union_cat, union_text, union_n = best_cover, best_cat, best_text, single_n
+    for cat, rows in by_cat.items():
+        if len(rows) < 2:  # noqa: PLR2004 -- one detection has no union to add
+            continue
+        u = _union_cover_frac(gt, [r for r, _, _ in rows])
+        if u > union_cover:
+            top = max(rows, key=lambda t: t[1])
+            union_cover, union_cat, union_text, union_n = u, cat, top[2], len(rows)
+    return union_cover, union_cat, union_text, union_n
+
+
+def join_occurrence(
+    occ: dict[str, Any], dets: list[dict[str, Any]], rule: str = DEFAULT_JOIN_RULE
+) -> dict[str, Any]:
     """Option-C verdict for one occurrence against one page's detections.
 
     ``dets`` rows carry ``rect`` as [x, y, w, h] and ``category``/``text``.
-    Returns covered / iou_matched / iou_tight / cover_category / cover_text.
+    Returns covered / iou_matched / iou_tight / cover_category / cover_text /
+    cover_fraction / cover_detections under the given join ``rule``.
     """
+    _check_rule(rule)
     bbox = occ.get("bbox")
     if not bbox:
         return {
@@ -137,23 +232,22 @@ def join_occurrence(occ: dict[str, Any], dets: list[dict[str, Any]]) -> dict[str
             "iou_tight": False,
             "cover_category": None,
             "cover_text": None,
+            "cover_fraction": 0.0,
+            "cover_detections": 0,
         }
     whole = _corner_to_xywh(bbox)
-    best_cover, best_cat, best_text, best_iou = 0.0, None, None, 0.0
+    best_cover, best_cat, best_text, best_n = _best_cover(whole, dets, rule)
+    best_iou = 0.0
     for d in dets:
         r = (d["rect"][0], d["rect"][1], d["rect"][2], d["rect"][3])
-        c = _cover_frac(whole, r)
-        if c > best_cover:
-            best_cover, best_cat, best_text = c, _canon(d["category"]), d.get("text")
-        v = _iou(whole, r)
-        best_iou = max(best_iou, v)
+        best_iou = max(best_iou, _iou(whole, r))
 
     # DetEval merge credit: a multi-span occurrence whose every span is
     # individually covered counts as covered/matched even when the whole-bbox
     # IoU is diluted by inter-span gaps.
     spans = occ.get("spans") or []
     if len(spans) > 1:
-        merge = _merge_credit(spans, dets)
+        merge = _merge_credit(spans, dets, rule)
         if merge["all_covered"]:
             best_cover = max(best_cover, 1.0)
             best_cat = best_cat or merge["category"]
@@ -167,10 +261,14 @@ def join_occurrence(occ: dict[str, Any], dets: list[dict[str, Any]]) -> dict[str
         "iou_tight": best_iou >= _IOU_TIGHT,
         "cover_category": best_cat,
         "cover_text": best_text,
+        "cover_fraction": round(min(best_cover, 1.0), 6),
+        "cover_detections": best_n,
     }
 
 
-def _merge_credit(spans: list[dict[str, Any]], dets: list[dict[str, Any]]) -> dict[str, Any]:
+def _merge_credit(
+    spans: list[dict[str, Any]], dets: list[dict[str, Any]], rule: str = DEFAULT_JOIN_RULE
+) -> dict[str, Any]:
     """Per-span coverage/IoU over a multi-span occurrence (DetEval credit)."""
     all_cov, all_iou = True, True
     merge_cat: str | None = None
@@ -180,12 +278,10 @@ def _merge_credit(spans: list[dict[str, Any]], dets: list[dict[str, Any]]) -> di
         if not sb:
             return {"all_covered": False, "all_iou": False, "category": None, "text": None}
         sr = _corner_to_xywh(sb)
-        sc, scat, stext, sv = 0.0, None, None, 0.0
+        sc, scat, stext, _ = _best_cover(sr, dets, rule)
+        sv = 0.0
         for d in dets:
             r = (d["rect"][0], d["rect"][1], d["rect"][2], d["rect"][3])
-            c = _cover_frac(sr, r)
-            if c > sc:
-                sc, scat, stext = c, _canon(d["category"]), d.get("text")
             sv = max(sv, _iou(sr, r))
         if sc >= _COVER_THRESHOLD:
             merge_cat = merge_cat or scat
@@ -294,14 +390,17 @@ def evaluate_run(
     occs: list[dict[str, Any]],
     run: dict[str, Any],
     carried: list[dict[str, Any]] | None = None,
+    rule: str = DEFAULT_JOIN_RULE,
 ) -> dict[str, Any]:
     """Join one harness run against the occurrence list -> the metric block.
 
     ``carried`` rows (the packet's carried_stmt block) join no denominator --
     they are count-declared, not per-instance-drawn -- but their boxes DO
     count as ground truth for the surplus-fire census, so legitimate hits on
-    the carried statement pages are not misread as surplus.
+    the carried statement pages are not misread as surplus. ``rule`` selects
+    the coverage credit (``union`` / ``single``).
     """
+    _check_rule(rule)
     hits_by_page: dict[int, list[dict[str, Any]]] = {}
     for h in run["hits"]:
         hits_by_page.setdefault(h["page"], []).append(h)
@@ -331,7 +430,7 @@ def evaluate_run(
         if leg is None:
             continue
         page = occ["page"]
-        v = join_occurrence(occ, hits_by_page.get(page, []))
+        v = join_occurrence(occ, hits_by_page.get(page, []), rule)
         want = _canon(occ["category"])
         strict = bool(v["covered"] and v["cover_category"] == want)
         if v["covered"] and not strict and v["cover_category"]:
@@ -346,6 +445,10 @@ def evaluate_run(
             "covered": v["covered"],
             "strict": strict,
             "iou_matched": v["iou_matched"],
+            "cover_category": v["cover_category"],
+            "cover_text": v["cover_text"],
+            "cover_fraction": v["cover_fraction"],
+            "cover_detections": v["cover_detections"],
         }
 
     surplus_by_page = _surplus_fires(occs + (carried or []), hits_by_page)
@@ -494,11 +597,15 @@ def _leg_kind(run: dict[str, Any]) -> str:
     return "mixed"
 
 
-def evaluate(manifest_path: Path, gt_root: Path, hits_dir: Path) -> dict[str, Any]:
+def evaluate(
+    manifest_path: Path, gt_root: Path, hits_dir: Path, rule: str = DEFAULT_JOIN_RULE
+) -> dict[str, Any]:
     """Full document eval over every manifest row with hits present."""
+    _check_rule(rule)
     manifest = load_json(manifest_path)
     per_document: dict[str, Any] = {}
     doc_leg_counts: dict[str, list[tuple[str, dict[str, int]]]] = {}
+    values_by_doc: dict[str, dict[str, tuple[str, int | None]]] = {}
     site: str | None = None
 
     for row in manifest:
@@ -513,14 +620,17 @@ def evaluate(manifest_path: Path, gt_root: Path, hits_dir: Path) -> dict[str, An
         gt = load_json(gt_root / gt_rel)
         occs = gt["occurrences"]
         carried = gt.get("carried_stmt") or []
+        values_by_doc[row["id"]] = {o["id"]: (str(o.get("value", "")), o.get("page")) for o in occs}
         legs: dict[str, list[dict[str, Any]]] = {}
         for rf in run_files:
+            if rf.name.startswith("ocr-lines-run-"):
+                continue  # the OCR line dump sits beside the hits; not a run
             run = load_json(rf)
             if site is None:
                 site = run.get("site")
             elif run.get("site") != site:
                 raise PipelineError(f"site drift in {rf}")
-            block = evaluate_run(occs, run, carried)
+            block = evaluate_run(occs, run, carried, rule)
             legs.setdefault(_leg_kind(run), []).append(block)
 
         doc_block: dict[str, Any] = {"variant": (gt.get("variant") or {}).get("kind")}
@@ -571,15 +681,22 @@ def evaluate(manifest_path: Path, gt_root: Path, hits_dir: Path) -> dict[str, An
             "micro_f2_bca_ci95": bca_bootstrap(counts, lambda c: _micro_f(c, 2.0)),
         }
 
-    attribution = _attribute_misses(per_document)
+    attribution = _attribute_misses(per_document, values_by_doc, hits_dir)
 
+    credit = (
+        "union of same-category detections over the box"
+        if rule == "union"
+        else "best single detection"
+    )
     return {
         "schema_version": 1,
         "site": site or "unknown",
         "generated_by": "resecta_data.eval.documents",
         "match_rule": {
-            "region": f"coverage >= {_COVER_THRESHOLD} (DetEval merge credit on multi-span)",
-            "iou": f"headline >= {_IOU_HEADLINE}, tight >= {_IOU_TIGHT}",
+            "join_rule": rule,
+            "region": f"coverage >= {_COVER_THRESHOLD} by the {credit} "
+            "(DetEval merge credit on multi-span)",
+            "iou": f"headline >= {_IOU_HEADLINE}, tight >= {_IOU_TIGHT} (best single detection)",
             "strict": "region AND category (CoNLL ratchet)",
             "value_text": f"strict = normalized equality; relaxed = +-{_RELAXED_END_SLACK} "
             "chars end slack (i2b2 rule in string space)",
@@ -592,46 +709,167 @@ def evaluate(manifest_path: Path, gt_root: Path, hits_dir: Path) -> dict[str, An
     }
 
 
-def _attribute_misses(per_document: dict[str, Any]) -> dict[str, Any]:
-    """Clean-twin attribution of OCR-leg misses (packet text leg = clean text)."""
-    packet = per_document.get("packet", {})
-    twin = (packet.get("text") or {}).get("median", {}).get("verdicts", {})
-    if not twin:
-        return {"note": "no packet text-leg run present; attribution skipped"}
-    out: dict[str, Any] = {"clean_twin": "packet/text/median"}
+_DIGITS_RE: Final[re.Pattern[str]] = re.compile(r"[0-9]+")
+
+
+def _load_ocr_lines(path: Path) -> dict[int, list[tuple[str, str]]] | None:
+    """The harness's OCR line dump as {page: [(raw, normalized), ...]}; None when absent."""
+    if not path.is_file():
+        return None
+    dump = load_json(path)
+    return {
+        int(p["page"]): [(str(line["text"]), str(line["normalized"])) for line in p["lines"]]
+        for p in dump.get("pages", [])
+    }
+
+
+def _digits_pattern(value: str) -> re.Pattern[str] | None:
+    """A pattern matching the value's digit groups in order, tolerant of separators."""
+    groups = _DIGITS_RE.findall(value)
+    if not groups:
+        return None
+    return re.compile(r"[^0-9]{0,3}".join(re.escape(g) for g in groups))
+
+
+def _normalizer_destroyed(
+    value: str, page: int | None, lines: dict[int, list[tuple[str, str]]]
+) -> bool:
+    """True when the value's digits survived recognition on the page (present intact
+    in a raw Vision line) but not the product normalizer (absent from that line's
+    normalized form)."""
+    pattern = _digits_pattern(value)
+    if pattern is None or page is None:
+        return False
+    return any(
+        pattern.search(raw) is not None and pattern.search(normalized) is None
+        for raw, normalized in lines.get(page, [])
+    )
+
+
+def _text_twins(per_document: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Every document's text-leg median verdicts, keyed by document id."""
+    twins: dict[str, dict[str, Any]] = {}
+    for doc_id, doc_block in sorted(per_document.items()):
+        verdicts = (doc_block.get("text") or {}).get("median", {}).get("verdicts", {})
+        if verdicts:
+            twins[doc_id] = verdicts
+    return twins
+
+
+def _twin_for(
+    occ_id: str, doc_id: str, twins: dict[str, dict[str, Any]]
+) -> tuple[str, dict[str, Any]] | None:
+    """The clean twin verdict for one occurrence: the document's own text leg
+    first, else the first other text leg (by document id) carrying the id."""
+    own = twins.get(doc_id)
+    if own is not None and occ_id in own:
+        return f"{doc_id}/text/median", own[occ_id]
+    for twin_doc in sorted(twins):
+        if twin_doc != doc_id and occ_id in twins[twin_doc]:
+            return f"{twin_doc}/text/median", twins[twin_doc][occ_id]
+    return None
+
+
+def _attribute_leg(
+    doc_id: str,
+    verdicts: dict[str, Any],
+    twins: dict[str, dict[str, Any]],
+    values: dict[str, tuple[str, int | None]],
+    lines: dict[int, list[tuple[str, str]]] | None,
+) -> dict[str, Any]:
+    """Attribute one OCR leg's strict must-fire misses."""
+    classes: dict[str, list[str]] = {
+        "ocr_induced": [],
+        "normalizer_destroyed": [],
+        "detector_induced": [],
+        "unattributed": [],
+    }
+    twins_used: dict[str, int] = {}
+    for occ_id, v in verdicts.items():
+        if v.get("expectation") != "must_fire" or v["strict"]:
+            continue
+        twin = _twin_for(occ_id, doc_id, twins)
+        if twin is None:
+            classes["unattributed"].append(occ_id)
+            continue
+        twin_name, t = twin
+        twins_used[twin_name] = twins_used.get(twin_name, 0) + 1
+        if not t["strict"]:
+            classes["detector_induced"].append(occ_id)
+        elif lines is not None and _normalizer_destroyed(*values.get(occ_id, ("", None)), lines):
+            classes["normalizer_destroyed"].append(occ_id)
+        else:
+            classes["ocr_induced"].append(occ_id)
+    block: dict[str, Any] = {
+        "clean_twins": {k: twins_used[k] for k in sorted(twins_used)},
+        "ocr_induced": sorted(classes["ocr_induced"]),
+        "normalizer_destroyed": (
+            sorted(classes["normalizer_destroyed"]) if lines is not None else None
+        ),
+        "detector_induced": sorted(classes["detector_induced"]),
+        "unattributed": sorted(classes["unattributed"]),
+        "ocr_induced_count": len(classes["ocr_induced"]),
+        "normalizer_destroyed_count": (
+            len(classes["normalizer_destroyed"]) if lines is not None else None
+        ),
+        "detector_induced_count": len(classes["detector_induced"]),
+        "unattributed_count": len(classes["unattributed"]),
+        "strict_miss_total": sum(len(ids) for ids in classes.values()),
+        "normalizer_check": "ocr-lines dump" if lines is not None else "unavailable",
+    }
+    return block
+
+
+def _attribute_misses(
+    per_document: dict[str, Any],
+    values_by_doc: dict[str, dict[str, tuple[str, int | None]]],
+    hits_dir: Path,
+) -> dict[str, Any]:
+    """Clean-twin attribution of every OCR leg's strict must-fire misses.
+
+    The twin of a miss is the document's own text-leg median run when it ran
+    one, else the first other document whose text leg carries the occurrence
+    id; ``normalizer_destroyed`` is split out of the OCR-induced class from
+    the median run's ``ocr-lines-run-<n>.json`` dump when it exists (else
+    reported as unavailable). The four classes partition the strict misses.
+    """
+    twins = _text_twins(per_document)
+    out: dict[str, Any] = {
+        "clean_twin_rule": "the document's own text-leg median run when present, else the "
+        "first other document (by id) whose text leg carries the occurrence id",
+        "text_legs_present": sorted(twins),
+        "classes": ["ocr_induced", "normalizer_destroyed", "detector_induced", "unattributed"],
+        "documents": {},
+    }
+    if not twins:
+        out["note"] = "no text-leg run present; every miss stays unattributed"
     for doc_id, doc_block in sorted(per_document.items()):
         for kind in ("ocr", "ocr-forced"):
             leg = doc_block.get(kind)
             if not leg:
                 continue
-            verdicts = leg["median"]["verdicts"]
-            ocr_induced: list[str] = []
-            detector_induced: list[str] = []
-            unattributed: list[str] = []
-            for occ_id, v in verdicts.items():
-                if v.get("expectation") != "must_fire" or v["strict"]:
-                    continue
-                t = twin.get(occ_id)
-                if t is None:
-                    unattributed.append(occ_id)
-                elif t["strict"]:
-                    ocr_induced.append(occ_id)
-                else:
-                    detector_induced.append(occ_id)
-            if ocr_induced or detector_induced or unattributed:
-                out.setdefault(doc_id, {})[kind] = {
-                    "ocr_induced": sorted(ocr_induced),
-                    "detector_induced": sorted(detector_induced),
-                    "unattributed": sorted(unattributed),
-                    "ocr_induced_count": len(ocr_induced),
-                    "detector_induced_count": len(detector_induced),
-                }
+            dump = hits_dir / doc_id / f"ocr-lines-run-{leg['median_run_index']}.json"
+            block = _attribute_leg(
+                doc_id,
+                leg["median"]["verdicts"],
+                twins,
+                values_by_doc.get(doc_id, {}),
+                _load_ocr_lines(dump),
+            )
+            if block["strict_miss_total"]:
+                out["documents"].setdefault(doc_id, {})[kind] = block
     return out
 
 
-def main(manifest_path: Path, gt_root: Path, hits_dir: Path, out_dir: Path) -> dict[str, Path]:
+def main(
+    manifest_path: Path,
+    gt_root: Path,
+    hits_dir: Path,
+    out_dir: Path,
+    rule: str = DEFAULT_JOIN_RULE,
+) -> dict[str, Path]:
     """Build ``documents_eval.json`` from the harness emissions into ``out_dir``."""
-    payload = evaluate(manifest_path, gt_root, hits_dir)
+    payload = evaluate(manifest_path, gt_root, hits_dir, rule)
     out_path = out_dir / EVAL_FILENAME
     dump_canonical_json(payload, out_path)
     logger.info("wrote %s (%d documents)", out_path, len(payload["per_document"]))

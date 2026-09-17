@@ -905,15 +905,18 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 # IS that corpus (or installs it when EVAL_INSTALL_CORPUS=1), runs the two G8
 # emitters of the engine TEST target on the host twice (`swift test`, no
 # simulator, no production code; the second run is the determinism twin and
-# the six trio files must be byte-identical), then derives the detector-site
-# and Site-B baselines and the site gap. Needs the sibling iOS checkout at
+# the six trio files plus the two per-span sidecars must be byte-identical),
+# then derives the detector-site and Site-B baselines (each with its per-span
+# outcome aggregate, reconciled against its cells) and the site gap. Needs the
+# sibling iOS checkout at
 # RESECTA_IOS_ROOT with a Swift toolchain. Everything lands under EVAL_OUT;
 # the evidence copy (run.json + SUMMARY.md) is a hand step, never automated.
 EVAL_OUT ?= $(BUILD_DIR)/eval/g8
 EVAL_INSTALL_CORPUS ?= 0
 ENGINE_PACKAGE := $(RESECTA_IOS_ROOT)/Packages/RedactionEngine
 ENGINE_SWIFT_TEST := swift test --package-path $(ENGINE_PACKAGE) --no-parallel
-EVAL_TRIO := g8_cells g8_raw_scores g8_fire_features g8_siteb_cells g8_siteb_raw_scores g8_siteb_fire_features
+EVAL_TRIO := g8_cells.json g8_raw_scores.json g8_fire_features.json g8_siteb_cells.json g8_siteb_raw_scores.json g8_siteb_fire_features.json
+EVAL_SIDECARS := g8_detector_spans.jsonl g8_siteb_spans.jsonl
 
 .PHONY: eval
 eval: bootstrap corpus ## corpus -> both G8 emitters (host swift test, n=2) -> eval-baseline x2 -> eval-sitegap into EVAL_OUT
@@ -931,13 +934,13 @@ eval: bootstrap corpus ## corpus -> both G8 emitters (host swift test, n=2) -> e
 	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
 	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
 	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
-	@for f in $(EVAL_TRIO); do \
-		cmp -s $(EVAL_OUT)/$$f.json $(EVAL_OUT)/rerun/$$f.json || { echo "ERROR: $$f.json differs between the two emitter runs" >&2; exit 1; }; \
-	done; echo "[eval] six trio files byte-identical across the n=2 emitter runs"
-	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector
-	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb
+	@for f in $(EVAL_TRIO) $(EVAL_SIDECARS); do \
+		cmp -s $(EVAL_OUT)/$$f $(EVAL_OUT)/rerun/$$f || { echo "ERROR: $$f differs between the two emitter runs" >&2; exit 1; }; \
+	done; echo "[eval] six trio files + two span sidecars byte-identical across the n=2 emitter runs"
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector --spans $(EVAL_OUT)/g8_detector_spans.jsonl --corpus $(BUILD_DIR)/corpus/g8_corpus.json
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb --spans $(EVAL_OUT)/g8_siteb_spans.jsonl --corpus $(BUILD_DIR)/corpus/g8_corpus.json
 	$(RESECTA_DATA) build eval-sitegap --detector $(EVAL_OUT)/eval-detector/g8_detection_baseline.json --siteb $(EVAL_OUT)/eval-siteb/g8_detection_baseline.json --out $(EVAL_OUT)/g8_site_gap.json
-	@echo "eval DONE -> $(EVAL_OUT) (trios + rerun/ twins, eval-detector/, eval-siteb/, g8_site_gap.json)"
+	@echo "eval DONE -> $(EVAL_OUT) (trios + span sidecars + rerun/ twins, eval-detector/, eval-siteb/ (each with g8_span_outcomes.json), g8_site_gap.json)"
 
 # -----------------------------------------------------------------------------
 # Sign gazetteer manifest (verified by the iOS engine)

@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/documents_eval.schema.json",
+  "title": "Document-level Site-B eval",
+  "description": "Per-document Site-B evaluation derived by resecta_data.eval.documents from the document harness's hits JSONs joined against draw-time ground truth under the Option-C match rule: per leg (text / ocr / ocr-forced / mixed) the median run's headline and per-category metrics with Wilson intervals, the per-occurrence verdicts with the covering hit surfaced, pooled micro F1/F2 with document-level BCa intervals, and the clean-twin attribution of every OCR-leg miss. Dev/eval artifact: not installed to the Swift Resources path.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "site",
+    "generated_by",
+    "match_rule",
+    "per_document",
+    "pools",
+    "miss_attribution"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Wire-format version. Bumped only on a breaking shape change."
+    },
+    "site": {
+      "type": "string",
+      "description": "The harness site every hits file declared (siteB), or unknown when no run was read."
+    },
+    "generated_by": {
+      "type": "string",
+      "const": "resecta_data.eval.documents",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "match_rule": {
+      "type": "object",
+      "required": ["join_rule", "region", "iou", "strict", "value_text", "precision_denominator"],
+      "additionalProperties": false,
+      "properties": {
+        "join_rule": {
+          "type": "string",
+          "enum": ["single", "union"],
+          "description": "The coverage credit this artifact was computed under: the best single detection, or the union of same-category detections over a box."
+        },
+        "region": { "type": "string" },
+        "iou": { "type": "string" },
+        "strict": { "type": "string" },
+        "value_text": { "type": "string" },
+        "precision_denominator": { "type": "string" }
+      }
+    },
+    "per_document": {
+      "type": "object",
+      "description": "One block per manifest document with hits present, keyed by document id.",
+      "additionalProperties": { "$ref": "#/$defs/document" }
+    },
+    "pools": {
+      "type": "object",
+      "description": "Pooled (micro) statistics per leg kind over every document that ran that leg.",
+      "additionalProperties": { "$ref": "#/$defs/pool" }
+    },
+    "miss_attribution": {
+      "type": "object",
+      "required": ["clean_twin_rule", "text_legs_present", "classes", "documents"],
+      "additionalProperties": false,
+      "properties": {
+        "clean_twin_rule": { "type": "string" },
+        "text_legs_present": { "type": "array", "items": { "type": "string" } },
+        "classes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The four classes that partition every OCR leg's strict must-fire misses."
+        },
+        "documents": {
+          "type": "object",
+          "description": "Per document id, per OCR leg kind (ocr / ocr-forced), the attribution of that leg's median-run strict misses; legs with no strict miss are omitted.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/$defs/leg_attribution" }
+          }
+        },
+        "note": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "ci95": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+      ]
+    },
+    "rate_block": {
+      "type": "object",
+      "required": ["recall", "precision", "f1", "f2", "recall_ci95"],
+      "additionalProperties": false,
+      "properties": {
+        "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "precision": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f2": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recall_ci95": { "$ref": "#/$defs/ci95" }
+      }
+    },
+    "metric_view": {
+      "type": "object",
+      "required": ["support", "low_support", "region", "strict", "must_not_fire", "should_fire", "iou"],
+      "additionalProperties": false,
+      "properties": {
+        "support": { "type": "integer", "minimum": 0, "description": "must_fire occurrences on this leg (the recall denominator)." },
+        "low_support": { "type": "boolean" },
+        "region": { "$ref": "#/$defs/rate_block" },
+        "strict": { "$ref": "#/$defs/rate_block" },
+        "must_not_fire": {
+          "type": "object",
+          "required": ["total", "fired_as_category", "region_covered"],
+          "additionalProperties": false,
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "fired_as_category": { "type": "integer", "minimum": 0 },
+            "region_covered": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "should_fire": {
+          "type": "object",
+          "required": ["total", "region_covered"],
+          "additionalProperties": false,
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "region_covered": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "iou": {
+          "type": "object",
+          "required": ["headline_rate", "tight_rate"],
+          "additionalProperties": false,
+          "properties": {
+            "headline_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "tight_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "value_text": {
+          "type": "object",
+          "required": ["denom", "strict_rate", "relaxed_rate"],
+          "additionalProperties": false,
+          "properties": {
+            "denom": { "type": "integer", "minimum": 0 },
+            "strict_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "relaxed_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "description": "Present only when at least one strict hit carried text to compare against the ground-truth value."
+        }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "required": [
+        "leg",
+        "expectation",
+        "covered",
+        "strict",
+        "iou_matched",
+        "cover_category",
+        "cover_text",
+        "cover_fraction",
+        "cover_detections"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "leg": { "type": "string", "enum": ["text", "ocr"] },
+        "expectation": { "type": "string" },
+        "covered": { "type": "boolean" },
+        "strict": { "type": "boolean" },
+        "iou_matched": { "type": "boolean" },
+        "cover_category": {
+          "type": ["string", "null"],
+          "description": "Category of the credited covering hit(s); null when nothing overlapped the box."
+        },
+        "cover_text": {
+          "type": ["string", "null"],
+          "description": "The best single credited hit's matched text (the ground-truth file already carries the value); null when nothing overlapped."
+        },
+        "cover_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "The credited coverage of the ground-truth box under the artifact's join rule."
+        },
+        "cover_detections": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many hits the credit combined (1 under the single rule; the same-category group size under union)."
+        }
+      }
+    },
+    "median": {
+      "type": "object",
+      "required": [
+        "headline",
+        "per_category",
+        "confusion",
+        "surplus_fires",
+        "surplus_fires_per_page",
+        "surplus_fires_by_page",
+        "verdicts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "headline": { "$ref": "#/$defs/metric_view" },
+        "per_category": { "type": "object", "additionalProperties": { "$ref": "#/$defs/metric_view" } },
+        "confusion": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "surplus_fires": { "type": "integer", "minimum": 0 },
+        "surplus_fires_per_page": { "type": "number", "minimum": 0 },
+        "surplus_fires_by_page": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "verdicts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/verdict" } }
+      }
+    },
+    "leg": {
+      "type": "object",
+      "required": [
+        "n_runs",
+        "median_run_index",
+        "median",
+        "strict_recall_min_median_max",
+        "region_recall_min_median_max"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "n_runs": { "type": "integer", "minimum": 1 },
+        "median_run_index": { "type": "integer", "minimum": 1 },
+        "median": { "$ref": "#/$defs/median" },
+        "strict_recall_min_median_max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "region_recall_min_median_max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+      }
+    },
+    "document": {
+      "type": "object",
+      "required": ["variant"],
+      "additionalProperties": false,
+      "properties": {
+        "variant": { "type": ["string", "null"], "description": "The ground-truth file's variant kind (scan-sim, degrade, rotate-trigger) or null for a master." },
+        "text": { "$ref": "#/$defs/leg" },
+        "ocr": { "$ref": "#/$defs/leg" },
+        "ocr-forced": { "$ref": "#/$defs/leg" },
+        "mixed": { "$ref": "#/$defs/leg" }
+      }
+    },
+    "pool": {
+      "type": "object",
+      "required": ["documents", "micro_f1", "micro_f2", "micro_f1_bca_ci95", "micro_f2_bca_ci95"],
+      "additionalProperties": false,
+      "properties": {
+        "documents": { "type": "array", "items": { "type": "string" } },
+        "micro_f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "micro_f2": { "type": "number", "minimum": 0, "maximum": 1 },
+        "micro_f1_bca_ci95": { "$ref": "#/$defs/ci95" },
+        "micro_f2_bca_ci95": { "$ref": "#/$defs/ci95" }
+      }
+    },
+    "leg_attribution": {
+      "type": "object",
+      "required": [
+        "clean_twins",
+        "ocr_induced",
+        "normalizer_destroyed",
+        "detector_induced",
+        "unattributed",
+        "ocr_induced_count",
+        "normalizer_destroyed_count",
+        "detector_induced_count",
+        "unattributed_count",
+        "strict_miss_total",
+        "normalizer_check"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "clean_twins": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 },
+          "description": "Which text-leg median run served as the clean twin, and for how many misses."
+        },
+        "ocr_induced": { "type": "array", "items": { "type": "string" } },
+        "normalizer_destroyed": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Misses whose value's digits survived recognition in the raw Vision lines but not in the normalized lines; null when the run has no OCR line dump (never inferred)."
+        },
+        "detector_induced": { "type": "array", "items": { "type": "string" } },
+        "unattributed": { "type": "array", "items": { "type": "string" } },
+        "ocr_induced_count": { "type": "integer", "minimum": 0 },
+        "normalizer_destroyed_count": { "type": ["integer", "null"], "minimum": 0 },
+        "detector_induced_count": { "type": "integer", "minimum": 0 },
+        "unattributed_count": { "type": "integer", "minimum": 0 },
+        "strict_miss_total": { "type": "integer", "minimum": 0 },
+        "normalizer_check": { "type": "string", "enum": ["ocr-lines dump", "unavailable"] }
+      }
+    }
+  }
+}
