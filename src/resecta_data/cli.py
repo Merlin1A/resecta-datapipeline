@@ -213,6 +213,9 @@ SCHEMA_ROUTES: dict[str, str] = {
     # (not shipped), like g8_bucket_recall / negative_corpus.
     "eval/g8_detection_baseline.json": "g8_detection_baseline",
     "eval/g8_headroom.json": "g8_headroom",
+    # Per-span outcome aggregate from the emitters' JSONL sidecars (offsets
+    # only); same dev/eval posture as the two rows above.
+    "eval/g8_span_outcomes.json": "g8_span_outcomes",
     # 1.2 P1.10 — the Site-B minus detector-site join of two derived
     # baselines (M12-02 arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
     "eval/g8_site_gap.json": "g8_site_gap",
@@ -1935,16 +1938,44 @@ def build_negative_corpus_cmd(build_dir: Path, seed: int) -> None:
     required=True,
     help="Directory for g8_detection_baseline.json + g8_headroom.json.",
 )
-def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> None:
+@click.option(
+    "--spans",
+    "spans_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional per-span JSONL sidecar the same emitter wrote beside the trio "
+    "(g8_detector_spans.jsonl / g8_siteb_spans.jsonl); derives g8_span_outcomes.json.",
+)
+@click.option(
+    "--corpus",
+    "corpus_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="The G8 corpus the sidecar rows are joined to (required with --spans).",
+)
+def build_eval_baseline_cmd(
+    cells_path: Path,
+    raw_scores_path: Path,
+    out_dir: Path,
+    spans_path: Path | None,
+    corpus_path: Path | None,
+) -> None:
     """Derive the detection baseline + learned-term headroom from the Swift JSONs.
 
     Loads the harness's offset-overlap join cells and raw match scores and
     writes ``g8_detection_baseline.json`` + ``g8_headroom.json`` into
-    ``--out-dir`` via the canonical JSON writer. Dev/eval only -- the artifacts
-    are not installed to the Swift Resources path (like g8_bucket_recall).
+    ``--out-dir`` via the canonical JSON writer. With ``--spans`` (and
+    ``--corpus``) the emitter's per-span sidecar is validated, reconciled
+    against the cells, and aggregated into ``g8_span_outcomes.json`` beside
+    them. Dev/eval only -- the artifacts are not installed to the Swift
+    Resources path (like g8_bucket_recall).
     """
     assert_hash_seed_pinned()
-    written = eval_run.main(cells_path, raw_scores_path, out_dir)
+    if (spans_path is None) != (corpus_path is None):
+        raise click.UsageError("--spans and --corpus go together")
+    written = eval_run.main(
+        cells_path, raw_scores_path, out_dir, spans_path=spans_path, corpus_path=corpus_path
+    )
     baseline = load_json(written["baseline"])
     totals = baseline["totals"]
     click.echo(
@@ -1954,6 +1985,16 @@ def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Pa
         f"{len(baseline['per_family'])} families)"
     )
     click.echo(f"Wrote {written['headroom']}")
+    if "spans" in written:
+        outcomes = load_json(written["spans"])
+        counts = outcomes["row_counts"]
+        click.echo(
+            f"Wrote {written['spans']} "
+            f"({counts['total']} rows; ground truth {counts['ground_truth']}; "
+            f"tp={counts['tp']} fn={counts['fn']} fp={counts['fp']} "
+            f"one_token_tp={counts['one_token_tp']}; "
+            f"cells crosscheck {outcomes['cells_crosscheck']['status']})"
+        )
 
 
 @build_group.command("eval-documents")
@@ -1984,23 +2025,47 @@ def build_eval_baseline_cmd(cells_path: Path, raw_scores_path: Path, out_dir: Pa
     required=True,
     help="Directory for documents_eval.json.",
 )
+@click.option(
+    "--join-rule",
+    "join_rule",
+    type=click.Choice(eval_documents.JOIN_RULES),
+    default=eval_documents.DEFAULT_JOIN_RULE,
+    show_default=True,
+    help="Coverage credit: the union of same-category detections over a box, or the "
+    "best single detection (the two are reported as a pair on the same hits).",
+)
+@click.option(
+    "--schemas-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("schemas"),
+    show_default=True,
+    help="Directory holding documents_eval.schema.json; the artifact is validated against it.",
+)
 def build_eval_documents_cmd(
-    manifest_path: Path, gt_root: Path, hits_dir: Path, out_dir: Path
+    manifest_path: Path,
+    gt_root: Path,
+    hits_dir: Path,
+    out_dir: Path,
+    join_rule: str,
+    schemas_dir: Path,
 ) -> None:
     """Derive the document-level Site-B eval from the H1.2 harness JSONs.
 
     Joins each document's hits (per leg, per run) against its draw-time ground
-    truth under the Option-C match rule, and writes ``documents_eval.json``
-    (per-document metrics + pooled micro/macro + Wilson/BCa intervals + miss
-    attribution) into ``--out-dir`` via the canonical JSON writer. Dev/eval
-    only -- the artifact is not installed to the Swift Resources path.
+    truth under the Option-C match rule with the chosen coverage credit, and
+    writes ``documents_eval.json`` (per-document metrics + pooled micro/macro
+    + Wilson/BCa intervals + miss attribution) into ``--out-dir`` via the
+    canonical JSON writer, validated against its schema. Dev/eval only -- the
+    artifact is not installed to the Swift Resources path.
     """
     assert_hash_seed_pinned()
-    written = eval_documents.main(manifest_path, gt_root, hits_dir, out_dir)
+    written = eval_documents.main(manifest_path, gt_root, hits_dir, out_dir, join_rule)
+    validate_file(written["eval"], schemas_dir, "documents_eval")
     payload = load_json(written["eval"])
     click.echo(
         f"Wrote {written['eval']} "
-        f"({len(payload['per_document'])} documents; site={payload['site']})"
+        f"({len(payload['per_document'])} documents; site={payload['site']}; "
+        f"join rule {payload['match_rule']['join_rule']}; schema-valid)"
     )
     for pool_name, pool in payload["pools"].items():
         click.echo(
