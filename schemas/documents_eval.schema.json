@@ -11,7 +11,8 @@
     "match_rule",
     "per_document",
     "pools",
-    "miss_attribution"
+    "miss_attribution",
+    "caption_merge"
   ],
   "additionalProperties": false,
   "properties": {
@@ -78,9 +79,109 @@
         },
         "note": { "type": "string" }
       }
+    },
+    "caption_merge": {
+      "type": "object",
+      "description": "The caption-merge flag: per document, per OCR leg kind (median run), every ground-truth row that carries a caption above it (the sidecar's caption_clearance_pt / caption_text), whether the raw Vision line carrying the value also carried the caption, bucketed by clearance; pooled per leg kind.",
+      "required": ["rule", "buckets", "documents", "pools"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": { "type": "string" },
+        "buckets": { "type": "array", "items": { "type": "string" } },
+        "documents": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/$defs/merge_leg" }
+          }
+        },
+        "pools": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/merge_buckets" }
+        }
+      }
     }
   },
   "$defs": {
+    "stratum_view": {
+      "type": "object",
+      "required": ["support", "region_recall", "strict_recall", "strict_recall_ci95"],
+      "additionalProperties": false,
+      "properties": {
+        "support": { "type": "integer", "minimum": 0 },
+        "region_recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strict_recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "strict_recall_ci95": { "$ref": "#/$defs/ci95" }
+      }
+    },
+    "strata": {
+      "type": "object",
+      "description": "Recall per DERIVED stratum (must_fire rows only): digit_ambiguity = every digit group of the value made of 0/1/5/8 only (all / some / none / no digits); context_class = the ground truth's name-context class.",
+      "required": ["digit_ambiguity", "context_class"],
+      "additionalProperties": false,
+      "properties": {
+        "digit_ambiguity": {
+          "type": "object",
+          "required": ["all_ambiguous", "some_ambiguous", "none_ambiguous", "no_digits"],
+          "additionalProperties": false,
+          "properties": {
+            "all_ambiguous": { "$ref": "#/$defs/stratum_view" },
+            "some_ambiguous": { "$ref": "#/$defs/stratum_view" },
+            "none_ambiguous": { "$ref": "#/$defs/stratum_view" },
+            "no_digits": { "$ref": "#/$defs/stratum_view" }
+          }
+        },
+        "context_class": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stratum_view" }
+        }
+      }
+    },
+    "merge_bucket": {
+      "type": "object",
+      "required": ["rows", "decided", "merged", "merged_rate"],
+      "additionalProperties": false,
+      "properties": {
+        "rows": { "type": "integer", "minimum": 0 },
+        "decided": { "type": "integer", "minimum": 0 },
+        "merged": { "type": "integer", "minimum": 0 },
+        "merged_rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+      }
+    },
+    "merge_buckets": {
+      "type": "object",
+      "required": ["overprint", "under_3pt", "3_to_12pt", "over_12pt"],
+      "additionalProperties": false,
+      "properties": {
+        "overprint": { "$ref": "#/$defs/merge_bucket" },
+        "under_3pt": { "$ref": "#/$defs/merge_bucket" },
+        "3_to_12pt": { "$ref": "#/$defs/merge_bucket" },
+        "over_12pt": { "$ref": "#/$defs/merge_bucket" }
+      }
+    },
+    "merge_leg": {
+      "type": "object",
+      "required": ["rows", "buckets", "line_check"],
+      "additionalProperties": false,
+      "properties": {
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["clearance_pt", "bucket", "merged", "strict"],
+            "additionalProperties": false,
+            "properties": {
+              "clearance_pt": { "type": "number" },
+              "bucket": { "type": "string", "enum": ["overprint", "under_3pt", "3_to_12pt", "over_12pt"] },
+              "merged": { "type": ["boolean", "null"] },
+              "strict": { "type": "boolean" }
+            }
+          }
+        },
+        "buckets": { "$ref": "#/$defs/merge_buckets" },
+        "line_check": { "type": "string", "enum": ["ocr-lines dump", "unavailable"] }
+      }
+    },
     "ci95": {
       "oneOf": [
         { "type": "null" },
@@ -160,7 +261,11 @@
         "cover_category",
         "cover_text",
         "cover_fraction",
-        "cover_detections"
+        "cover_detections",
+        "digit_stratum",
+        "ambiguous_token_count",
+        "digit_token_count",
+        "context_class"
       ],
       "additionalProperties": false,
       "properties": {
@@ -187,7 +292,15 @@
           "type": "integer",
           "minimum": 0,
           "description": "How many hits the credit combined (1 under the single rule; the same-category group size under union)."
-        }
+        },
+        "digit_stratum": {
+          "type": "string",
+          "enum": ["all_ambiguous", "some_ambiguous", "none_ambiguous", "no_digits"],
+          "description": "The value's digit-ambiguity stratum: whether every digit group is made only of 0, 1, 5 and 8 (the digits an OCR letter-context pass reads as O, I, S, B)."
+        },
+        "ambiguous_token_count": { "type": "integer", "minimum": 0 },
+        "digit_token_count": { "type": "integer", "minimum": 0 },
+        "context_class": { "type": "string", "description": "The ground truth's name-context class (none when the row carries no class)." }
       }
     },
     "median": {
@@ -199,6 +312,7 @@
         "surplus_fires",
         "surplus_fires_per_page",
         "surplus_fires_by_page",
+        "strata",
         "verdicts"
       ],
       "additionalProperties": false,
@@ -209,6 +323,7 @@
         "surplus_fires": { "type": "integer", "minimum": 0 },
         "surplus_fires_per_page": { "type": "number", "minimum": 0 },
         "surplus_fires_by_page": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "strata": { "$ref": "#/$defs/strata" },
         "verdicts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/verdict" } }
       }
     },
@@ -244,10 +359,11 @@
     },
     "pool": {
       "type": "object",
-      "required": ["documents", "micro_f1", "micro_f2", "micro_f1_bca_ci95", "micro_f2_bca_ci95"],
+      "required": ["documents", "micro_f1", "micro_f2", "micro_f1_bca_ci95", "micro_f2_bca_ci95", "strata"],
       "additionalProperties": false,
       "properties": {
         "documents": { "type": "array", "items": { "type": "string" } },
+        "strata": { "$ref": "#/$defs/strata" },
         "micro_f1": { "type": "number", "minimum": 0, "maximum": 1 },
         "micro_f2": { "type": "number", "minimum": 0, "maximum": 1 },
         "micro_f1_bca_ci95": { "$ref": "#/$defs/ci95" },

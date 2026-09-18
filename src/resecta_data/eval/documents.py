@@ -42,7 +42,18 @@ precision, recall, F1 and the F2 headline, per leg, with:
   survived recognition intact in the raw Vision lines but not in the
   product-normalized lines (read from the harness's ``ocr-lines-run-<n>.json``
   dump for the median run) are split out as ``normalizer_destroyed``; when no
-  dump exists for the run that class is reported unavailable, never inferred.
+  dump exists for the run that class is reported unavailable, never inferred;
+- two DERIVED strata on every verdict, with recall per stratum on every leg:
+  the digit-ambiguity stratum (every digit group of the ground-truth value
+  made only of the digits 0, 1, 5 and 8 -- the ones the OCR letter-context
+  path confuses with O, I, S and B -- versus some, none, or a value with no
+  digits) and the ground truth's ``context_class`` (the name-context shape
+  the value is drawn in); both are read off the ground truth, no new values;
+- the caption-merge flag: for a ground-truth row whose sidecar carries the
+  caption drawn above it and the clearance to it in points, whether the raw
+  Vision line that carries the value also carries that caption (read from
+  the same OCR line dump, median run), bucketed by clearance so "a caption
+  merged into the value line" is a measured per-row flag, not an inference.
 
 Determinism: the bootstrap RNG is seeded (CANONICAL_SEED); no wall-clock, no
 hash-order dependence (rows are processed in manifest order, runs in filename
@@ -362,6 +373,75 @@ def bca_bootstrap(
 
 
 # ---------------------------------------------------------------------------
+# Derived strata (read off the ground truth; no new values)
+# ---------------------------------------------------------------------------
+
+_DIGITS_RE: Final[re.Pattern[str]] = re.compile(r"[0-9]+")
+_AMBIGUOUS_DIGITS: Final[frozenset[str]] = frozenset("0158")
+DIGIT_STRATA: Final[tuple[str, ...]] = (
+    "all_ambiguous",
+    "some_ambiguous",
+    "none_ambiguous",
+    "no_digits",
+)
+_STRATA_KINDS: Final[tuple[str, ...]] = ("digit_ambiguity", "context_class")
+
+
+def digit_stratum(value: str) -> tuple[str, int, int]:
+    """(stratum, ambiguous digit groups, digit groups) of a ground-truth value.
+
+    A digit group is ambiguous when every digit is one of 0, 1, 5, 8 -- the
+    digits an OCR letter-context pass reads as O, I, S, B. ``all_ambiguous``
+    = every group ambiguous (an SSN like 555-01-1580), ``some_ambiguous`` =
+    at least one, ``none_ambiguous`` = digit groups but none ambiguous,
+    ``no_digits`` = no digit group at all (a name, an email).
+    """
+    groups = _DIGITS_RE.findall(value)
+    if not groups:
+        return "no_digits", 0, 0
+    k = sum(1 for g in groups if set(g) <= _AMBIGUOUS_DIGITS)
+    if k == len(groups):
+        return "all_ambiguous", k, len(groups)
+    if k:
+        return "some_ambiguous", k, len(groups)
+    return "none_ambiguous", 0, len(groups)
+
+
+def _stratum_view(t: dict[str, int]) -> dict[str, Any]:
+    return {
+        "support": t["mf_total"],
+        "region_recall": round(t["mf_region"] / t["mf_total"], 6) if t["mf_total"] else 0.0,
+        "strict_recall": round(t["mf_strict"] / t["mf_total"], 6) if t["mf_total"] else 0.0,
+        "strict_recall_ci95": wilson_ci(t["mf_strict"], t["mf_total"]),
+    }
+
+
+def _strata_views(counts: dict[str, dict[str, dict[str, int]]]) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for kind in _STRATA_KINDS:
+        rows = counts.get(kind, {})
+        keys: tuple[str, ...] | list[str] = (
+            DIGIT_STRATA if kind == "digit_ambiguity" else sorted(rows)
+        )
+        out[kind] = {k: _stratum_view(rows.get(k, _zero_counts())) for k in keys}
+    return out
+
+
+def _zero_counts() -> dict[str, int]:
+    return {"mf_total": 0, "mf_region": 0, "mf_strict": 0}
+
+
+def _add_counts(
+    into: dict[str, dict[str, dict[str, int]]], add: dict[str, dict[str, dict[str, int]]]
+) -> None:
+    for kind, rows in add.items():
+        for key, t in rows.items():
+            dst = into.setdefault(kind, {}).setdefault(key, _zero_counts())
+            for field in dst:
+                dst[field] += t[field]
+
+
+# ---------------------------------------------------------------------------
 # Per-run evaluation
 # ---------------------------------------------------------------------------
 
@@ -424,6 +504,7 @@ def evaluate_run(
     }
     confusion: dict[str, int] = {}
     verdicts: dict[str, dict[str, Any]] = {}
+    strata_counts: dict[str, dict[str, dict[str, int]]] = {}
 
     for occ in occs:
         leg = _gt_leg_for(occ, run)
@@ -439,6 +520,14 @@ def evaluate_run(
             )
         cat = per_cat.setdefault(want, dict.fromkeys(totals, 0))
         _tally_occurrence(occ, v, strict, (totals, cat))
+        stratum, ambiguous, digit_groups = digit_stratum(str(occ.get("value", "")))
+        context_class = str(occ.get("context_class") or "none")
+        if occ["expectation"] == "must_fire":
+            for kind, key in (("digit_ambiguity", stratum), ("context_class", context_class)):
+                t = strata_counts.setdefault(kind, {}).setdefault(key, _zero_counts())
+                t["mf_total"] += 1
+                t["mf_region"] += 1 if v["covered"] else 0
+                t["mf_strict"] += 1 if strict else 0
         verdicts[occ["id"]] = {
             "leg": leg,
             "expectation": occ["expectation"],
@@ -449,6 +538,10 @@ def evaluate_run(
             "cover_text": v["cover_text"],
             "cover_fraction": v["cover_fraction"],
             "cover_detections": v["cover_detections"],
+            "digit_stratum": stratum,
+            "ambiguous_token_count": ambiguous,
+            "digit_token_count": digit_groups,
+            "context_class": context_class,
         }
 
     surplus_by_page = _surplus_fires(occs + (carried or []), hits_by_page)
@@ -465,6 +558,8 @@ def evaluate_run(
         "surplus_fires": surplus,
         "surplus_fires_per_page": round(surplus / pages, 6),
         "surplus_fires_by_page": {str(k): v for k, v in sorted(surplus_by_page.items())},
+        "strata": _strata_views(strata_counts),
+        "strata_counts": strata_counts,
         "verdicts": verdicts,
         "diagnostics": run.get("diagnostics", {}),
     }
@@ -605,7 +700,9 @@ def evaluate(
     manifest = load_json(manifest_path)
     per_document: dict[str, Any] = {}
     doc_leg_counts: dict[str, list[tuple[str, dict[str, int]]]] = {}
+    doc_leg_strata: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
     values_by_doc: dict[str, dict[str, tuple[str, int | None]]] = {}
+    occ_index: dict[str, dict[str, dict[str, Any]]] = {}
     site: str | None = None
 
     for row in manifest:
@@ -621,6 +718,16 @@ def evaluate(
         occs = gt["occurrences"]
         carried = gt.get("carried_stmt") or []
         values_by_doc[row["id"]] = {o["id"]: (str(o.get("value", "")), o.get("page")) for o in occs}
+        occ_index[row["id"]] = {
+            o["id"]: {
+                "value": str(o.get("value", "")),
+                "page": o.get("page"),
+                "caption_clearance_pt": o.get("caption_clearance_pt"),
+                "caption_text": o.get("caption_text"),
+                "multiline": bool((o.get("render") or {}).get("multiline")),
+            }
+            for o in occs
+        }
         legs: dict[str, list[dict[str, Any]]] = {}
         for rf in run_files:
             if rf.name.startswith("ocr-lines-run-"):
@@ -650,6 +757,7 @@ def evaluate(
                         "surplus_fires",
                         "surplus_fires_per_page",
                         "surplus_fires_by_page",
+                        "strata",
                         "verdicts",
                     )
                 },
@@ -665,6 +773,7 @@ def evaluate(
                 ],
             }
             doc_leg_counts.setdefault(kind, []).append((row["id"], med["counts"]))
+            _add_counts(doc_leg_strata.setdefault(kind, {}), med["strata_counts"])
         per_document[row["id"]] = doc_block
 
     # Pools: micro + macro + document-level BCa where n_docs >= 2.
@@ -679,9 +788,11 @@ def evaluate(
             "micro_f2": round(micro_f2, 6),
             "micro_f1_bca_ci95": bca_bootstrap(counts, lambda c: _micro_f(c, 1.0)),
             "micro_f2_bca_ci95": bca_bootstrap(counts, lambda c: _micro_f(c, 2.0)),
+            "strata": _strata_views(doc_leg_strata.get(kind, {})),
         }
 
     attribution = _attribute_misses(per_document, values_by_doc, hits_dir)
+    caption_merge = _caption_merge(per_document, occ_index, hits_dir)
 
     credit = (
         "union of same-category detections over the box"
@@ -706,10 +817,8 @@ def evaluate(
         "per_document": per_document,
         "pools": pools,
         "miss_attribution": attribution,
+        "caption_merge": caption_merge,
     }
-
-
-_DIGITS_RE: Final[re.Pattern[str]] = re.compile(r"[0-9]+")
 
 
 def _load_ocr_lines(path: Path) -> dict[int, list[tuple[str, str]]] | None:
@@ -858,6 +967,169 @@ def _attribute_misses(
             )
             if block["strict_miss_total"]:
                 out["documents"].setdefault(doc_id, {})[kind] = block
+    return out
+
+
+# ---------------------------------------------------------------------------
+# The caption-merge flag (the clearance column of the ground truth x the OCR line dump)
+# ---------------------------------------------------------------------------
+
+CLEARANCE_BUCKETS: Final[tuple[tuple[str, float | None, float | None], ...]] = (
+    ("overprint", None, 0.0),
+    ("under_3pt", 0.0, 3.0),
+    ("3_to_12pt", 3.0, 12.0),
+    ("over_12pt", 12.0, None),
+)
+
+
+def clearance_bucket(clearance_pt: float) -> str:
+    """The clearance bucket of one row: overprint (< 0), [0, 3), [3, 12), >= 12 points."""
+    for name, lo, hi in CLEARANCE_BUCKETS:
+        if (lo is None or clearance_pt >= lo) and (hi is None or clearance_pt < hi):
+            return name
+    raise PipelineError(f"clearance {clearance_pt} falls in no bucket")  # pragma: no cover
+
+
+def _value_lines(
+    value: str,
+    page: int | None,
+    lines: dict[int, list[tuple[str, str]]],
+    *,
+    multiline: bool = False,
+) -> list[str]:
+    """The raw Vision lines on ``page`` that carry ``value``: its digit groups in order for a
+    digit value, else its normalized text as a substring. A value drawn over several lines
+    (``multiline``) never sits in one Vision line, so its FIRST line is what can carry the
+    caption: the first two words (a house number and street, a name) stand in for it when the
+    whole value is not found."""
+    if page is None:
+        return []
+    pattern = _digits_pattern(value)
+    needle = _norm_text(value)
+    out = []
+    for raw, _normalized in lines.get(page, []):
+        if pattern is not None:
+            if pattern.search(raw) is not None:
+                out.append(raw)
+        elif needle and needle in _norm_text(raw):
+            out.append(raw)
+    if out or not multiline:
+        return out
+    head = " ".join(needle.split()[:2])  # an address's house number + street, a name's two words
+    return [raw for raw, _normalized in lines.get(page, []) if head and head in _norm_text(raw)]
+
+
+def caption_merged(
+    value: str,
+    caption: str,
+    page: int | None,
+    lines: dict[int, list[tuple[str, str]]],
+    *,
+    multiline: bool = False,
+) -> bool | None:
+    """True when a raw line carrying the value also carries the caption text (its normalized
+    form as a substring, or -- for a long caption -- its first three words), False when the
+    value's line exists without it, None when no line on the page carries the value (nothing
+    to decide: the value was not recognized as a line at all)."""
+    carriers = _value_lines(value, page, lines, multiline=multiline)
+    if not carriers:
+        return None
+    cap = _norm_text(caption)
+    head = " ".join(cap.split()[:3])
+    return any(cap in _norm_text(raw) or (head and head in _norm_text(raw)) for raw in carriers)
+
+
+def _merge_leg(
+    verdicts: dict[str, Any],
+    index: dict[str, dict[str, Any]],
+    lines: dict[int, list[tuple[str, str]]] | None,
+) -> dict[str, Any]:
+    rows: dict[str, dict[str, Any]] = {}
+    buckets: dict[str, dict[str, int]] = {
+        name: {"rows": 0, "decided": 0, "merged": 0} for name, _, _ in CLEARANCE_BUCKETS
+    }
+    for occ_id, v in verdicts.items():
+        meta = index.get(occ_id)
+        if not meta or meta.get("caption_clearance_pt") is None or not meta.get("caption_text"):
+            continue
+        clearance = float(meta["caption_clearance_pt"])
+        bucket = clearance_bucket(clearance)
+        merged = (
+            caption_merged(
+                meta["value"],
+                str(meta["caption_text"]),
+                meta.get("page"),
+                lines,
+                multiline=bool(meta.get("multiline")),
+            )
+            if lines is not None
+            else None
+        )
+        rows[occ_id] = {
+            "clearance_pt": clearance,
+            "bucket": bucket,
+            "merged": merged,
+            "strict": bool(v["strict"]),
+        }
+        buckets[bucket]["rows"] += 1
+        if merged is not None:
+            buckets[bucket]["decided"] += 1
+            buckets[bucket]["merged"] += 1 if merged else 0
+    return {
+        "rows": rows,
+        "buckets": {
+            name: {
+                **b,
+                "merged_rate": round(b["merged"] / b["decided"], 6) if b["decided"] else None,
+            }
+            for name, b in buckets.items()
+        },
+        "line_check": "ocr-lines dump" if lines is not None else "unavailable",
+    }
+
+
+def _caption_merge(
+    per_document: dict[str, Any],
+    occ_index: dict[str, dict[str, dict[str, Any]]],
+    hits_dir: Path,
+) -> dict[str, Any]:
+    """Per document, per OCR leg kind (median run): the caption-merge flag on every ground-truth
+    row that carries a caption above it, bucketed by clearance; pooled per leg kind."""
+    out: dict[str, Any] = {
+        "rule": "a row is MERGED when the raw Vision line carrying its value also carries the "
+        "caption the ground truth records above it (clearance measured from the draw geometry; "
+        "negative = overprint); rows the dump never carries as a line are undecided",
+        "buckets": [name for name, _, _ in CLEARANCE_BUCKETS],
+        "documents": {},
+        "pools": {},
+    }
+    pooled: dict[str, dict[str, dict[str, int]]] = {}
+    for doc_id, doc_block in sorted(per_document.items()):
+        for kind in ("ocr", "ocr-forced"):
+            leg = doc_block.get(kind)
+            if not leg:
+                continue
+            dump = hits_dir / doc_id / f"ocr-lines-run-{leg['median_run_index']}.json"
+            block = _merge_leg(
+                leg["median"]["verdicts"], occ_index.get(doc_id, {}), _load_ocr_lines(dump)
+            )
+            if not block["rows"]:
+                continue
+            out["documents"].setdefault(doc_id, {})[kind] = block
+            pool = pooled.setdefault(
+                kind, {n: {"rows": 0, "decided": 0, "merged": 0} for n, _, _ in CLEARANCE_BUCKETS}
+            )
+            for name, b in block["buckets"].items():
+                for field in ("rows", "decided", "merged"):
+                    pool[name][field] += b[field]
+    for kind, buckets in sorted(pooled.items()):
+        out["pools"][kind] = {
+            name: {
+                **b,
+                "merged_rate": round(b["merged"] / b["decided"], 6) if b["decided"] else None,
+            }
+            for name, b in buckets.items()
+        }
     return out
 
 
