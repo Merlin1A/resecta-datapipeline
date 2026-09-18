@@ -33,9 +33,14 @@ This module validates every row, cross-checks each ground-truth row against
 the corpus (family and tier by the same bridge the emitter applies),
 reconciles the per-cell tallies against the trio's ``_cells.json`` when that
 payload is supplied (the sidecar must reproduce the cells exactly), and
-aggregates per family x doctype x bucket x context_class x outcome with a
-Wilson interval on recall. ``context_class`` is ``null`` on every cell until
-the corpus carries the context annotation; the emitter never classifies.
+aggregates per family x doctype x bucket x outcome with a Wilson interval on
+recall. When the corpus carries the context annotation (every span's
+``context_class``, the generator's left-context slot), the ground-truth rows
+are ALSO aggregated per family x context class (``by_context_class``) and per
+family x doctype x bucket x context class (``cells_by_context_class``); the
+emitter never classifies, the class is read from the corpus at the join.
+Detection-only ``fp`` rows name no ground-truth span and so carry no class.
+An unannotated corpus yields ``context_class: null`` and empty class tables.
 
 Determinism: sorted iteration everywhere, hashes of the input bytes instead
 of any clock. Library code logs, never prints.
@@ -53,6 +58,7 @@ from typing import Any, Final
 
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json, load_json, sha256_bytes
+from resecta_data.corpus._spans import CONTEXT_CLASSES
 
 from .documents import wilson_ci
 
@@ -61,7 +67,13 @@ logger = logging.getLogger(__name__)
 SPAN_OUTCOMES_FILENAME: Final[str] = "g8_span_outcomes.json"
 
 _MODULE_NAME: Final[str] = "resecta_data.eval.spans"
-_SCHEMA_VERSION: Final[int] = 1
+# 2 since the context-class tables (by_context_class / cells_by_context_class
+# and a descriptor in place of the reserved null).
+_SCHEMA_VERSION: Final[int] = 2
+_CONTEXT_CLASS_SOURCE: Final[str] = (
+    "corpus pii_spans[].context_class (the generator's left-context slot, read at the "
+    "join; the emitter never classifies)"
+)
 _METRIC: Final[str] = "g8_span_outcomes"
 
 # The 17 G8 corpus categories, in the corpus vocabulary the sidecar uses,
@@ -251,6 +263,7 @@ class _CorpusSpan:
     family: str
     tier: str
     tokens: tuple[tuple[int, int], ...]
+    context_class: str | None
 
 
 @dataclass(frozen=True)
@@ -288,11 +301,25 @@ def _index_corpus(corpus: dict[str, Any]) -> dict[str, _CorpusDoc]:
                 family=span["category"],
                 tier=bridged_tier(span),
                 tokens=_token_offsets(text, span["start"], span["end"]),
+                context_class=_context_class_of(span, doc["id"]),
             )
         docs[doc["id"]] = _CorpusDoc(
             doctype=doc["doctype"], bucket=doc["demographic_bucket"], spans=spans
         )
     return docs
+
+
+def _context_class_of(span: dict[str, Any], doc_id: str) -> str | None:
+    """The span's annotated context class, or None on an unannotated corpus."""
+    value = span.get("context_class")
+    if value is None:
+        return None
+    if value not in CONTEXT_CLASSES:
+        raise PipelineError(
+            f"corpus document {doc_id}@{(span['start'], span['end'])}: "
+            f"unknown context_class {value!r}"
+        )
+    return str(value)
 
 
 def _covered_tokens(tokens: Iterable[tuple[int, int]], det_spans: Iterable[list[int]]) -> int:
@@ -415,13 +442,29 @@ def _crosscheck_cells(cells_payload: dict[str, Any], tallies: dict[str, _Tally])
     return {"status": "identical", "cells_compared": len(seen)}
 
 
-def _join_rows(
-    rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]
-) -> tuple[dict[str, _Tally], int, dict[str, int]]:
-    """Fold every row into its cell tally, cross-checking ground truth against the corpus."""
+@dataclass
+class _JoinResult:
+    tallies: dict[str, _Tally]
+    class_tallies: dict[tuple[str, str, str, str], _Tally]
+    n_gt: int
+    counts: dict[str, int]
+    classed: int
+    unclassed: int
+
+
+def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _JoinResult:
+    """Fold every row into its cell tally, cross-checking ground truth against the corpus.
+
+    Ground-truth rows whose corpus span carries a context class are also folded
+    into a (family, doctype, bucket, class) tally; detection-only fp rows never
+    are (they name no span). A corpus that classes some spans and not others is
+    an error: the annotation is total or absent.
+    """
     tallies: dict[str, _Tally] = {}
+    class_tallies: dict[tuple[str, str, str, str], _Tally] = {}
     gt_seen: set[tuple[str, int, int]] = set()
     counts = dict.fromkeys(("tp", "fn", "fp", "tn", "must_not_fired"), 0)
+    classed = unclassed = 0
     for row in rows:
         doc = docs.get(row["doc_id"])
         if doc is None:
@@ -440,7 +483,20 @@ def _join_rows(
         tallies.setdefault(_cell_key(row["family"], doc.doctype, doc.bucket), _Tally()).fold(
             row, span
         )
-    return tallies, len(gt_seen), counts
+        if span is not None:
+            if span.context_class is None:
+                unclassed += 1
+            else:
+                classed += 1
+                class_tallies.setdefault(
+                    (row["family"], doc.doctype, doc.bucket, span.context_class), _Tally()
+                ).fold(row, span)
+    if classed and unclassed:
+        raise PipelineError(
+            f"corpus annotation is partial: {classed} classed and {unclassed} unclassed "
+            "ground-truth spans (context_class must be on every span or on none)"
+        )
+    return _JoinResult(tallies, class_tallies, len(gt_seen), counts, classed, unclassed)
 
 
 def _corpus_span_for(row: dict[str, Any], doc: _CorpusDoc) -> _CorpusSpan:
@@ -460,27 +516,41 @@ def _corpus_span_for(row: dict[str, Any], doc: _CorpusDoc) -> _CorpusSpan:
     return span
 
 
+def _add_into(target: _Tally, tally: _Tally) -> None:
+    target.tp += tally.tp
+    target.fn += tally.fn
+    target.fp += tally.fp
+    target.must_not_total += tally.must_not_total
+    target.must_not_fired += tally.must_not_fired
+    target.one_token_tp += tally.one_token_tp
+    for tier in _POSITIVE_TIERS:
+        target.tier_total[tier] += tally.tier_total[tier]
+        target.tier_covered[tier] += tally.tier_covered[tier]
+    for k, v in tally.coverage.items():
+        target.coverage[k] = target.coverage.get(k, 0) + v
+    for k, v in tally.detections_per_tp.items():
+        target.detections_per_tp[k] = target.detections_per_tp.get(k, 0) + v
+
+
 def _roll_up(tallies: dict[str, _Tally]) -> tuple[dict[str, _Tally], _Tally]:
     """Per-family and grand-total tallies from the cell tallies."""
     per_family: dict[str, _Tally] = {}
     totals = _Tally()
     for key, tally in tallies.items():
         family = key.split("_", 1)[0]
-        for target in (per_family.setdefault(family, _Tally()), totals):
-            target.tp += tally.tp
-            target.fn += tally.fn
-            target.fp += tally.fp
-            target.must_not_total += tally.must_not_total
-            target.must_not_fired += tally.must_not_fired
-            target.one_token_tp += tally.one_token_tp
-            for tier in _POSITIVE_TIERS:
-                target.tier_total[tier] += tally.tier_total[tier]
-                target.tier_covered[tier] += tally.tier_covered[tier]
-            for k, v in tally.coverage.items():
-                target.coverage[k] = target.coverage.get(k, 0) + v
-            for k, v in tally.detections_per_tp.items():
-                target.detections_per_tp[k] = target.detections_per_tp.get(k, 0) + v
+        _add_into(per_family.setdefault(family, _Tally()), tally)
+        _add_into(totals, tally)
     return per_family, totals
+
+
+def _roll_up_classes(
+    class_tallies: dict[tuple[str, str, str, str], _Tally],
+) -> dict[str, dict[str, _Tally]]:
+    """Per family x context class tallies from the class cell tallies."""
+    out: dict[str, dict[str, _Tally]] = {}
+    for (family, _doctype, _bucket, cls), tally in class_tallies.items():
+        _add_into(out.setdefault(family, {}).setdefault(cls, _Tally()), tally)
+    return out
 
 
 def build_span_outcomes(
@@ -495,7 +565,8 @@ def build_span_outcomes(
     """Aggregate validated sidecar rows into the ``g8_span_outcomes`` payload."""
     docs = _index_corpus(corpus)
     n_corpus_spans = sum(len(d.spans) for d in docs.values())
-    tallies, n_gt, counts = _join_rows(rows, docs)
+    joined = _join_rows(rows, docs)
+    tallies, n_gt, counts = joined.tallies, joined.n_gt, joined.counts
     if n_gt != n_corpus_spans:
         raise PipelineError(
             f"sidecar carries {n_gt} ground-truth rows; the corpus has {n_corpus_spans} spans"
@@ -518,6 +589,33 @@ def build_span_outcomes(
             **tallies[key].view(),
         }
 
+    annotated = joined.classed > 0
+    class_descriptor: dict[str, Any] | None = None
+    by_class_out: dict[str, Any] = {}
+    class_cells_out: dict[str, Any] = {}
+    if annotated:
+        present = sorted({key[3] for key in joined.class_tallies})
+        class_descriptor = {
+            "source": _CONTEXT_CLASS_SOURCE,
+            "vocabulary": list(CONTEXT_CLASSES),
+            "present": present,
+            "classed_ground_truth_rows": joined.classed,
+        }
+        per_class = _roll_up_classes(joined.class_tallies)
+        by_class_out = {
+            family: {cls: per_class[family][cls].view() for cls in sorted(per_class[family])}
+            for family in sorted(per_class)
+        }
+        for class_key in sorted(joined.class_tallies):
+            c_family, c_doctype, c_bucket, cls = class_key
+            class_cells_out[f"{c_family}_{c_doctype}_{c_bucket}_{cls}"] = {
+                "family": c_family,
+                "doctype": c_doctype,
+                "bucket": c_bucket,
+                "context_class": cls,
+                **joined.class_tallies[class_key].view(),
+            }
+
     return {
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
@@ -526,7 +624,7 @@ def build_span_outcomes(
         "source_spans_sha256": spans_sha256,
         "source_corpus_sha256": corpus_sha256,
         "join_rule": "binary offset overlap, half-open [start, end), same family",
-        "context_class": None,
+        "context_class": class_descriptor,
         "row_counts": {
             "total": len(rows),
             "ground_truth": n_gt,
@@ -540,6 +638,8 @@ def build_span_outcomes(
         "cells_crosscheck": crosscheck,
         "per_family": {family: per_family[family].view() for family in sorted(per_family)},
         "cells": cells_out,
+        "by_context_class": by_class_out,
+        "cells_by_context_class": class_cells_out,
         "totals": totals.view(),
     }
 

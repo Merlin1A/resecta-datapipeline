@@ -29,7 +29,11 @@ from ._names import BUCKETS, NameSampler
 from .templates import EMITTERS, SUB_TEMPLATE_EMITTERS
 
 _MODULE_NAME: Final[str] = "resecta_data.corpus.generate"
-_SCHEMA_VERSION: Final[int] = 1
+# Wire-format version of the corpus payload. 2 since the context annotation:
+# every span carries ``context_class`` and every document a (for now empty)
+# ``furniture`` array. Text, offsets, families and tiers are those of
+# version 1 byte for byte -- the annotation adds keys only.
+_SCHEMA_VERSION: Final[int] = 2
 
 # Canonical per-doctype counts. The financial count was raised from 200 to
 # 300: the last third of the financial index range emits the W-2 tax
@@ -224,6 +228,11 @@ def _assemble_document(
         "demographic_bucket": bucket,
         "text": text,
         "pii_spans": spans,
+        # Non-PII page furniture (running headers, page numbers, boilerplate)
+        # as [start, end) regions with a kind. Empty until a generator profile
+        # plants furniture; the key is present on every document so a reader
+        # never has to special-case its absence.
+        "furniture": [],
     }
     if sub_template is not None:
         doc["sub_template"] = sub_template

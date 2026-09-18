@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_span_outcomes.schema.json",
   "title": "G8 per-span outcomes",
-  "description": "Per-span outcome aggregate derived by resecta_data.eval.spans from one G8 emitter's JSON-Lines sidecar (one row per ground-truth span of all 17 families plus one row per surfaced detection overlapping no ground-truth span; offsets only, never text) joined to the G8 corpus. Counts per family x doctype x bucket x context_class x outcome with a Wilson interval on recall; context_class is null until the corpus carries the context annotation. Dev/eval artifact: not installed to the Swift Resources path.",
+  "description": "Per-span outcome aggregate derived by resecta_data.eval.spans from one G8 emitter's JSON-Lines sidecar (one row per ground-truth span of all 17 families plus one row per surfaced detection overlapping no ground-truth span; offsets only, never text) joined to the G8 corpus. Counts per family x doctype x bucket x outcome with a Wilson interval on recall, and -- when the corpus carries the context annotation (every span's context_class) -- the ground-truth rows again per family x context class and per family x doctype x bucket x context class. Dev/eval artifact: not installed to the Swift Resources path.",
   "type": "object",
   "required": [
     "schema_version",
@@ -18,14 +18,16 @@
     "cells_crosscheck",
     "per_family",
     "cells",
+    "by_context_class",
+    "cells_by_context_class",
     "totals"
   ],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1,
-      "description": "Wire-format version. Bumped only on a breaking shape change."
+      "const": 2,
+      "description": "Wire-format version. 2 since the context-class tables (by_context_class, cells_by_context_class) and the context_class descriptor."
     },
     "generated_by": {
       "type": "string",
@@ -56,8 +58,21 @@
       "description": "The overlap rule under which the emitter assigned outcomes (binary half-open offset overlap, same family)."
     },
     "context_class": {
-      "type": "null",
-      "description": "Reserved: the per-span context class the corpus annotation will carry. Null in this version; the emitter never classifies."
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["source", "vocabulary", "present", "classed_ground_truth_rows"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string" },
+            "vocabulary": { "type": "array", "items": { "$ref": "#/$defs/context_class" }, "minItems": 1 },
+            "present": { "type": "array", "items": { "$ref": "#/$defs/context_class" } },
+            "classed_ground_truth_rows": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ],
+      "description": "Null when the joined corpus carries no context annotation; otherwise where the class was read from (the corpus span, never the emitter), the full vocabulary and the classes present. The class tables below are empty in the null case."
     },
     "row_counts": {
       "type": "object",
@@ -109,7 +124,7 @@
     },
     "cells": {
       "type": "object",
-      "description": "One tally per family_doctype_bucket cell, with the cell's coordinates and the (null) context class repeated inside.",
+      "description": "One tally per family_doctype_bucket cell, with the cell's coordinates repeated inside; context_class is null here because these cells are class-agnostic (see cells_by_context_class).",
       "additionalProperties": {
         "type": "object",
         "required": ["family", "doctype", "bucket", "context_class"],
@@ -123,9 +138,51 @@
         }
       }
     },
+    "by_context_class": {
+      "type": "object",
+      "description": "Ground-truth rows per corpus family, then per context class (the corpus span's annotation): tp / fn / tn / fired must_not; fp is 0 by construction (a detection-only row names no span). Empty on an unannotated corpus.",
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/$defs/context_class" },
+        "additionalProperties": { "$ref": "#/$defs/tally" }
+      }
+    },
+    "cells_by_context_class": {
+      "type": "object",
+      "description": "One tally per family_doctype_bucket_class cell over the ground-truth rows, with the coordinates and the class repeated inside. Empty on an unannotated corpus.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["family", "doctype", "bucket", "context_class"],
+        "unevaluatedProperties": false,
+        "allOf": [{ "$ref": "#/$defs/tally" }],
+        "properties": {
+          "family": { "type": "string" },
+          "doctype": { "type": "string", "enum": ["court", "medical", "financial", "foia", "generic"] },
+          "bucket": { "type": "string", "enum": ["white", "black", "hispanic", "asian", "ai_an"] },
+          "context_class": { "$ref": "#/$defs/context_class" }
+        }
+      }
+    },
     "totals": { "$ref": "#/$defs/tally" }
   },
   "$defs": {
+    "context_class": {
+      "type": "string",
+      "enum": [
+        "caption_left",
+        "caption_right",
+        "role_label",
+        "title_label",
+        "closing_line",
+        "salutation",
+        "subject_line",
+        "document_initial",
+        "body_prose",
+        "table_cell",
+        "header",
+        "none"
+      ]
+    },
     "tally": {
       "type": "object",
       "required": [

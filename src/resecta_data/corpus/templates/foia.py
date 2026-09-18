@@ -61,7 +61,9 @@ def emit(
     sb.append(f"Request No. {request_id}\n\n")
 
     sb.append("From: ")
-    append_name_or_placeholder(sb, requester.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, requester.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\n")
     sb.append_pii(requester_address, "address")
     sb.append("\n")
@@ -71,7 +73,9 @@ def emit(
     sb.append("\n\n")
 
     sb.append("Re: Records pertaining to ")
-    append_name_or_placeholder(sb, subject.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, subject.full_name, name_sparse=name_sparse, context_class="subject_line"
+    )
     sb.append(" (DOB ")
     sb.append_pii(subject_dob, "dob")
     sb.append(", SSN ")
@@ -85,7 +89,9 @@ def emit(
     )
 
     sb.append("Sincerely,\n")
-    append_name_or_placeholder(sb, requester.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, requester.full_name, name_sparse=name_sparse, context_class="closing_line"
+    )
     sb.append("\n")
 
     tags: list[str] = []

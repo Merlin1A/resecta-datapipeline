@@ -8,6 +8,7 @@ slow-marked determinism suite via make verify.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -17,7 +18,7 @@ from resecta_data.common.determinism import CANONICAL_SEED
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.corpus import build_g8_corpus
-from resecta_data.corpus._spans import REDACTED_NAME_PLACEHOLDER
+from resecta_data.corpus._spans import CONTEXT_CLASSES, REDACTED_NAME_PLACEHOLDER
 from resecta_data.corpus.generate import _MAX_BUILD_WORKERS
 from resecta_data.vectors._checksum import luhn_mod10
 from resecta_data.vectors.ein import _VALID_EIN_PREFIXES
@@ -469,3 +470,63 @@ def test_span_cap_still_binds_all_templates() -> None:
     """The 15 -> 18 ceiling is tight: no document exceeds it at coverage counts."""
     payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
     assert max(len(doc["pii_spans"]) for doc in payload["documents"]) <= _MAX_SPANS
+
+
+# ---------------------------------------------------------------------------
+# The context annotation: every span carries a context_class, every document a
+# furniture array, and the name slots' classes are pinned on the canonical corpus.
+# ---------------------------------------------------------------------------
+
+_CONTEXT_CLASSES = frozenset(CONTEXT_CLASSES)
+
+# The name slots the shipped templates emit, by left-context class, on the canonical
+# 1,100-document corpus (seed 20260416): 2,837 name spans. Court = caption pair +
+# PLAINTIFF: / DEFENDANT: / Counsel of record: / Witness; medical = Patient: + two Dr.
+# titles; financial = Bill to: / AP Contact: (invoice) + Employee's name: (W-2); foia =
+# From: / Re: / the line after Sincerely,; generic = the first line / To: / Dear /
+# the line after Regards,. A change here is a template change, never annotation drift.
+_PINNED_NAME_CLASS_COUNTS: dict[str, int] = {
+    "caption_left": 215,
+    "caption_right": 215,
+    "role_label": 1596,
+    "title_label": 382,
+    "closing_line": 180,
+    "subject_line": 111,
+    "salutation": 69,
+    "document_initial": 69,
+}
+_PINNED_NAME_CLASS_COUNTS_BY_DOCTYPE: dict[str, dict[str, int]] = {
+    "court": {"caption_left": 215, "caption_right": 215, "role_label": 860},
+    "medical": {"role_label": 191, "title_label": 382},
+    "financial": {"role_label": 365},
+    "foia": {"role_label": 111, "subject_line": 111, "closing_line": 111},
+    "generic": {"document_initial": 69, "role_label": 69, "salutation": 69, "closing_line": 69},
+}
+
+
+def test_every_span_carries_a_context_class_and_every_document_a_furniture_array() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    for doc in payload["documents"]:
+        assert doc["furniture"] == [], f"{doc['id']}: furniture is planted by no template yet"
+    for doc, span in _all_spans(payload):
+        assert span["context_class"] in _CONTEXT_CLASSES, (doc["id"], span["context_class"])
+        if span["category"] == "name":
+            # Every name the templates emit sits in a named slot.
+            assert span["context_class"] != "none", (doc["id"], span["start"])
+        else:
+            assert span["context_class"] == "none", (doc["id"], span["category"])
+
+
+def test_name_context_classes_pinned_on_the_canonical_corpus() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED)
+    assert payload["version"] == 2
+    by_class: Counter[str] = Counter()
+    by_doctype: dict[str, Counter[str]] = {}
+    for doc, span in _all_spans(payload):
+        if span["category"] != "name":
+            continue
+        by_class[span["context_class"]] += 1
+        by_doctype.setdefault(doc["doctype"], Counter())[span["context_class"]] += 1
+    assert dict(by_class) == _PINNED_NAME_CLASS_COUNTS
+    assert sum(by_class.values()) == 2837
+    assert {dt: dict(c) for dt, c in by_doctype.items()} == _PINNED_NAME_CLASS_COUNTS_BY_DOCTYPE

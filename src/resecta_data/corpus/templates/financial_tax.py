@@ -99,7 +99,9 @@ def emit(
     sb.append(f"d. Control number: {control_number}\n\n")
 
     sb.append("e. Employee's name: ")
-    append_name_or_placeholder(sb, employee.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, employee.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\n")
     sb.append("f. Employee's address and ZIP code: ")
     sb.append_pii(employee_address, "address")

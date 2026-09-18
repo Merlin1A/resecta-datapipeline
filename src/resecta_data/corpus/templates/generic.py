@@ -56,7 +56,9 @@ def emit(
     account = generate_account_number(rng)
 
     sb = SpanBuilder()
-    append_name_or_placeholder(sb, sender.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, sender.full_name, name_sparse=name_sparse, context_class="document_initial"
+    )
     sb.append("\n")
     sb.append_pii(sender_address, "address")
     sb.append("\n")
@@ -66,7 +68,9 @@ def emit(
     sb.append("\n\n")
 
     sb.append("To: ")
-    append_name_or_placeholder(sb, recipient.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, recipient.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\n")
     sb.append_pii(recipient_address, "address")
     sb.append("\n\n")
@@ -75,7 +79,7 @@ def emit(
     if name_sparse:
         sb.append("Sir or Madam")
     else:
-        sb.append_pii(recipient.full_name, "name")
+        sb.append_pii(recipient.full_name, "name", context_class="salutation")
     sb.append(",\n\n")
 
     # The letter body carries the generic-class keyword surface (2026-06-11
@@ -90,7 +94,9 @@ def emit(
         "your reply. A copy of our latest newsletter is enclosed."
         "\n\nRegards,\n"
     )
-    append_name_or_placeholder(sb, sender.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, sender.full_name, name_sparse=name_sparse, context_class="closing_line"
+    )
     sb.append("\n")
 
     tags: list[str] = []

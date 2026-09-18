@@ -68,7 +68,9 @@ def emit(
     sb.append("\n\n")
 
     sb.append("Bill to: ")
-    append_name_or_placeholder(sb, customer.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, customer.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\n")
     sb.append_pii(address, "address")
     sb.append("\n\n")
@@ -89,7 +91,9 @@ def emit(
     sb.append("\n")
 
     sb.append("AP Contact: ")
-    append_name_or_placeholder(sb, ap_contact.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, ap_contact.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append(" — ")
     sb.append_pii(phone, "phone")
     sb.append(" / ")

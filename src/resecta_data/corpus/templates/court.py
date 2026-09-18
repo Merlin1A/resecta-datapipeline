@@ -52,14 +52,14 @@ def _append_caption(
     if name_sparse:
         sb.append(f"{REDACTED_NAME_PLACEHOLDER} v. {REDACTED_NAME_PLACEHOLDER}")
     elif all_caps:
-        sb.append_pii(plaintiff.all_caps, "name", adversarial=True)
+        sb.append_pii(plaintiff.all_caps, "name", adversarial=True, context_class="caption_left")
         sb.append(" v. ")
-        sb.append_pii(defendant.all_caps, "name", adversarial=True)
+        sb.append_pii(defendant.all_caps, "name", adversarial=True, context_class="caption_right")
         tags.append("all_caps_header_name")
     else:
-        sb.append_pii(plaintiff.full_name, "name")
+        sb.append_pii(plaintiff.full_name, "name", context_class="caption_left")
         sb.append(" v. ")
-        sb.append_pii(defendant.full_name, "name")
+        sb.append_pii(defendant.full_name, "name", context_class="caption_right")
 
 
 def _append_filing(
@@ -73,9 +73,13 @@ def _append_filing(
     name_sparse: bool,
 ) -> None:
     sb.append("PLAINTIFF: ")
-    append_name_or_placeholder(sb, plaintiff.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, plaintiff.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\nDEFENDANT: ")
-    append_name_or_placeholder(sb, defendant.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, defendant.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\nFiled: ")
     if include_adversarial:
         sb.append_pii(
@@ -162,7 +166,9 @@ def emit(
         _append_decoy(sb, rng, tags)
 
     sb.append("Counsel of record: ")
-    append_name_or_placeholder(sb, counsel.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, counsel.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append(" (")
     sb.append_pii(phone, "phone")
     sb.append(", ")
@@ -170,7 +176,9 @@ def emit(
     sb.append(").\n")
 
     sb.append("Witness ")
-    append_name_or_placeholder(sb, witness.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, witness.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append(", DOB ")
     sb.append_pii(dob, "dob")
     sb.append(", testified under oath.\n")
