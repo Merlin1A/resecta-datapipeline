@@ -21,9 +21,13 @@ from resecta_data.common.io import dump_canonical_json, load_json
 from resecta_data.common.schema import validate_file
 from resecta_data.eval.documents import (
     _attribute_misses,
+    _caption_merge,
     _end_slack_match,
     _gt_leg_for,
     _normalizer_destroyed,
+    caption_merged,
+    clearance_bucket,
+    digit_stratum,
     evaluate_run,
     join_occurrence,
     wilson_ci,
@@ -42,8 +46,10 @@ def _occ(
     legs: list[str] | None = None,
     value: str = "555-12-3456",
     spans: list[dict[str, Any]] | None = None,
+    context_class: str | None = None,
+    caption: tuple[float, str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    occ: dict[str, Any] = {
         "id": occ_id,
         "category": category,
         "page": page,
@@ -53,6 +59,11 @@ def _occ(
         "value": value,
         "spans": spans if spans is not None else [{"page": page, "bbox": bbox}],
     }
+    if context_class is not None:
+        occ["context_class"] = context_class
+    if caption is not None:
+        occ["caption_clearance_pt"], occ["caption_text"] = caption
+    return occ
 
 
 def _hit(
@@ -356,6 +367,186 @@ class TestAttribution:
         assert not _normalizer_destroyed("555-12-3456", 3, lines)  # other page
 
 
+# ---------------------------------------------------------------------------
+# Derived strata: digit ambiguity (0/1/5/8 groups) and the context class
+# ---------------------------------------------------------------------------
+
+
+class TestDigitStratum:
+    def test_groups_classified_by_hand(self) -> None:
+        assert digit_stratum("555-01-1580") == ("all_ambiguous", 3, 3)  # 555 / 01 / 1580
+        assert digit_stratum("(208) 555-0163") == ("some_ambiguous", 1, 3)  # only 555
+        assert digit_stratum("08/11/2026") == ("some_ambiguous", 2, 3)  # 08, 11; not 2026
+        assert digit_stratum("4271 9386") == ("none_ambiguous", 0, 2)
+        assert digit_stratum("Delia Hartwell") == ("no_digits", 0, 0)
+        assert digit_stratum("d.hartwell@example.net") == ("no_digits", 0, 0)
+
+    def test_run_block_tallies_strata_on_must_fire_only(self) -> None:
+        occs = [
+            _occ("ssn", "ssn", [0.1, 0.1, 0.3, 0.15], value="555-01-1580"),  # hit
+            _occ("ssn2", "ssn", [0.5, 0.5, 0.7, 0.55], value="555-01-1580"),  # missed
+            _occ(
+                "name", "name", [0.1, 0.7, 0.3, 0.75], value="Delia", context_class="closing_line"
+            ),
+            _occ("decoy", "ssn", [0.5, 0.7, 0.7, 0.75], value="0", expectation="must_not_fire"),
+        ]
+        run = _run([_hit([0.1, 0.1, 0.2, 0.05]), _hit([0.1, 0.7, 0.2, 0.05], "name", text="Delia")])
+        block = evaluate_run(occs, run)
+        digits = block["strata"]["digit_ambiguity"]
+        assert digits["all_ambiguous"] == {
+            "support": 2,
+            "region_recall": 0.5,
+            "strict_recall": 0.5,
+            "strict_recall_ci95": wilson_ci(1, 2),
+        }
+        assert digits["no_digits"]["support"] == 1 and digits["no_digits"]["strict_recall"] == 1.0
+        assert digits["some_ambiguous"]["support"] == 0
+        assert digits["none_ambiguous"]["strict_recall_ci95"] is None
+        classes = block["strata"]["context_class"]
+        assert set(classes) == {"none", "closing_line"}
+        assert classes["closing_line"]["support"] == 1
+        assert classes["none"]["support"] == 2  # the decoy is must_not_fire: never a stratum row
+        v = block["verdicts"]["ssn2"]
+        assert v["digit_stratum"] == "all_ambiguous"
+        assert (v["ambiguous_token_count"], v["digit_token_count"]) == (3, 3)
+        assert v["context_class"] == "none"
+        assert block["verdicts"]["name"]["context_class"] == "closing_line"
+
+
+# ---------------------------------------------------------------------------
+# The caption-merge flag: clearance buckets x the OCR line dump
+# ---------------------------------------------------------------------------
+
+
+class TestCaptionMerge:
+    def test_buckets_by_hand(self) -> None:
+        assert clearance_bucket(-6.77) == "overprint"
+        assert clearance_bucket(0.0) == "under_3pt"
+        assert clearance_bucket(2.99) == "under_3pt"
+        assert clearance_bucket(3.0) == "3_to_12pt"
+        assert clearance_bucket(11.99) == "3_to_12pt"
+        assert clearance_bucket(12.0) == "over_12pt"
+
+    def test_merged_when_the_value_line_carries_the_caption(self) -> None:
+        lines = {
+            0: [
+                ("e Employee's first name and initial Delia Hartwell", "..."),
+                ("a Employee's social security number", "..."),
+                ("XXX-XX-7438", "XXX-XX-7438"),
+            ]
+        }
+        cap_e = "e Employee's first name and initial / Last name"
+        assert caption_merged("Delia Hartwell", cap_e, 0, lines) is True
+        assert (
+            caption_merged("XXX-XX-7438", "a Employee's social security number", 0, lines) is False
+        )
+        assert caption_merged("Mateo Hartwell", cap_e, 0, lines) is None  # never a line
+        assert caption_merged("Delia Hartwell", cap_e, 3, lines) is None  # other page
+
+    def test_multiline_value_decides_on_its_first_line(self) -> None:
+        # An address drawn over two lines never sits in one Vision line; its first two words
+        # find the first line, which is the line a caption could merge into.
+        lines = {0: [("Home Address: 4127 Wrenfield Place", "..."), ("Boise, ID 83702", "...")]}
+        value = "4127 Wrenfield Place Boise, ID 83702"
+        assert caption_merged(value, "Home Address:", 0, lines) is None  # one line never carries it
+        assert caption_merged(value, "Home Address:", 0, lines, multiline=True) is True
+        text_value = "Wrenfield Place Boise, ID"
+        lines2 = {0: [("Address: Wrenfield Place", "..."), ("Boise, ID", "...")]}
+        assert caption_merged(text_value, "Address:", 0, lines2) is None
+        assert caption_merged(text_value, "Address:", 0, lines2, multiline=True) is True
+        assert caption_merged(text_value, "Other:", 0, lines2, multiline=True) is False
+
+    def test_block_rows_buckets_pools_and_unavailable_dump(self, tmp_path: Path) -> None:
+        verdicts = {
+            "e": {"strict": False},
+            "a": {"strict": True},
+            "plain": {"strict": True},  # no caption above -> not a row
+        }
+        per_document = {
+            "w2": {
+                "variant": "scan-sim",
+                "ocr": {"median_run_index": 2, "median": {"verdicts": verdicts}},
+            },
+            "nodump": {
+                "variant": "degrade",
+                "ocr": {"median_run_index": 1, "median": {"verdicts": verdicts}},
+            },
+        }
+        index: dict[str, dict[str, dict[str, Any]]] = {
+            doc: {
+                "e": {
+                    "value": "Delia Hartwell",
+                    "page": 0,
+                    "caption_clearance_pt": -6.77,
+                    "caption_text": "e Employee's first name and initial / Last name",
+                },
+                "a": {
+                    "value": "XXX-XX-7438",
+                    "page": 0,
+                    "caption_clearance_pt": 1.74,
+                    "caption_text": "a Employee's social security number",
+                },
+                "plain": {
+                    "value": "x",
+                    "page": 0,
+                    "caption_clearance_pt": None,
+                    "caption_text": None,
+                },
+            }
+            for doc in ("w2", "nodump")
+        }
+        dump_canonical_json(
+            {
+                "schema_version": 1,
+                "doc_id": "w2",
+                "run_index": 2,
+                "pages": [
+                    {
+                        "page": 0,
+                        "lines": [
+                            {
+                                "text": "e Employee's first name and initial Delia Hartwell",
+                                "normalized": "x",
+                            },
+                            {"text": "XXX-XX-7438", "normalized": "XXX-XX-7438"},
+                        ],
+                    }
+                ],
+            },
+            tmp_path / "w2" / "ocr-lines-run-2.json",
+        )
+        out = _caption_merge(per_document, index, tmp_path)
+        w2 = out["documents"]["w2"]["ocr"]
+        assert set(w2["rows"]) == {"e", "a"}
+        assert w2["rows"]["e"] == {
+            "clearance_pt": -6.77,
+            "bucket": "overprint",
+            "merged": True,
+            "strict": False,
+        }
+        assert w2["rows"]["a"]["bucket"] == "under_3pt" and w2["rows"]["a"]["merged"] is False
+        assert w2["buckets"]["overprint"] == {
+            "rows": 1,
+            "decided": 1,
+            "merged": 1,
+            "merged_rate": 1.0,
+        }
+        assert w2["buckets"]["under_3pt"] == {
+            "rows": 1,
+            "decided": 1,
+            "merged": 0,
+            "merged_rate": 0.0,
+        }
+        assert w2["buckets"]["over_12pt"]["merged_rate"] is None
+        assert w2["line_check"] == "ocr-lines dump"
+        nd = out["documents"]["nodump"]["ocr"]
+        assert nd["line_check"] == "unavailable"
+        assert nd["rows"]["e"]["merged"] is None and nd["buckets"]["overprint"]["decided"] == 0
+        pool = out["pools"]["ocr"]
+        assert pool["overprint"] == {"rows": 2, "decided": 1, "merged": 1, "merged_rate": 1.0}
+        assert out["buckets"] == ["overprint", "under_3pt", "3_to_12pt", "over_12pt"]
+
+
 class TestCli:
     def _write_run_dir(self, tmp_path: Path) -> tuple[Path, Path, Path]:
         gt_root = tmp_path / "gt"
@@ -372,7 +563,18 @@ class TestCli:
         ]
         dump_canonical_json(manifest, gt_root / "documents.manifest.json")
         dump_canonical_json(
-            {"occurrences": [_occ("mf1", "ssn", [0.1, 0.1, 0.3, 0.15])]},
+            {
+                "occurrences": [
+                    _occ("mf1", "ssn", [0.1, 0.1, 0.3, 0.15], caption=(1.74, "a SSN")),
+                    _occ(
+                        "mf2",
+                        "name",
+                        [0.5, 0.5, 0.7, 0.55],
+                        value="Delia",
+                        context_class="closing_line",
+                    ),
+                ]
+            },
             gt_root / "doc-gt.json",
         )
         hits = tmp_path / "hits"
@@ -412,3 +614,12 @@ class TestCli:
             payload = load_json(out / rule / "documents_eval.json")
             assert payload["match_rule"]["join_rule"] == rule
             validate_file(out / rule / "documents_eval.json", _SCHEMAS, "documents_eval")
+            med = payload["per_document"]["doc"]["text"]["median"]
+            # 555-12-3456: the 555 group is ambiguous, 12 and 3456 are not -> some_ambiguous
+            assert med["strata"]["digit_ambiguity"]["all_ambiguous"]["support"] == 0
+            assert med["strata"]["digit_ambiguity"]["some_ambiguous"]["support"] == 1
+            assert med["strata"]["context_class"]["closing_line"]["support"] == 1
+            assert (
+                payload["pools"]["text"]["strata"]["digit_ambiguity"]["no_digits"]["support"] == 1
+            )
+            assert payload["caption_merge"]["documents"] == {}  # a text leg carries no OCR lines
