@@ -74,7 +74,9 @@ def emit(
     sb.append("Community Medical Center — Discharge Summary\n\n")
 
     sb.append("Patient: ")
-    append_name_or_placeholder(sb, patient.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, patient.full_name, name_sparse=name_sparse, context_class="role_label"
+    )
     sb.append("\nDOB: ")
     sb.append_pii(dob, "dob")
     sb.append("\nMRN: ")
@@ -90,12 +92,16 @@ def emit(
     sb.append("\n\n")
 
     sb.append("Primary care: Dr. ")
-    append_name_or_placeholder(sb, pcp.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, pcp.full_name, name_sparse=name_sparse, context_class="title_label"
+    )
     sb.append(", NPI ")
     sb.append_pii(npi, "npi")
     sb.append(".\n")
     sb.append("Prescribing: Dr. ")
-    append_name_or_placeholder(sb, prescriber.full_name, name_sparse=name_sparse)
+    append_name_or_placeholder(
+        sb, prescriber.full_name, name_sparse=name_sparse, context_class="title_label"
+    )
     sb.append(", DEA ")
     sb.append_pii(dea, "dea")
     sb.append(".\n\n")

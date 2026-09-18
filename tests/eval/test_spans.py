@@ -21,6 +21,7 @@ from resecta_data.cli import main as cli_main
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
+from resecta_data.corpus._spans import CONTEXT_CLASSES
 from resecta_data.eval import spans as eval_spans
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
@@ -43,6 +44,7 @@ def _corpus() -> dict[str, Any]:
                         "expected_outcome": "redact",
                         "tier": "must",
                         "value": "Delia Hartwell",
+                        "context_class": "role_label",
                     },
                     {
                         "category": "ssn",
@@ -51,6 +53,7 @@ def _corpus() -> dict[str, Any]:
                         "expected_outcome": "redact",
                         "tier": "must",
                         "value": "555-12-3456",
+                        "context_class": "none",
                     },
                 ],
             },
@@ -67,6 +70,7 @@ def _corpus() -> dict[str, Any]:
                         "expected_outcome": "redact",
                         "tier": "should",
                         "value": "Mei Chen",
+                        "context_class": "role_label",
                     },
                     {
                         "category": "licensePlate",
@@ -75,6 +79,7 @@ def _corpus() -> dict[str, Any]:
                         "expected_outcome": "suppress",
                         "tier": "must_not",
                         "value": "12345",
+                        "context_class": "none",
                     },
                 ],
             },
@@ -281,6 +286,59 @@ class TestJoin:
         assert payload["cells"]["ssn_court_white"]["recall"] == 0.0
         assert payload["cells"]["ssn_court_white"]["context_class"] is None
         assert payload["cells_crosscheck"] == {"status": "identical", "cells_compared": 5}
+        # The context annotation, read from the corpus at the join.
+        descriptor = payload["context_class"]
+        assert descriptor["present"] == ["none", "role_label"]
+        assert descriptor["classed_ground_truth_rows"] == 4
+        assert len(descriptor["vocabulary"]) == len(CONTEXT_CLASSES)
+        by_class = payload["by_context_class"]
+        assert set(by_class) == {"name", "ssn", "licensePlate"}
+        assert (by_class["name"]["role_label"]["tp"], by_class["name"]["role_label"]["fn"]) == (
+            2,
+            0,
+        )
+        assert by_class["name"]["role_label"]["one_token_tp"] == 1
+        assert by_class["ssn"]["none"]["fn"] == 1
+        assert by_class["licensePlate"]["none"]["must_not_total"] == 1
+        # fp is 0 by construction in the class tables (a detection-only row names no span).
+        assert all(t["fp"] == 0 for fam in by_class.values() for t in fam.values())
+        cells = payload["cells_by_context_class"]
+        assert set(cells) == {
+            "name_court_white_role_label",
+            "ssn_court_white_none",
+            "name_medical_asian_role_label",
+            "licensePlate_medical_asian_none",
+        }
+        assert cells["name_court_white_role_label"]["context_class"] == "role_label"
+        assert cells["name_court_white_role_label"]["tp"] == 1
+
+    def test_unannotated_corpus_yields_null_descriptor_and_empty_class_tables(self) -> None:
+        corpus = _corpus()
+        for doc in corpus["documents"]:
+            for span in doc["pii_spans"]:
+                del span["context_class"]
+        payload = eval_spans.build_span_outcomes(
+            _rows(), corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+        )
+        assert payload["context_class"] is None
+        assert payload["by_context_class"] == {}
+        assert payload["cells_by_context_class"] == {}
+        # The class-agnostic aggregate is untouched by the annotation's absence.
+        assert payload["per_family"]["name"]["tp"] == 2
+
+    def test_partial_or_unknown_annotation_is_an_error(self) -> None:
+        corpus = _corpus()
+        del corpus["documents"][0]["pii_spans"][1]["context_class"]
+        with pytest.raises(PipelineError, match="annotation is partial"):
+            eval_spans.build_span_outcomes(
+                _rows(), corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+            )
+        corpus = _corpus()
+        corpus["documents"][0]["pii_spans"][0]["context_class"] = "footnote"
+        with pytest.raises(PipelineError, match="unknown context_class 'footnote'"):
+            eval_spans.build_span_outcomes(
+                _rows(), corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+            )
 
     def test_family_or_tier_drift_from_the_corpus_is_an_error(self) -> None:
         rows = _rows()

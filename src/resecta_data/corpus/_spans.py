@@ -20,6 +20,47 @@ ExpectedOutcome = Literal["redact", "suppress", "flag"]
 # ``expected_outcome`` field.
 Tier = Literal["must", "should", "watch", "must_not"]
 
+# The context class of a span: the left-context slot it sits in (1.2 C12-29 (a)).
+# Every span of every family carries one so a per-span join over the corpus is
+# total -- ``none`` where no label applies (every non-name span today). The
+# eight classes the shipped templates draw are the fixed literal preceding the
+# name (a caption side, a role/field label with its colon, a ``Dr.`` title, a
+# subject line, a closing line, a salutation, or the document's first line);
+# ``body_prose`` / ``table_cell`` / ``header`` are the slots this corpus lacks
+# and exist for the generator profiles that add them. The class is an
+# annotation beside the offsets: it changes no text and no offset.
+ContextClass = Literal[
+    "caption_left",
+    "caption_right",
+    "role_label",
+    "title_label",
+    "closing_line",
+    "salutation",
+    "subject_line",
+    "document_initial",
+    "body_prose",
+    "table_cell",
+    "header",
+    "none",
+]
+
+CONTEXT_CLASSES: Final[tuple[str, ...]] = (
+    "caption_left",
+    "caption_right",
+    "role_label",
+    "title_label",
+    "closing_line",
+    "salutation",
+    "subject_line",
+    "document_initial",
+    "body_prose",
+    "table_cell",
+    "header",
+    "none",
+)
+
+NO_CONTEXT: Final[ContextClass] = "none"
+
 _DEFAULT_OUTCOME: Final[ExpectedOutcome] = "redact"
 
 # The G8 -> packet tier bridge. ``redact`` spans are designed to fire (the
@@ -79,6 +120,7 @@ class SpanBuilder:
         adversarial: bool = False,
         expected_outcome: ExpectedOutcome = _DEFAULT_OUTCOME,
         tier: Tier | None = None,
+        context_class: ContextClass = NO_CONTEXT,
     ) -> None:
         """Append PII-tagged text and record its span.
 
@@ -87,9 +129,15 @@ class SpanBuilder:
         surface. A ``suppress`` span is always ``must_not`` and a ``flag``
         span always ``watch`` -- an explicit tier that contradicts the
         outcome is a template bug and raises.
+
+        ``context_class`` names the left-context slot the span sits in
+        (:data:`CONTEXT_CLASSES`); it defaults to ``none`` and every name
+        call site passes its slot explicitly.
         """
         if not text:
             return
+        if context_class not in CONTEXT_CLASSES:
+            raise ValueError(f"unknown context_class {context_class!r} for a {category} span")
         resolved_tier = bridge_tier(expected_outcome) if tier is None else tier
         if expected_outcome != "redact" and resolved_tier != bridge_tier(expected_outcome):
             raise ValueError(
@@ -108,6 +156,7 @@ class SpanBuilder:
                 "adversarial": adversarial,
                 "expected_outcome": expected_outcome,
                 "tier": resolved_tier,
+                "context_class": context_class,
             }
         )
 
@@ -118,9 +167,15 @@ class SpanBuilder:
         return text, spans
 
 
-def append_name_or_placeholder(sb: SpanBuilder, full_name: str, *, name_sparse: bool) -> None:
-    """Append a person-name span, or the plain placeholder when sparse."""
+def append_name_or_placeholder(
+    sb: SpanBuilder, full_name: str, *, name_sparse: bool, context_class: ContextClass
+) -> None:
+    """Append a person-name span, or the plain placeholder when sparse.
+
+    ``context_class`` is required: every name slot a template emits names the
+    left-context class it sits in, so the corpus join is total by construction.
+    """
     if name_sparse:
         sb.append(REDACTED_NAME_PLACEHOLDER)
     else:
-        sb.append_pii(full_name, "name")
+        sb.append_pii(full_name, "name", context_class=context_class)

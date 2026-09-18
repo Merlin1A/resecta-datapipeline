@@ -70,7 +70,8 @@
           "doctype",
           "demographic_bucket",
           "text",
-          "pii_spans"
+          "pii_spans",
+          "furniture"
         ],
         "additionalProperties": false,
         "properties": {
@@ -104,7 +105,7 @@
             "description": "Ground-truth PII annotations. Half-open [start, end) char offsets into text.",
             "items": {
               "type": "object",
-              "required": ["category", "start", "end", "value", "tier"],
+              "required": ["category", "start", "end", "value", "tier", "context_class"],
               "additionalProperties": false,
               "properties": {
                 "category": {
@@ -134,6 +135,24 @@
                   "enum": ["must", "should", "watch", "must_not"],
                   "description": "Packet-tier bridge: must (designed to fire), should (designed-marginal surface, off-headline), watch (routed to review, record-only), must_not (decoy the engine is designed to reject). Derived from expected_outcome (redact->must, flag->watch, suppress->must_not) unless a template assigns should explicitly."
                 },
+                "context_class": {
+                  "type": "string",
+                  "enum": [
+                    "caption_left",
+                    "caption_right",
+                    "role_label",
+                    "title_label",
+                    "closing_line",
+                    "salutation",
+                    "subject_line",
+                    "document_initial",
+                    "body_prose",
+                    "table_cell",
+                    "header",
+                    "none"
+                  ],
+                  "description": "The left-context slot the span sits in: a court caption side (caption_left = the party before ' v. ', caption_right = the party after), a role/field label with its colon (PLAINTIFF:, Patient:, Bill to:, From:, ...), a title label (Dr.), a subject line (Re:), a closing line (the line after Sincerely,/Regards,), a salutation (Dear), the document's first line (document_initial), running text (body_prose), a table cell, a running header, or none where no label applies (every non-name span). Annotation only: adds no text and moves no offset."
+                },
                 "start": {
                   "type": "integer",
                   "minimum": 0
@@ -156,6 +175,20 @@
                   "enum": ["redact", "suppress", "flag"],
                   "description": "How the engine is designed to act on this span. 'redact' for true PII; 'suppress' for adversarial decoys; 'flag' for uncertain cases routed to user review."
                 }
+              }
+            }
+          },
+          "furniture": {
+            "type": "array",
+            "description": "Non-PII page furniture planted in the text (running headers, page numbers, boilerplate) as half-open [start, end) char offsets with a kind. Present on every document; empty until a generator profile plants furniture.",
+            "items": {
+              "type": "object",
+              "required": ["start", "end", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "start": { "type": "integer", "minimum": 0 },
+                "end": { "type": "integer", "minimum": 1 },
+                "kind": { "type": "string", "minLength": 1 }
               }
             }
           },
