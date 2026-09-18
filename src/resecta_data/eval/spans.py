@@ -39,8 +39,14 @@ recall. When the corpus carries the context annotation (every span's
 are ALSO aggregated per family x context class (``by_context_class``) and per
 family x doctype x bucket x context class (``cells_by_context_class``); the
 emitter never classifies, the class is read from the corpus at the join.
-Detection-only ``fp`` rows name no ground-truth span and so carry no class.
-An unannotated corpus yields ``context_class: null`` and empty class tables.
+Detection-only ``fp`` rows name no ground-truth span and so carry no class;
+when the corpus carries planted FURNITURE (a generator profile's
+``furniture[] {start, end, kind}`` regions -- 1.2 C12-95 Spec-D), every
+detection-only ``fp`` row is instead joined to the furniture regions it
+overlaps and counted per family x furniture kind (``by_furniture_kind``),
+the rows overlapping no region as ``unattributed``. An unannotated corpus
+yields ``context_class: null`` and empty class tables; a corpus with no
+furniture yields ``furniture: null`` and empty kind tables.
 
 Determinism: sorted iteration everywhere, hashes of the input bytes instead
 of any clock. Library code logs, never prints.
@@ -68,12 +74,23 @@ SPAN_OUTCOMES_FILENAME: Final[str] = "g8_span_outcomes.json"
 
 _MODULE_NAME: Final[str] = "resecta_data.eval.spans"
 # 2 since the context-class tables (by_context_class / cells_by_context_class
-# and a descriptor in place of the reserved null).
-_SCHEMA_VERSION: Final[int] = 2
+# and a descriptor in place of the reserved null); 3 since the furniture join
+# (by_furniture_kind + a furniture descriptor) over the detection-only rows.
+_SCHEMA_VERSION: Final[int] = 3
 _CONTEXT_CLASS_SOURCE: Final[str] = (
     "corpus pii_spans[].context_class (the generator's left-context slot, read at the "
     "join; the emitter never classifies)"
 )
+_FURNITURE_SOURCE: Final[str] = (
+    "corpus documents[].furniture[] {start, end, kind} (the generator profile's planted "
+    "regions, read at the join; the emitter never classifies)"
+)
+_FURNITURE_JOIN_RULE: Final[str] = (
+    "a detection-only fp row (tier null) attributes to every furniture kind whose "
+    "[start, end) region overlaps the detection's offsets; a row overlapping no region "
+    "is unattributed; ground-truth rows never join furniture"
+)
+_UNATTRIBUTED: Final[str] = "unattributed"
 _METRIC: Final[str] = "g8_span_outcomes"
 
 # The 17 G8 corpus categories, in the corpus vocabulary the sidecar uses,
@@ -271,6 +288,7 @@ class _CorpusDoc:
     doctype: str
     bucket: str
     spans: dict[tuple[int, int], _CorpusSpan]
+    furniture: tuple[tuple[int, int, str], ...] = ()
 
 
 def _token_offsets(text: str, start: int, end: int) -> tuple[tuple[int, int], ...]:
@@ -304,9 +322,25 @@ def _index_corpus(corpus: dict[str, Any]) -> dict[str, _CorpusDoc]:
                 context_class=_context_class_of(span, doc["id"]),
             )
         docs[doc["id"]] = _CorpusDoc(
-            doctype=doc["doctype"], bucket=doc["demographic_bucket"], spans=spans
+            doctype=doc["doctype"],
+            bucket=doc["demographic_bucket"],
+            spans=spans,
+            furniture=_furniture_of(doc, len(text)),
         )
     return docs
+
+
+def _furniture_of(doc: dict[str, Any], text_length: int) -> tuple[tuple[int, int, str], ...]:
+    """The document's planted furniture regions, validated against its text."""
+    regions: list[tuple[int, int, str]] = []
+    for item in doc.get("furniture") or []:
+        start, end, kind = item.get("start"), item.get("end"), item.get("kind")
+        if not (_is_offset(start) and _is_offset(end) and start < end <= text_length):
+            raise PipelineError(f"corpus document {doc['id']}: malformed furniture region {item!r}")
+        if not isinstance(kind, str) or not kind:
+            raise PipelineError(f"corpus document {doc['id']}: furniture region without a kind")
+        regions.append((start, end, kind))
+    return tuple(sorted(regions))
 
 
 def _context_class_of(span: dict[str, Any], doc_id: str) -> str | None:
@@ -450,6 +484,9 @@ class _JoinResult:
     counts: dict[str, int]
     classed: int
     unclassed: int
+    # (family, doctype, kind) -> detection-only fp rows overlapping a region of
+    # that kind; kind == "unattributed" for rows overlapping no region.
+    furniture_fp: dict[tuple[str, str, str], int] = field(default_factory=dict)
 
 
 def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _JoinResult:
@@ -462,6 +499,7 @@ def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _Join
     """
     tallies: dict[str, _Tally] = {}
     class_tallies: dict[tuple[str, str, str, str], _Tally] = {}
+    furniture_fp: dict[tuple[str, str, str], int] = {}
     gt_seen: set[tuple[str, int, int]] = set()
     counts = dict.fromkeys(("tp", "fn", "fp", "tn", "must_not_fired"), 0)
     classed = unclassed = 0
@@ -483,6 +521,10 @@ def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _Join
         tallies.setdefault(_cell_key(row["family"], doc.doctype, doc.bucket), _Tally()).fold(
             row, span
         )
+        if row["outcome"] == "fp" and row["tier"] is None:
+            for kind in _furniture_kinds_at(doc, row["start"], row["end"]):
+                fk = (row["family"], doc.doctype, kind)
+                furniture_fp[fk] = furniture_fp.get(fk, 0) + 1
         if span is not None:
             if span.context_class is None:
                 unclassed += 1
@@ -496,7 +538,16 @@ def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _Join
             f"corpus annotation is partial: {classed} classed and {unclassed} unclassed "
             "ground-truth spans (context_class must be on every span or on none)"
         )
-    return _JoinResult(tallies, class_tallies, len(gt_seen), counts, classed, unclassed)
+    return _JoinResult(
+        tallies, class_tallies, len(gt_seen), counts, classed, unclassed, furniture_fp
+    )
+
+
+def _furniture_kinds_at(doc: _CorpusDoc, start: int, end: int) -> tuple[str, ...]:
+    """The kinds of the furniture regions overlapping [start, end), or the
+    unattributed marker when none does (each kind once)."""
+    kinds = sorted({kind for s, e, kind in doc.furniture if s < end and start < e})
+    return tuple(kinds) if kinds else (_UNATTRIBUTED,)
 
 
 def _corpus_span_for(row: dict[str, Any], doc: _CorpusDoc) -> _CorpusSpan:
@@ -616,6 +667,8 @@ def build_span_outcomes(
                 **joined.class_tallies[class_key].view(),
             }
 
+    furniture_descriptor, by_furniture_out = _furniture_tables(docs, joined.furniture_fp)
+
     return {
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
@@ -625,6 +678,7 @@ def build_span_outcomes(
         "source_corpus_sha256": corpus_sha256,
         "join_rule": "binary offset overlap, half-open [start, end), same family",
         "context_class": class_descriptor,
+        "furniture": furniture_descriptor,
         "row_counts": {
             "total": len(rows),
             "ground_truth": n_gt,
@@ -640,8 +694,38 @@ def build_span_outcomes(
         "cells": cells_out,
         "by_context_class": by_class_out,
         "cells_by_context_class": class_cells_out,
+        "by_furniture_kind": by_furniture_out,
         "totals": totals.view(),
     }
+
+
+def _furniture_tables(
+    docs: dict[str, _CorpusDoc], furniture_fp: dict[tuple[str, str, str], int]
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """The furniture descriptor and the per-family x kind fp table.
+
+    Null / empty when no document carries furniture (the corpus as furnished);
+    otherwise every family with at least one detection-only fp row appears,
+    each kind with its fp count and its split by doctype, plus the rows that
+    overlapped no region under ``unattributed``.
+    """
+    regions = sum(len(d.furniture) for d in docs.values())
+    if regions == 0:
+        return None, {}
+    kinds_present = sorted({kind for d in docs.values() for _s, _e, kind in d.furniture})
+    descriptor = {
+        "source": _FURNITURE_SOURCE,
+        "join": _FURNITURE_JOIN_RULE,
+        "kinds_present": kinds_present,
+        "regions": regions,
+        "documents_with_furniture": sum(1 for d in docs.values() if d.furniture),
+    }
+    table: dict[str, Any] = {}
+    for (family, doctype, kind), n in sorted(furniture_fp.items()):
+        entry = table.setdefault(family, {}).setdefault(kind, {"fp": 0, "by_doctype": {}})
+        entry["fp"] += n
+        entry["by_doctype"][doctype] = entry["by_doctype"].get(doctype, 0) + n
+    return descriptor, table
 
 
 def main(

@@ -3,12 +3,16 @@
 Emits invoice/statement-style text with account numbers, routing, a tax
 ID (SSN), billing name/address, and no adversarial decoys by default.
 The W-2 shaped sibling lives in :mod:`financial_tax`.
+
+Generator profiles (1.2 C12-95): under Spec-C the ``Bill to:`` and ``AP
+Contact:`` slots render in their shipped context or one of four variants;
+Spec-D plants nothing here (an invoice is neither a pleading nor a letter).
 """
 
 from __future__ import annotations
 
 import random
-from typing import Any
+from typing import Any, Final
 
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
@@ -23,13 +27,29 @@ from resecta_data.corpus._pii import (
     generate_routing_number,
     generate_ssn,
 )
-from resecta_data.corpus._spans import (
-    SpanBuilder,
-    append_name_or_placeholder,
+from resecta_data.corpus._profiles import (
+    NameContext,
+    Profile,
+    header_after,
+    render_name_slot,
 )
+from resecta_data.corpus._spans import SpanBuilder
 
 # 1.2 T1.1: the Luhn-broken card decoy rides its own unconditional draw.
 _CARD_DECOY_PROBABILITY = 0.25
+
+_CUSTOMER_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("title_label", "Customer Name: "),
+    NameContext("table_cell", "| Bill to | ", " |"),
+    NameContext("role_label", "Attn: "),
+    NameContext("header", "", header_after()),
+)
+_AP_CONTACT_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("role_label", "c/o "),
+    NameContext("table_cell", "| AP Contact | ", " |"),
+    NameContext("body_prose", "Questions may be directed to "),
+    NameContext("title_label", "Contact Name: "),
+)
 
 
 def emit(
@@ -39,7 +59,8 @@ def emit(
     *,
     locale: str = "en_US",
     name_sparse: bool = False,
-) -> tuple[str, list[dict[str, Any]], list[str]]:
+    profile: Profile | None = None,
+) -> tuple[str, list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     # All rng draws are unconditional so the stream is independent of
     # name_sparse; only what gets emitted differs.
     customer = sampler.sample(bucket)
@@ -67,9 +88,13 @@ def emit(
     sb.append(invoice)
     sb.append("\n\n")
 
-    sb.append("Bill to: ")
-    append_name_or_placeholder(
-        sb, customer.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        customer.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "Bill to: "),
+        variants=_CUSTOMER_VARIANTS,
     )
     sb.append("\n")
     sb.append_pii(address, "address")
@@ -90,9 +115,13 @@ def emit(
     sb.append_pii(tax_ssn, "ssn")
     sb.append("\n")
 
-    sb.append("AP Contact: ")
-    append_name_or_placeholder(
-        sb, ap_contact.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        ap_contact.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "AP Contact: "),
+        variants=_AP_CONTACT_VARIANTS,
     )
     sb.append(" — ")
     sb.append_pii(phone, "phone")
@@ -104,7 +133,7 @@ def emit(
     _append_itin_and_card(sb, rng, tags)
 
     text, spans = sb.finalize()
-    return text, spans, tags
+    return text, spans, tags, sb.furniture_sorted()
 
 
 def _append_itin_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:

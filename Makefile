@@ -655,11 +655,16 @@ $(STAMP_DIR)/classifier: $(CLASSIFIER_PY) $(COMMON_DEPS) $(STAMP_DIR)/corpus $(F
 .PHONY: classifier
 classifier: $(STAMP_DIR)/classifier  ## [Phase 3] Build doctype keywords, preset-threshold candidates, and the context scorer
 
+# One invocation writes the corpus as furnished (g8_corpus.json, the fixture)
+# AND the three generator profiles beside it (g8_corpus_<profile>.json; 1.2
+# C12-95 Spec-C / Spec-D) — each ~3 s, each with its own lock row, so `make
+# build` regenerates every corpus artifact the lockfile names.
+CORPUS_PROFILES := g8 g8-specC g8-specD g8-specCD
 $(STAMP_DIR)/corpus: $(CORPUS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
-	$(call keyed_stamp,corpus,$(RESECTA_DATA) build corpus g8 --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
+	$(call keyed_stamp,corpus,$(RESECTA_DATA) build corpus g8 --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED) $(foreach p,$(CORPUS_PROFILES),--profile $(p)))
 
 .PHONY: corpus
-corpus: $(STAMP_DIR)/corpus  ## [Phase 3] Build the G8 synthetic corpus
+corpus: $(STAMP_DIR)/corpus  ## [Phase 3] Build the G8 synthetic corpus (+ the generator profiles)
 
 # G8 bucket-stratified recall (a one-off measurement for the transparency copy).
 # Depends on the surnames Bloom filter and the G8 corpus, both of which
@@ -913,34 +918,51 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 # the evidence copy (run.json + SUMMARY.md) is a hand step, never automated.
 EVAL_OUT ?= $(BUILD_DIR)/eval/g8
 EVAL_INSTALL_CORPUS ?= 0
+# The corpus PROFILE the emitters run on (1.2 C12-95): g8 (default) = the
+# bundled fixture, checked against build/corpus/g8_corpus.json below; any
+# other profile is read by the harness from build/ through the test-target
+# override RESECTA_G8_CORPUS_PATH (+ its sha, #expected by the harness) and is
+# NEVER installed into the engine tree. The sidecars are joined to THAT file.
+EVAL_CORPUS_PROFILE ?= g8
+EVAL_CORPUS := $(BUILD_DIR)/corpus/$(if $(filter g8,$(EVAL_CORPUS_PROFILE)),g8_corpus.json,g8_corpus_$(EVAL_CORPUS_PROFILE).json)
+EVAL_CORPUS_ENV := $(if $(filter g8,$(EVAL_CORPUS_PROFILE)),,RESECTA_G8_CORPUS_PATH=$(abspath $(EVAL_CORPUS)) RESECTA_G8_CORPUS_SHA256=$$(shasum -a 256 $(EVAL_CORPUS) | cut -d' ' -f1))
 ENGINE_PACKAGE := $(RESECTA_IOS_ROOT)/Packages/RedactionEngine
 ENGINE_SWIFT_TEST := swift test --package-path $(ENGINE_PACKAGE) --no-parallel
 EVAL_TRIO := g8_cells.json g8_raw_scores.json g8_fire_features.json g8_siteb_cells.json g8_siteb_raw_scores.json g8_siteb_fire_features.json
 EVAL_SIDECARS := g8_detector_spans.jsonl g8_siteb_spans.jsonl
 
 .PHONY: eval
-eval: bootstrap corpus ## corpus -> both G8 emitters (host swift test, n=2) -> eval-baseline x2 -> eval-sitegap into EVAL_OUT
+eval: bootstrap corpus ## corpus (EVAL_CORPUS_PROFILE) -> both G8 emitters (host swift test, n=2) -> eval-baseline x2 -> eval-sitegap into EVAL_OUT
 	@test -d "$(ENGINE_PACKAGE)" || { echo "ERROR: engine package not found at $(ENGINE_PACKAGE); set RESECTA_IOS_ROOT." >&2; exit 1; }
+	@test -f "$(EVAL_CORPUS)" || { echo "ERROR: corpus profile $(EVAL_CORPUS_PROFILE) not built at $(EVAL_CORPUS); run make corpus." >&2; exit 1; }
+	@if [ "$(EVAL_INSTALL_CORPUS)" = "1" ] && [ "$(EVAL_CORPUS_PROFILE)" != "g8" ]; then \
+		echo "ERROR: EVAL_INSTALL_CORPUS=1 installs only the g8 profile; a spec profile is never installed." >&2; exit 1; \
+	fi
 	@if [ "$(EVAL_INSTALL_CORPUS)" = "1" ]; then \
 		$(RESECTA_DATA) install-assets --build-dir $(BUILD_DIR) --resources-dir $(SWIFT_RESOURCES) --fixtures-dir $(SWIFT_FIXTURES); \
 	fi
-	@built=$$(shasum -a 256 $(BUILD_DIR)/corpus/g8_corpus.json | cut -d' ' -f1); \
-	fixture=$$(shasum -a 256 $(SWIFT_FIXTURES)/corpus/g8_corpus.json | cut -d' ' -f1); \
-	if [ "$$built" != "$$fixture" ]; then \
-		echo "ERROR: engine fixture corpus ($$fixture) != build/corpus ($$built); rerun with EVAL_INSTALL_CORPUS=1" >&2; exit 1; \
-	fi; echo "[eval] engine fixture corpus == build/corpus ($$built)"
+	@if [ "$(EVAL_CORPUS_PROFILE)" = "g8" ]; then \
+		built=$$(shasum -a 256 $(BUILD_DIR)/corpus/g8_corpus.json | cut -d' ' -f1); \
+		fixture=$$(shasum -a 256 $(SWIFT_FIXTURES)/corpus/g8_corpus.json | cut -d' ' -f1); \
+		if [ "$$built" != "$$fixture" ]; then \
+			echo "ERROR: engine fixture corpus ($$fixture) != build/corpus ($$built); rerun with EVAL_INSTALL_CORPUS=1" >&2; exit 1; \
+		fi; echo "[eval] engine fixture corpus == build/corpus ($$built)"; \
+	else \
+		sha=$$(shasum -a 256 $(EVAL_CORPUS) | cut -d' ' -f1); \
+		echo "[eval] profile $(EVAL_CORPUS_PROFILE): the emitters read $(EVAL_CORPUS) ($$sha) through RESECTA_G8_CORPUS_PATH; the bundled fixture is not consulted and nothing is installed"; \
+	fi
 	@mkdir -p $(EVAL_OUT)/rerun $(EVAL_OUT)/eval-detector $(EVAL_OUT)/eval-siteb
-	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
-	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
-	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
-	RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
 	@for f in $(EVAL_TRIO) $(EVAL_SIDECARS); do \
 		cmp -s $(EVAL_OUT)/$$f $(EVAL_OUT)/rerun/$$f || { echo "ERROR: $$f differs between the two emitter runs" >&2; exit 1; }; \
 	done; echo "[eval] six trio files + two span sidecars byte-identical across the n=2 emitter runs"
-	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector --spans $(EVAL_OUT)/g8_detector_spans.jsonl --corpus $(BUILD_DIR)/corpus/g8_corpus.json
-	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb --spans $(EVAL_OUT)/g8_siteb_spans.jsonl --corpus $(BUILD_DIR)/corpus/g8_corpus.json
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector --spans $(EVAL_OUT)/g8_detector_spans.jsonl --corpus $(EVAL_CORPUS)
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb --spans $(EVAL_OUT)/g8_siteb_spans.jsonl --corpus $(EVAL_CORPUS)
 	$(RESECTA_DATA) build eval-sitegap --detector $(EVAL_OUT)/eval-detector/g8_detection_baseline.json --siteb $(EVAL_OUT)/eval-siteb/g8_detection_baseline.json --out $(EVAL_OUT)/g8_site_gap.json
-	@echo "eval DONE -> $(EVAL_OUT) (trios + span sidecars + rerun/ twins, eval-detector/, eval-siteb/ (each with g8_span_outcomes.json), g8_site_gap.json)"
+	@echo "eval DONE -> $(EVAL_OUT) (profile $(EVAL_CORPUS_PROFILE) = $(EVAL_CORPUS); trios + span sidecars + rerun/ twins, eval-detector/, eval-siteb/ (each with g8_span_outcomes.json), g8_site_gap.json)"
 
 # -----------------------------------------------------------------------------
 # Sign gazetteer manifest (verified by the iOS engine)

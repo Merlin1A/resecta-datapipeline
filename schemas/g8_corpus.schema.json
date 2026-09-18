@@ -50,6 +50,11 @@
         "unlabeled": { "type": "integer", "minimum": 0 }
       }
     },
+    "profile": {
+      "type": "string",
+      "enum": ["g8-specC", "g8-specD", "g8-specCD"],
+      "description": "The generator profile this corpus was built under (1.2 C12-95): g8-specC = name-context variety (every name slot in a drawn context, incl. the classes the shipped corpus lacks), g8-specD = furniture density (role nouns, labels, salutations, closings planted and recorded in furniture[]), g8-specCD = both. ABSENT on the g8 corpus as furnished, so its bytes never move. Every profile carries the same documents with every ground-truth value identical; only name-slot contexts and furniture differ."
+    },
     "demographic_labels": {
       "type": "array",
       "minItems": 5,
@@ -180,7 +185,7 @@
           },
           "furniture": {
             "type": "array",
-            "description": "Non-PII page furniture planted in the text (running headers, page numbers, boilerplate) as half-open [start, end) char offsets with a kind. Present on every document; empty until a generator profile plants furniture.",
+            "description": "Non-PII page furniture planted in the text as half-open [start, end) char offsets with a kind. Present on every document; empty on the g8 corpus as furnished; the Spec-D profiles plant it with kinds role_noun (a whole sentence carrying one Plaintiff/Defendant/Patient/Provider/Dr. token), label (a Reg # / Registration line), plate_label (a Tag / Plate line), salutation and closing (the cue of a letter). Never overlaps a ground-truth span; not ground truth itself (a detection inside it is a false positive attributed to the kind).",
             "items": {
               "type": "object",
               "required": ["start", "end", "kind"],

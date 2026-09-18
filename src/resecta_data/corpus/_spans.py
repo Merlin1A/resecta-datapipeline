@@ -104,6 +104,10 @@ class SpanBuilder:
     _parts: list[str] = field(default_factory=list)
     _length: int = 0
     spans: list[dict[str, Any]] = field(default_factory=list)
+    # Non-PII page furniture a generator profile plants (1.2 C12-95 Spec-D):
+    # [start, end) regions with a kind, recorded beside the spans and never
+    # as a span. Empty under the ``g8`` profile.
+    furniture: list[dict[str, Any]] = field(default_factory=list)
 
     def append(self, text: str) -> None:
         """Append plain (non-PII) text."""
@@ -111,6 +115,24 @@ class SpanBuilder:
             return
         self._parts.append(text)
         self._length += len(text)
+
+    def append_furniture(self, text: str, kind: str) -> None:
+        """Append non-PII furniture text and record its ``[start, end)`` region.
+
+        ``kind`` is the free-string furniture kind the corpus schema carries
+        (``role_noun`` · ``label`` · ``plate_label`` · ``salutation`` ·
+        ``closing`` from the Spec-D generator). The region is an annotation
+        for the eval join (a detection overlapping it attributes to the kind);
+        it is not ground truth and carries no tier.
+        """
+        if not text:
+            return
+        if not kind:
+            raise ValueError("furniture needs a non-empty kind")
+        start = self._length
+        self._parts.append(text)
+        self._length += len(text)
+        self.furniture.append({"start": start, "end": self._length, "kind": kind})
 
     def append_pii(
         self,
@@ -165,6 +187,10 @@ class SpanBuilder:
         text = "".join(self._parts)
         spans = sorted(self.spans, key=lambda s: (s["start"], s["end"]))
         return text, spans
+
+    def furniture_sorted(self) -> list[dict[str, Any]]:
+        """The planted furniture regions, sorted by start offset."""
+        return sorted(self.furniture, key=lambda f: (f["start"], f["end"], f["kind"]))
 
 
 def append_name_or_placeholder(

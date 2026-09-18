@@ -91,6 +91,8 @@ from .common.io import (
 )
 from .common.schema import validate_file
 from .corpus import build_g8_corpus, build_negative_corpus
+from .corpus._profiles import PROFILE_G8
+from .corpus._profiles import PROFILES as CORPUS_PROFILES
 from .demographics import build as build_demographics
 from .demographics.g8_bucket_recall import build as build_g8_bucket_recall
 from .eval import build_compare
@@ -203,6 +205,14 @@ SCHEMA_ROUTES: dict[str, str] = {
     "classifier/context_scorer.json": "context_scorer",
     "classifier/context_scorer_candidates.json": "context_scorer",
     "corpus/g8_corpus.json": "g8_corpus",
+    # 1.2 C12-95 generator PROFILES (Spec-C name-context variety, Spec-D
+    # furniture density, both): the same 1,100 documents re-rendered; built
+    # by `build corpus g8 --profile <p>`, validated against the same schema,
+    # never installed (the engine harness reads one through the test-target
+    # override RESECTA_G8_CORPUS_PATH under `make eval EVAL_CORPUS_PROFILE=`).
+    "corpus/g8_corpus_g8-specC.json": "g8_corpus",
+    "corpus/g8_corpus_g8-specD.json": "g8_corpus",
+    "corpus/g8_corpus_g8-specCD.json": "g8_corpus",
     # Eval baseline — deterministic no-PII negative corpus for the
     # document-level FP measurement. Dev/eval fixture; no INSTALL_ROUTES entry
     # (not shipped), like g8_bucket_recall.
@@ -2447,6 +2457,17 @@ def build_classifier_cmd(kind: str, build_dir: Path, seed: int) -> None:
             )
 
 
+def g8_corpus_artifact_path(build_dir: Path, profile: str) -> Path:
+    """The build/-relative home of a G8 corpus profile.
+
+    The ``g8`` profile IS ``corpus/g8_corpus.json`` (the fixture the lock row
+    and the engine test bundle carry); every other profile lands beside it as
+    ``corpus/g8_corpus_<profile>.json``.
+    """
+    name = "g8_corpus.json" if profile == PROFILE_G8 else f"g8_corpus_{profile}.json"
+    return build_dir / "corpus" / name
+
+
 @build_group.command("corpus")
 @click.argument("kind", type=click.Choice(["g8"]))
 @click.option(
@@ -2460,17 +2481,32 @@ def build_classifier_cmd(kind: str, build_dir: Path, seed: int) -> None:
     default=CANONICAL_SEED,
     show_default=True,
 )
-def build_corpus_cmd(kind: str, build_dir: Path, seed: int) -> None:
-    """Build the G8 synthetic document corpus."""
+@click.option(
+    "--profile",
+    "profiles",
+    type=click.Choice(list(CORPUS_PROFILES)),
+    multiple=True,
+    default=(PROFILE_G8,),
+    show_default=True,
+    help=(
+        "Generator profile(s) to build (repeatable). g8 = the corpus as furnished "
+        "(corpus/g8_corpus.json); g8-specC / g8-specD / g8-specCD = the same "
+        "documents with name-context variety, furniture density, or both "
+        "(corpus/g8_corpus_<profile>.json; never installed)."
+    ),
+)
+def build_corpus_cmd(kind: str, build_dir: Path, seed: int, profiles: tuple[str, ...]) -> None:
+    """Build the G8 synthetic document corpus (one file per profile)."""
     assert_hash_seed_pinned()
     if kind == "g8":
-        payload = build_g8_corpus(seed)
-        dest = build_dir / "corpus" / "g8_corpus.json"
-        dump_canonical_json(payload, dest)
-        click.echo(
-            f"Wrote {dest} ({len(payload['documents'])} documents across "
-            f"{len(payload['counts_by_doctype'])} doctypes)"
-        )
+        for profile in profiles:
+            payload = build_g8_corpus(seed, profile=profile)
+            dest = g8_corpus_artifact_path(build_dir, profile)
+            dump_canonical_json(payload, dest)
+            click.echo(
+                f"Wrote {dest} ({len(payload['documents'])} documents across "
+                f"{len(payload['counts_by_doctype'])} doctypes; profile {profile})"
+            )
 
 
 # -----------------------------------------------------------------------------
