@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 import pytest
 
 from resecta_data.common.determinism import CANONICAL_SEED
+from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.corpus import build_g8_corpus
@@ -530,3 +531,291 @@ def test_name_context_classes_pinned_on_the_canonical_corpus() -> None:
     assert dict(by_class) == _PINNED_NAME_CLASS_COUNTS
     assert sum(by_class.values()) == 2837
     assert {dt: dict(c) for dt, c in by_doctype.items()} == _PINNED_NAME_CLASS_COUNTS_BY_DOCTYPE
+
+
+# ---------------------------------------------------------------------------
+# Generator profiles (1.2 C12-95 Spec-C / Spec-D; C12-29 (b)): the g8 profile
+# is the corpus as furnished, byte for byte; every other profile is the same
+# documents with the name slots re-rendered and / or furniture planted.
+# ---------------------------------------------------------------------------
+
+from resecta_data.corpus._profiles import (  # noqa: E402
+    COURT_ROLE_NOUNS,
+    COURT_ROLE_NOUNS_PER_DOC,
+    FURNITURE_KINDS,
+    LABELS_PER_DOC,
+    MEDICAL_ROLE_NOUNS,
+    MEDICAL_ROLE_NOUNS_PER_DOC,
+    PROFILE_G8,
+    PROFILE_SPEC_C,
+    PROFILE_SPEC_CD,
+    PROFILE_SPEC_D,
+    PROFILES,
+)
+
+_SPEC_PROFILES = (PROFILE_SPEC_C, PROFILE_SPEC_D, PROFILE_SPEC_CD)
+_NEW_CONTEXT_CLASSES = frozenset({"table_cell", "body_prose", "header"})
+_ROLE_NOUN_RE = re.compile(
+    r"(?<![A-Za-z])(?:"
+    + "|".join(re.escape(w) for w in COURT_ROLE_NOUNS + MEDICAL_ROLE_NOUNS)
+    + r")(?![A-Za-z])"
+)
+
+
+def _span_signature(span: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        span["category"],
+        span["value"],
+        span["tier"],
+        span.get("adversarial", False),
+        span.get("expected_outcome"),
+    )
+
+
+def _neighbour_tokens(doc: dict[str, Any], span: dict[str, Any]) -> tuple[str | None, str | None]:
+    """The whitespace token right before and right after a non-name span, as
+    the structured-family guard reads them: a side is ``None`` (exempt) when a
+    NAME slot sits on that side of the same line (the slot's rendering is what
+    a profile moves) or when the neighbour lies on another line (a planted
+    line or the next slot's label, never this span's own context)."""
+    text = doc["text"]
+    line_start = text.rfind("\n", 0, span["start"]) + 1
+    line_end = text.find("\n", span["end"])
+    line_end = len(text) if line_end < 0 else line_end
+    names = [(s["start"], s["end"]) for s in doc["pii_spans"] if s["category"] == "name"]
+    # A name slot on this side of the line: a name span, or the sparse
+    # placeholder the slot renders instead of one.
+    name_before = any(ne <= span["start"] and ns >= line_start for ns, ne in names) or (
+        REDACTED_NAME_PLACEHOLDER in text[line_start : span["start"]]
+    )
+    name_after = any(ns >= span["end"] and ne <= line_end for ns, ne in names) or (
+        REDACTED_NAME_PLACEHOLDER in text[span["end"] : line_end]
+    )
+    tokens = [(m.start(), m.end(), m.group()) for m in re.finditer(r"\S+", text)]
+    before = [t for t in tokens if t[1] <= span["start"]][-1:]
+    after = [t for t in tokens if t[0] >= span["end"]][:1]
+    before_word = before[0][2] if before and before[0][0] >= line_start else None
+    after_word = after[0][2] if after and after[0][1] <= line_end else None
+    return (None if name_before else before_word, None if name_after else after_word)
+
+
+def test_profiles_are_named_and_g8_is_the_default() -> None:
+    assert PROFILES == ("g8", "g8-specC", "g8-specD", "g8-specCD")
+    default = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS)
+    explicit = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=PROFILE_G8)
+    assert default == explicit
+    assert "profile" not in default
+    with pytest.raises(PipelineError, match="unknown corpus profile"):
+        build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile="g8-specZ")
+
+
+@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+def test_profile_builds_are_deterministic_named_and_distinct(profile: str) -> None:
+    a = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    b = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    assert a == b
+    assert a["profile"] == profile
+    g8 = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)
+    assert a != g8
+    # Same documents, same order, same counts; the schema still validates.
+    assert [d["id"] for d in a["documents"]] == [d["id"] for d in g8["documents"]]
+    assert a["counts_by_doctype"] == g8["counts_by_doctype"]
+
+
+@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+def test_profile_schema_validates(profile: str, tmp_build_dir: Path) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=profile)
+    dest = tmp_build_dir / f"g8_corpus_{profile}.json"
+    dump_canonical_json(payload, dest)
+    validate_file(dest, _SCHEMAS, "g8_corpus")
+
+
+@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+def test_profiles_keep_every_ground_truth_value_and_every_non_name_slot(profile: str) -> None:
+    """The PAIR invariant: a profile document is the g8 document with its name
+    slots re-rendered and furniture planted -- every span keeps its category,
+    value, tier and outcome IN ORDER, every span's offsets still return its
+    value, and every NON-name span keeps the tokens on both sides of it (the
+    structured-family guard; name tokens masked)."""
+    g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)["documents"]}
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    for doc in payload["documents"]:
+        twin = g8[doc["id"]]
+        assert [_span_signature(s) for s in doc["pii_spans"]] == [
+            _span_signature(s) for s in twin["pii_spans"]
+        ], doc["id"]
+        for span in doc["pii_spans"]:
+            assert doc["text"][span["start"] : span["end"]] == span["value"], doc["id"]
+        for span, twin_span in zip(doc["pii_spans"], twin["pii_spans"], strict=True):
+            if span["category"] == "name":
+                continue
+            # Compare only the sides the guard does not exempt on EITHER twin.
+            ours, theirs = _neighbour_tokens(doc, span), _neighbour_tokens(twin, twin_span)
+            for mine, its in zip(ours, theirs, strict=True):
+                if mine is not None and its is not None:
+                    assert mine == its, (doc["id"], span["category"], ours, theirs)
+        # Name-sparse documents stay name-free under every profile.
+        if not any(s["category"] == "name" for s in twin["pii_spans"]):
+            assert not any(s["category"] == "name" for s in doc["pii_spans"])
+            assert REDACTED_NAME_PLACEHOLDER in doc["text"]
+
+
+def test_spec_c_renders_the_classes_the_shipped_corpus_lacks() -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=PROFILE_SPEC_C)
+    classes: Counter[str] = Counter()
+    title_outside_medical = 0
+    for doc in payload["documents"]:
+        assert doc["furniture"] == [], "Spec-C plants no furniture"
+        for span in doc["pii_spans"]:
+            assert span["context_class"] in _CONTEXT_CLASSES
+            if span["category"] != "name":
+                assert span["context_class"] == "none"
+                continue
+            assert span["context_class"] != "none"
+            classes[span["context_class"]] += 1
+            if span["context_class"] == "title_label" and doc["doctype"] != "medical":
+                title_outside_medical += 1
+    # Every doctype draws the new classes (C12-29 (b): table cells, body prose,
+    # running headers, Title-labels beyond Dr.).
+    assert set(classes) >= _NEW_CONTEXT_CLASSES
+    assert title_outside_medical > 0
+    for doctype in _MIN_COUNTS:
+        seen = {
+            s["context_class"]
+            for d in payload["documents"]
+            if d["doctype"] == doctype
+            for s in d["pii_spans"]
+            if s["category"] == "name"
+        }
+        assert seen & _NEW_CONTEXT_CLASSES, doctype
+
+
+@pytest.mark.parametrize("profile", (PROFILE_SPEC_D, PROFILE_SPEC_CD))
+def test_spec_d_plants_furniture_at_the_pre_registered_rates(profile: str) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    for doc in payload["documents"]:
+        text = doc["text"]
+        kinds = Counter(f["kind"] for f in doc["furniture"])
+        assert set(kinds) <= set(FURNITURE_KINDS), doc["id"]
+        for region in doc["furniture"]:
+            assert 0 <= region["start"] < region["end"] <= len(text)
+            # Never on a ground-truth span.
+            assert not any(
+                region["start"] < s["end"] and s["start"] < region["end"] for s in doc["pii_spans"]
+            ), doc["id"]
+            if region["kind"] == "role_noun":
+                # One region = one sentence = exactly one role noun.
+                assert len(_ROLE_NOUN_RE.findall(text[region["start"] : region["end"]])) == 1
+        labels = kinds["label"] + kinds["plate_label"]
+        court_lo, court_hi = COURT_ROLE_NOUNS_PER_DOC
+        medical_lo, medical_hi = MEDICAL_ROLE_NOUNS_PER_DOC
+        if doc["doctype"] == "court":
+            assert court_lo <= kinds["role_noun"] <= court_hi
+            assert LABELS_PER_DOC[0] <= labels <= LABELS_PER_DOC[1]
+        elif doc["doctype"] == "medical":
+            assert medical_lo <= kinds["role_noun"] <= medical_hi
+            assert labels == 0
+        elif doc["doctype"] == "foia":
+            assert kinds["role_noun"] == 0
+            assert LABELS_PER_DOC[0] <= labels <= LABELS_PER_DOC[1]
+            assert kinds["salutation"] == 1 and kinds["closing"] == 1
+        elif doc["doctype"] == "generic":
+            assert kinds["role_noun"] == 0 and labels == 0
+            assert kinds["closing"] == 1
+            # The salutation cue is furniture unless the slot drew the
+            # label-shaped "Attention:" variant (Spec-CD only).
+            attention = profile == PROFILE_SPEC_CD and kinds["salutation"] == 0
+            assert kinds["salutation"] == 1 or attention
+        else:  # financial (invoice + W-2): neither a pleading nor a letter
+            assert doc["furniture"] == [], doc["id"]
+
+
+def test_spec_c_alone_and_g8_plant_no_furniture() -> None:
+    for profile in (PROFILE_G8, PROFILE_SPEC_C):
+        payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=profile)
+        assert all(doc["furniture"] == [] for doc in payload["documents"]), profile
+
+
+@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+def test_should_tier_surfaces_stay_keyword_starved_under_every_profile(profile: str) -> None:
+    """The keyword-starved plate / ITIN spans keep their starved windows: a
+    planted label line or a re-rendered name slot never feeds them."""
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    for doc, span in _all_spans(payload):
+        if span["tier"] != "should":
+            continue
+        if span["category"] == "itin":
+            window = _window_text(doc["text"], span["start"], span["end"], radius=8)
+            assert not any(kw in window for kw in _ITIN_KEYWORDS), doc["id"]
+            chars = doc["text"][max(0, span["start"] - 100) : span["end"] + 100].lower()
+            assert not any(kw in chars for kw in _ITIN_KEYWORDS), doc["id"]
+        elif span["category"] == "licensePlate":
+            window = _window_text(doc["text"], span["start"], span["end"], radius=5)
+            assert not any(kw in window for kw in _PLATE_KEYWORDS), doc["id"]
+
+
+# The canonical (full-count, seed 20260416) profile builds, pinned: a change
+# here is a template or profile change, never drift. The g8 twin is pinned
+# above (_PINNED_NAME_CLASS_COUNTS); these are the three profiles' censuses.
+_PINNED_PROFILE_NAME_CLASS_COUNTS: dict[str, dict[str, int]] = {
+    PROFILE_SPEC_C: {
+        "body_prose": 408,
+        "caption_left": 84,
+        "caption_right": 84,
+        "closing_line": 159,
+        "document_initial": 16,
+        "header": 242,
+        "role_label": 603,
+        "salutation": 40,
+        "subject_line": 50,
+        "table_cell": 550,
+        "title_label": 601,
+    },
+    PROFILE_SPEC_D: dict(_PINNED_NAME_CLASS_COUNTS),
+    PROFILE_SPEC_CD: {
+        "body_prose": 387,
+        "caption_left": 86,
+        "caption_right": 86,
+        "closing_line": 146,
+        "document_initial": 10,
+        "header": 264,
+        "role_label": 633,
+        "salutation": 36,
+        "subject_line": 51,
+        "table_cell": 553,
+        "title_label": 585,
+    },
+}
+_PINNED_PROFILE_FURNITURE_COUNTS: dict[str, dict[str, int]] = {
+    PROFILE_SPEC_C: {},
+    PROFILE_SPEC_D: {
+        "closing": 250,
+        "label": 452,
+        "plate_label": 449,
+        "role_noun": 4226,
+        "salutation": 250,
+    },
+    PROFILE_SPEC_CD: {
+        "closing": 250,
+        "label": 462,
+        "plate_label": 444,
+        "role_noun": 4199,
+        "salutation": 221,
+    },
+}
+
+
+@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+def test_profile_censuses_pinned_on_the_canonical_corpus(profile: str) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, profile=profile)
+    assert payload["version"] == 2
+    assert payload["profile"] == profile
+    by_class: Counter[str] = Counter(
+        span["context_class"] for _, span in _all_spans(payload) if span["category"] == "name"
+    )
+    assert dict(by_class) == _PINNED_PROFILE_NAME_CLASS_COUNTS[profile]
+    assert sum(by_class.values()) == 2837
+    kinds: Counter[str] = Counter(
+        region["kind"] for doc in payload["documents"] for region in doc["furniture"]
+    )
+    assert dict(kinds) == _PINNED_PROFILE_FURNITURE_COUNTS[profile]

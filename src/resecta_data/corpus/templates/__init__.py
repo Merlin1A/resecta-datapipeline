@@ -1,11 +1,15 @@
 """Per-doctype synthetic document emitters.
 
 Each template module exposes ``emit(rng, name_sampler, bucket, *,
-locale, name_sparse) -> (text, spans, adversarial_tags)``. All templates
-are deterministic given the rng; ``locale`` selects the Faker locale
-used for locale-sensitive content (addresses) and defaults to
-``en_US``; ``name_sparse`` replaces every person-name
-span with placeholder text so the document carries zero name spans.
+locale, name_sparse, profile) -> (text, spans, adversarial_tags,
+furniture)``. All templates are deterministic given the rng; ``locale``
+selects the Faker locale used for locale-sensitive content (addresses) and
+defaults to ``en_US``; ``name_sparse`` replaces every person-name span with
+placeholder text so the document carries zero name spans; ``profile`` (a
+:class:`corpus._profiles.Profile`, or ``None`` for the ``g8`` corpus as
+furnished) carries the generator profile's own random stream -- under
+Spec-C the name slots render in drawn contexts, under Spec-D the template
+plants furniture, returned as ``[start, end)`` regions with a kind.
 
 ``SUB_TEMPLATE_EMITTERS`` holds alternate shapes that share a doctype
 label: ``financial_tax`` emits W-2 shaped docs labeled

@@ -3,12 +3,17 @@
 Emits discharge-summary-style text with patient demographics, MRN, DOB,
 provider NPI, prescribing DEA, and (25% of the time) adversarial
 NPI-shaped phone-number decoys.
+
+Generator profiles (1.2 C12-95): under Spec-C the ``Patient:`` slot and the
+two ``Dr.`` title slots render in their shipped context or one of four
+variants; under Spec-D the document plants 4-8 role-noun sentences
+(Patient / Provider / Dr.) after the clinical-furniture lines.
 """
 
 from __future__ import annotations
 
 import random
-from typing import Any
+from typing import Any, Final
 
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
@@ -29,15 +34,40 @@ from resecta_data.corpus._pii import (
     generate_phone,
     generate_ssn,
 )
-from resecta_data.corpus._spans import (
-    SpanBuilder,
-    append_name_or_placeholder,
+from resecta_data.corpus._profiles import (
+    MEDICAL_ROLE_NOUN_SENTENCES,
+    MEDICAL_ROLE_NOUNS_PER_DOC,
+    NameContext,
+    Profile,
+    header_after,
+    plant_role_nouns,
+    render_name_slot,
 )
+from resecta_data.corpus._spans import SpanBuilder
 
 _ADVERSARIAL_PROBABILITY = 0.25
 # 1.2 T1.1: the identity document verified at intake is a passport half the
 # time and a driver's license otherwise.
 _PASSPORT_ID_PROBABILITY = 0.50
+
+_PATIENT_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("title_label", "Patient Name: "),
+    NameContext("table_cell", "| Patient | ", " |"),
+    NameContext("header", "", header_after()),
+    NameContext("body_prose", "The patient, ", ", was admitted for observation."),
+)
+_PCP_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("role_label", "Primary care physician: "),
+    NameContext("table_cell", "| Primary care | ", " |"),
+    NameContext("body_prose", "Care was coordinated by "),
+    NameContext("title_label", "Provider Name: "),
+)
+_PRESCRIBER_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("role_label", "Prescriber: "),
+    NameContext("table_cell", "| Prescriber | ", " |"),
+    NameContext("body_prose", "Medications were ordered by "),
+    NameContext("title_label", "Prescriber Name: "),
+)
 
 
 def emit(
@@ -47,7 +77,8 @@ def emit(
     *,
     locale: str = "en_US",
     name_sparse: bool = False,
-) -> tuple[str, list[dict[str, Any]], list[str]]:
+    profile: Profile | None = None,
+) -> tuple[str, list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     # All rng draws are unconditional so the stream is independent of
     # name_sparse; only what gets emitted differs.
     patient = sampler.sample(bucket)
@@ -73,9 +104,13 @@ def emit(
     sb = SpanBuilder()
     sb.append("Community Medical Center — Discharge Summary\n\n")
 
-    sb.append("Patient: ")
-    append_name_or_placeholder(
-        sb, patient.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        patient.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "Patient: "),
+        variants=_PATIENT_VARIANTS,
     )
     sb.append("\nDOB: ")
     sb.append_pii(dob, "dob")
@@ -91,16 +126,24 @@ def emit(
     sb.append_pii(ssn, "ssn")
     sb.append("\n\n")
 
-    sb.append("Primary care: Dr. ")
-    append_name_or_placeholder(
-        sb, pcp.full_name, name_sparse=name_sparse, context_class="title_label"
+    render_name_slot(
+        sb,
+        profile,
+        pcp.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("title_label", "Primary care: Dr. "),
+        variants=_PCP_VARIANTS,
     )
     sb.append(", NPI ")
     sb.append_pii(npi, "npi")
     sb.append(".\n")
-    sb.append("Prescribing: Dr. ")
-    append_name_or_placeholder(
-        sb, prescriber.full_name, name_sparse=name_sparse, context_class="title_label"
+    render_name_slot(
+        sb,
+        profile,
+        prescriber.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("title_label", "Prescribing: Dr. "),
+        variants=_PRESCRIBER_VARIANTS,
     )
     sb.append(", DEA ")
     sb.append_pii(dea, "dea")
@@ -120,13 +163,17 @@ def emit(
         "Medication: lisinopril 10 mg daily; refill at next visit.\n"
     )
 
+    # Spec-D: the Patient / Provider / Dr. role-noun lines a real summary
+    # carries, planted after the clinical furniture and before the decoy.
+    plant_role_nouns(sb, profile, MEDICAL_ROLE_NOUN_SENTENCES, MEDICAL_ROLE_NOUNS_PER_DOC)
+
     if include_adversarial:
         _append_callback_decoy(sb, rng, tags)
 
     _append_identity_and_card(sb, rng, tags)
 
     text, spans = sb.finalize()
-    return text, spans, tags
+    return text, spans, tags, sb.furniture_sorted()
 
 
 def _append_callback_decoy(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:

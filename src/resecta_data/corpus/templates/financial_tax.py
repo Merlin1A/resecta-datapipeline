@@ -16,6 +16,10 @@ Two deliberate template-shape decisions:
 - The employee name is one full-name line, not split
   first/last boxes: the Swift detector emits full-name spans, so split
   single-token truth spans would systematically fail IoU-0.5 matching.
+
+Generator profiles (1.2 C12-95): under Spec-C the ``e. Employee's name:``
+slot renders in its shipped context or one of four variants; Spec-D plants
+nothing here.
 """
 
 from __future__ import annotations
@@ -31,10 +35,12 @@ from resecta_data.corpus._pii import (
     generate_phone,
     generate_ssn,
 )
-from resecta_data.corpus._spans import (
-    SpanBuilder,
-    append_name_or_placeholder,
+from resecta_data.corpus._profiles import (
+    NameContext,
+    Profile,
+    render_name_slot,
 )
+from resecta_data.corpus._spans import SpanBuilder
 
 # Institution names are filler, not PII (matching the invoice template's
 # "Acme Services LLC" treatment of organization names).
@@ -53,6 +59,13 @@ _EMPLOYER_NAMES: Final[tuple[str, ...]] = (
 
 _BOX_12A_CODES: Final[tuple[str, ...]] = ("D", "DD", "E", "W")
 
+_EMPLOYEE_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("table_cell", "| e. Employee's name | ", " |"),
+    NameContext("table_cell", "e.  "),
+    NameContext("title_label", "Employee Name: "),
+    NameContext("body_prose", "This statement is issued to "),
+)
+
 
 def emit(
     rng: random.Random,
@@ -61,7 +74,8 @@ def emit(
     *,
     locale: str = "en_US",
     name_sparse: bool = False,
-) -> tuple[str, list[dict[str, Any]], list[str]]:
+    profile: Profile | None = None,
+) -> tuple[str, list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     # All rng draws are unconditional so the stream is independent of
     # name_sparse; only what gets emitted differs.
     employee = sampler.sample(bucket)
@@ -98,9 +112,13 @@ def emit(
     sb.append("\n")
     sb.append(f"d. Control number: {control_number}\n\n")
 
-    sb.append("e. Employee's name: ")
-    append_name_or_placeholder(
-        sb, employee.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        employee.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "e. Employee's name: "),
+        variants=_EMPLOYEE_VARIANTS,
     )
     sb.append("\n")
     sb.append("f. Employee's address and ZIP code: ")
@@ -118,4 +136,4 @@ def emit(
     sb.append("\n")
 
     text, spans = sb.finalize()
-    return text, spans, []
+    return text, spans, [], sb.furniture_sorted()

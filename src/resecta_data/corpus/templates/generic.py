@@ -3,12 +3,17 @@
 Emits a plain correspondence with sender name/address/phone/email, a
 recipient name/address block, and a single account reference. Used as
 the neutral fallback class.
+
+Generator profiles (1.2 C12-95): under Spec-C the document-initial sender
+line, ``To:``, ``Dear`` and the closing-line slot render in their shipped
+context or one of four variants; under Spec-D the salutation and closing
+cues (``Dear`` / ``Regards,``) are recorded as furniture.
 """
 
 from __future__ import annotations
 
 import random
-from typing import Any
+from typing import Any, Final
 
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
@@ -20,15 +25,52 @@ from resecta_data.corpus._pii import (
     generate_localized_address,
     generate_phone,
 )
-from resecta_data.corpus._spans import (
-    SpanBuilder,
-    append_name_or_placeholder,
+from resecta_data.corpus._profiles import (
+    FURNITURE_CLOSING,
+    FURNITURE_SALUTATION,
+    NameContext,
+    Profile,
+    append_cue,
+    choose_context,
+    header_after,
+    render_name_slot,
 )
+from resecta_data.corpus._spans import SpanBuilder
 
 # 1.2 T1.1: half the letters label their ITIN (fed -> must); the other half
 # draw it keyword-starved (should). The YY-range decoy rides its own draw.
 _ITIN_LABELED_PROBABILITY = 0.50
 _ITIN_DECOY_PROBABILITY = 0.25
+
+_SENDER_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("role_label", "From: "),
+    NameContext("header", "", header_after()),
+    NameContext("table_cell", "| Sender | ", " |"),
+    NameContext("title_label", "Sender Name: "),
+)
+_RECIPIENT_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("role_label", "Attn: "),
+    NameContext("table_cell", "| To | ", " |"),
+    NameContext("title_label", "Recipient Name: "),
+    NameContext("body_prose", "This letter is addressed to "),
+)
+# The salutation slot: the cue is recorded as salutation furniture under
+# Spec-D; the honorific variant is a Title-label beyond ``Dr.``.
+_SALUTATION_SHIPPED: Final[NameContext] = NameContext(
+    "salutation", "Dear ", before_kind=FURNITURE_SALUTATION
+)
+_SALUTATION_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("salutation", "Hello ", before_kind=FURNITURE_SALUTATION),
+    NameContext("salutation", "Greetings, ", before_kind=FURNITURE_SALUTATION),
+    NameContext("role_label", "Attention: "),
+    NameContext("title_label", "Dear Ms. ", before_kind=FURNITURE_SALUTATION),
+)
+_CLOSING_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("closing_line", "/s/ "),
+    NameContext("closing_line", "", "\nCustomer Relations"),
+    NameContext("table_cell", "| Signature | ", " |"),
+    NameContext("header", "", header_after()),
+)
 
 
 def emit(
@@ -38,7 +80,8 @@ def emit(
     *,
     locale: str = "en_US",
     name_sparse: bool = False,
-) -> tuple[str, list[dict[str, Any]], list[str]]:
+    profile: Profile | None = None,
+) -> tuple[str, list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     # All rng draws are unconditional so the stream is independent of
     # name_sparse; only what gets emitted differs.
     sender = sampler.sample(bucket)
@@ -56,8 +99,13 @@ def emit(
     account = generate_account_number(rng)
 
     sb = SpanBuilder()
-    append_name_or_placeholder(
-        sb, sender.full_name, name_sparse=name_sparse, context_class="document_initial"
+    render_name_slot(
+        sb,
+        profile,
+        sender.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("document_initial"),
+        variants=_SENDER_VARIANTS,
     )
     sb.append("\n")
     sb.append_pii(sender_address, "address")
@@ -67,19 +115,39 @@ def emit(
     sb.append_pii(sender_email, "email")
     sb.append("\n\n")
 
-    sb.append("To: ")
-    append_name_or_placeholder(
-        sb, recipient.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        recipient.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "To: "),
+        variants=_RECIPIENT_VARIANTS,
     )
     sb.append("\n")
     sb.append_pii(recipient_address, "address")
     sb.append("\n\n")
 
-    sb.append("Dear ")
     if name_sparse:
+        # The shipped sparse salutation keeps its cue (recorded as furniture
+        # under Spec-D) and names nobody; the context draw still happens so
+        # the profile stream position does not depend on the sparse outcome.
+        ctx = choose_context(profile, _SALUTATION_SHIPPED, _SALUTATION_VARIANTS)
+        cue = str(ctx.before)
+        if ctx.before_kind is not None and profile is not None and profile.spec_d:
+            sb.append_furniture(cue.rstrip(), ctx.before_kind)
+            sb.append(cue[len(cue.rstrip()) :])
+        else:
+            sb.append(cue)
         sb.append("Sir or Madam")
     else:
-        sb.append_pii(recipient.full_name, "name", context_class="salutation")
+        render_name_slot(
+            sb,
+            profile,
+            recipient.full_name,
+            name_sparse=False,
+            shipped=_SALUTATION_SHIPPED,
+            variants=_SALUTATION_VARIANTS,
+        )
     sb.append(",\n\n")
 
     # The letter body carries the generic-class keyword surface (2026-06-11
@@ -92,10 +160,17 @@ def emit(
         " is on file. Please contact our office at the number above with "
         "any questions. We appreciate your business and look forward to "
         "your reply. A copy of our latest newsletter is enclosed."
-        "\n\nRegards,\n"
+        "\n\n"
     )
-    append_name_or_placeholder(
-        sb, sender.full_name, name_sparse=name_sparse, context_class="closing_line"
+    append_cue(sb, profile, "Regards,", FURNITURE_CLOSING)
+    sb.append("\n")
+    render_name_slot(
+        sb,
+        profile,
+        sender.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("closing_line"),
+        variants=_CLOSING_VARIANTS,
     )
     sb.append("\n")
 
@@ -103,7 +178,7 @@ def emit(
     _append_card_and_itin(sb, rng, tags)
 
     text, spans = sb.finalize()
-    return text, spans, tags
+    return text, spans, tags, sb.furniture_sorted()
 
 
 def _append_card_and_itin(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:

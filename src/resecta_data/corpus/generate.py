@@ -12,6 +12,14 @@ deterministic templates under :mod:`corpus.templates`.
 The builder is deterministic: the same seed yields the same corpus.
 Per-document sub-RNGs are derived from the seed, doctype, and index,
 so adding a new doctype does not shift existing document content.
+
+Generator PROFILES (1.2 C12-95 Spec-C / Spec-D, :mod:`corpus._profiles`):
+``build(seed, profile=)`` keeps every document's base stream byte-identical
+to the ``g8`` corpus and hands the emitter a second stream seeded on
+``(seed, doctype, index, profile)`` for the profile's own choices (name-slot
+contexts under Spec-C, planted furniture under Spec-D). The ``g8`` profile
+never consults that stream, so ``build(seed)`` and ``build(seed, profile="g8")``
+are the same bytes.
 """
 
 from __future__ import annotations
@@ -26,6 +34,7 @@ from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.process import effective_workers, request_parent_death_signal
 
 from ._names import BUCKETS, NameSampler
+from ._profiles import PROFILE_G8, PROFILES, Profile
 from .templates import EMITTERS, SUB_TEMPLATE_EMITTERS
 
 _MODULE_NAME: Final[str] = "resecta_data.corpus.generate"
@@ -116,6 +125,20 @@ def _sub_seed(master: int, doctype: str, index: int) -> int:
     return int.from_bytes(digest[:8], "big") % _SUB_SEED_MODULUS
 
 
+def _profile_sub_seed(master: int, doctype: str, index: int, profile: str) -> int:
+    """Deterministic per-doc seed of a profile's OWN stream.
+
+    Keyed on ``(master, doctype, index, profile)``: two profiles draw different
+    contexts and furniture for the same document, and the same profile draws
+    the same ones on every rebuild. The base stream (:func:`_sub_seed`) is
+    untouched, which is what keeps every ground-truth value of a profile
+    document identical to its ``g8`` twin.
+    """
+    key = f"{master}:{doctype}:{index}:{profile}".encode()
+    digest = hashlib.sha256(key).digest()
+    return int.from_bytes(digest[:8], "big") % _SUB_SEED_MODULUS
+
+
 def _sub_seed_and_locale(
     master: int, doctype: str, index: int, demographic: str
 ) -> tuple[int, str]:
@@ -165,7 +188,8 @@ def _generate_one_document(
     doctype: str,
     index: int,
     sub_template: str | None = None,
-) -> tuple[str, list[dict[str, Any]], list[str], str]:
+    profile: str = PROFILE_G8,
+) -> tuple[str, list[dict[str, Any]], list[str], str, list[dict[str, Any]]]:
     """Render a single G8 document from ``(master_seed, doctype, index)``.
 
     Module-level so it is picklable for ``ProcessPoolExecutor``. Pure
@@ -176,10 +200,13 @@ def _generate_one_document(
 
     ``sub_template`` selects an alternate emitter shape that shares the
     doctype label (currently only ``"financial_tax"``); the sub-seed is
-    still keyed on ``(master_seed, doctype, index)`` alone.
+    still keyed on ``(master_seed, doctype, index)`` alone. ``profile`` is
+    the generator profile: ``g8`` hands the emitter no profile stream; any
+    other profile hands it a :class:`Profile` whose stream is keyed on
+    ``(master_seed, doctype, index, profile)``.
 
     Returns:
-        ``(text, pii_spans, adversarial_tags, demographic_bucket)``.
+        ``(text, pii_spans, adversarial_tags, demographic_bucket, furniture)``.
         The caller turns this into the final document dict.
     """
     # First action: register parent-death signal so this worker self-
@@ -192,9 +219,17 @@ def _generate_one_document(
     # Drawn before the emitter so every template sees the same stream
     # position regardless of the sparse outcome.
     name_sparse = rng.random() < _NAME_SPARSE_FRACTION
+    active_profile: Profile | None = None
+    if profile != PROFILE_G8:
+        profile_rng = random.Random(  # noqa: S311
+            _profile_sub_seed(master_seed, doctype, index, profile)
+        )
+        active_profile = Profile(profile, profile_rng)
     emitter = SUB_TEMPLATE_EMITTERS[sub_template] if sub_template is not None else EMITTERS[doctype]
-    text, spans, tags = emitter(rng, sampler, bucket, locale=locale, name_sparse=name_sparse)
-    return text, spans, tags, bucket
+    text, spans, tags, furniture = emitter(
+        rng, sampler, bucket, locale=locale, name_sparse=name_sparse, profile=active_profile
+    )
+    return text, spans, tags, bucket, furniture
 
 
 def _assemble_document(
@@ -205,12 +240,13 @@ def _assemble_document(
     tags: list[str],
     bucket: str,
     sub_template: str | None = None,
+    furniture: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Validate worker output and build the final document dict.
 
     Validation lives in the parent so PipelineError carries the ordinary
     stack trace (not a pickled RemoteTraceback) and so workers stay
-    minimal. Both checks are O(#spans) per doc and cheap.
+    minimal. The checks are O(#spans + #furniture) per doc and cheap.
     """
     if not (_MIN_SPANS_PER_DOC <= len(spans) <= _MAX_SPANS_PER_DOC):
         raise PipelineError(
@@ -222,17 +258,26 @@ def _assemble_document(
     if unknown_tags:
         raise PipelineError(f"{doctype} #{index}: unknown adversarial tags {sorted(unknown_tags)}.")
 
+    planted = list(furniture or [])
+    for region in planted:
+        if not (0 <= region["start"] < region["end"] <= len(text)) or not region["kind"]:
+            raise PipelineError(f"{doctype} #{index}: malformed furniture region {region!r}.")
+        if any(region["start"] < s["end"] and s["start"] < region["end"] for s in spans):
+            raise PipelineError(
+                f"{doctype} #{index}: furniture region {region!r} overlaps a ground-truth span."
+            )
+
     doc: dict[str, Any] = {
         "id": f"{doctype}_{index:06d}",
         "doctype": doctype,
         "demographic_bucket": bucket,
         "text": text,
         "pii_spans": spans,
-        # Non-PII page furniture (running headers, page numbers, boilerplate)
-        # as [start, end) regions with a kind. Empty until a generator profile
-        # plants furniture; the key is present on every document so a reader
-        # never has to special-case its absence.
-        "furniture": [],
+        # Non-PII page furniture (role nouns, labels, salutations, closings)
+        # as [start, end) regions with a kind. Empty under the ``g8`` profile;
+        # the Spec-D profiles plant it. The key is present on every document
+        # so a reader never has to special-case its absence.
+        "furniture": planted,
     }
     if sub_template is not None:
         doc["sub_template"] = sub_template
@@ -247,13 +292,20 @@ def build(
     counts: dict[str, int] | None = None,
     parallel: bool = True,
     workers: int | None = None,
+    profile: str = PROFILE_G8,
 ) -> dict[str, Any]:
     """Return the G8 corpus payload.
 
     Args:
         seed: Master PRNG seed. Per-document sub-seeds are derived from it.
         counts: Optional override for per-doctype document counts. Defaults
-            to the canonical 300/250/200/150/100.
+            to the canonical 300/250/300/150/100.
+        profile: The generator profile (:data:`corpus._profiles.PROFILES`).
+            ``g8`` (default) is the corpus as furnished; ``g8-specC`` /
+            ``g8-specD`` / ``g8-specCD`` re-render the name slots and / or
+            plant furniture on the SAME documents (every value identical).
+            A non-default profile is named in the payload's ``profile`` key;
+            ``g8`` carries no such key, so its bytes never move.
         parallel: When True (default), each document is rendered in a
             ``ProcessPoolExecutor`` worker. Results are collected in
             canonical order so the output is byte-identical to the serial
@@ -270,6 +322,9 @@ def build(
         PipelineError: If a template emits out-of-range span counts or
             unknown adversarial tags.
     """
+    if profile not in PROFILES:
+        raise PipelineError(f"unknown corpus profile {profile!r}; choose from {list(PROFILES)}.")
+
     effective_counts = dict(_DEFAULT_COUNTS) if counts is None else dict(counts)
 
     if set(effective_counts) != set(_DOCTYPE_ORDER):
@@ -324,26 +379,27 @@ def build(
                     [p[0] for p in plan],
                     [p[1] for p in plan],
                     [p[2] for p in plan],
+                    [profile] * len(plan),
                     chunksize=16,
                 )
             )
         finally:
             pool.shutdown(wait=True, cancel_futures=True)
     else:
-        raw_results = [_generate_one_document(seed, dt, idx, sub) for dt, idx, sub in plan]
+        raw_results = [_generate_one_document(seed, dt, idx, sub, profile) for dt, idx, sub in plan]
 
     documents: list[dict[str, Any]] = []
     counts_by_demographic: dict[str, int] = dict.fromkeys(BUCKETS, 0)
-    for (doctype, index, sub_template), (text, spans, tags, bucket) in zip(
+    for (doctype, index, sub_template), (text, spans, tags, bucket, furniture) in zip(
         plan, raw_results, strict=True
     ):
-        doc = _assemble_document(doctype, index, text, spans, tags, bucket, sub_template)
+        doc = _assemble_document(doctype, index, text, spans, tags, bucket, sub_template, furniture)
         documents.append(doc)
         counts_by_demographic[bucket] += 1
 
     documents.sort(key=lambda d: (d["doctype"], d["id"]))
 
-    return {
+    payload: dict[str, Any] = {
         "version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "seed": seed,
@@ -352,3 +408,7 @@ def build(
         "demographic_labels": list(BUCKETS),
         "documents": documents,
     }
+    if profile != PROFILE_G8:
+        # Named only off the default so the g8 payload's bytes never move.
+        payload["profile"] = profile
+    return payload

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/g8_span_outcomes.schema.json",
   "title": "G8 per-span outcomes",
-  "description": "Per-span outcome aggregate derived by resecta_data.eval.spans from one G8 emitter's JSON-Lines sidecar (one row per ground-truth span of all 17 families plus one row per surfaced detection overlapping no ground-truth span; offsets only, never text) joined to the G8 corpus. Counts per family x doctype x bucket x outcome with a Wilson interval on recall, and -- when the corpus carries the context annotation (every span's context_class) -- the ground-truth rows again per family x context class and per family x doctype x bucket x context class. Dev/eval artifact: not installed to the Swift Resources path.",
+  "description": "Per-span outcome aggregate derived by resecta_data.eval.spans from one G8 emitter's JSON-Lines sidecar (one row per ground-truth span of all 17 families plus one row per surfaced detection overlapping no ground-truth span; offsets only, never text) joined to the G8 corpus. Counts per family x doctype x bucket x outcome with a Wilson interval on recall; when the corpus carries the context annotation (every span's context_class), the ground-truth rows again per family x context class and per family x doctype x bucket x context class; when the corpus carries planted furniture (a generator profile's furniture[] regions), the detection-only fp rows per family x furniture kind. Dev/eval artifact: not installed to the Swift Resources path.",
   "type": "object",
   "required": [
     "schema_version",
@@ -13,6 +13,7 @@
     "source_corpus_sha256",
     "join_rule",
     "context_class",
+    "furniture",
     "row_counts",
     "one_token_rule",
     "cells_crosscheck",
@@ -20,14 +21,15 @@
     "cells",
     "by_context_class",
     "cells_by_context_class",
+    "by_furniture_kind",
     "totals"
   ],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 2,
-      "description": "Wire-format version. 2 since the context-class tables (by_context_class, cells_by_context_class) and the context_class descriptor."
+      "const": 3,
+      "description": "Wire-format version. 2 since the context-class tables (by_context_class, cells_by_context_class) and the context_class descriptor; 3 since the furniture join (by_furniture_kind and the furniture descriptor) over the detection-only rows."
     },
     "generated_by": {
       "type": "string",
@@ -73,6 +75,24 @@
         }
       ],
       "description": "Null when the joined corpus carries no context annotation; otherwise where the class was read from (the corpus span, never the emitter), the full vocabulary and the classes present. The class tables below are empty in the null case."
+    },
+    "furniture": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["source", "join", "kinds_present", "regions", "documents_with_furniture"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string" },
+            "join": { "type": "string" },
+            "kinds_present": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "regions": { "type": "integer", "minimum": 1 },
+            "documents_with_furniture": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ],
+      "description": "Null when no document of the joined corpus carries planted furniture (the corpus as furnished); otherwise where the regions were read from (the corpus document, never the emitter), the join rule, the kinds present and the region count. by_furniture_kind is empty in the null case."
     },
     "row_counts": {
       "type": "object",
@@ -160,6 +180,26 @@
           "doctype": { "type": "string", "enum": ["court", "medical", "financial", "foia", "generic"] },
           "bucket": { "type": "string", "enum": ["white", "black", "hispanic", "asian", "ai_an"] },
           "context_class": { "$ref": "#/$defs/context_class" }
+        }
+      }
+    },
+    "by_furniture_kind": {
+      "type": "object",
+      "description": "Detection-only fp rows (tier null) per corpus family, then per furniture kind the detection overlaps (role_noun, label, plate_label, salutation, closing from the Spec-D generator; a row overlapping no region counts under 'unattributed'; a row overlapping two kinds counts once under each). Each kind carries the count and its split by doctype. Empty when the corpus carries no furniture.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["fp", "by_doctype"],
+          "additionalProperties": false,
+          "properties": {
+            "fp": { "type": "integer", "minimum": 0 },
+            "by_doctype": {
+              "type": "object",
+              "propertyNames": { "enum": ["court", "medical", "financial", "foia", "generic"] },
+              "additionalProperties": { "type": "integer", "minimum": 0 }
+            }
+          }
         }
       }
     },

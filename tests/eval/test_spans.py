@@ -326,6 +326,83 @@ class TestJoin:
         # The class-agnostic aggregate is untouched by the annotation's absence.
         assert payload["per_family"]["name"]["tp"] == 2
 
+    def test_furniture_join_attributes_detection_only_rows_by_kind(self) -> None:
+        """A generator profile's furniture[] regions (1.2 C12-95 Spec-D): every
+        detection-only fp row joins the kinds it overlaps; the rest are
+        unattributed; ground-truth rows never join; the corpus as furnished
+        (no furniture anywhere) yields a null descriptor and an empty table."""
+        corpus = _corpus()
+        doc_b = corpus["documents"][1]
+        # "Patient " is a planted role noun; " is a decoy." a planted closing.
+        doc_b["furniture"] = [
+            {"start": 0, "end": 7, "kind": "role_noun"},
+            {"start": 28, "end": 39, "kind": "closing"},
+        ]
+        rows = [
+            *_rows(),
+            # A name detection on the planted "Patient" (attributes to role_noun).
+            {
+                "doc_id": "doc_b",
+                "family": "name",
+                "start": 0,
+                "end": 7,
+                "tier": None,
+                "outcome": "fp",
+            },
+            # A name detection inside the closing region.
+            {
+                "doc_id": "doc_b",
+                "family": "name",
+                "start": 33,
+                "end": 39,
+                "tier": None,
+                "outcome": "fp",
+            },
+        ]
+        payload = eval_spans.build_span_outcomes(
+            rows, corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+        )
+        descriptor = payload["furniture"]
+        assert descriptor["kinds_present"] == ["closing", "role_noun"]
+        assert descriptor["regions"] == 2
+        assert descriptor["documents_with_furniture"] == 1
+        table = payload["by_furniture_kind"]
+        # doc_a's phone fp overlaps no region (doc_a has no furniture) -> unattributed.
+        assert table == {
+            "name": {
+                "closing": {"fp": 1, "by_doctype": {"medical": 1}},
+                "role_noun": {"fp": 1, "by_doctype": {"medical": 1}},
+            },
+            "phone": {"unattributed": {"fp": 1, "by_doctype": {"court": 1}}},
+        }
+        # The class-agnostic counters see the two extra fp rows and nothing else moved.
+        assert payload["row_counts"]["fp"] == 3
+        assert payload["per_family"]["name"]["fp"] == 2
+        assert payload["per_family"]["name"]["tp"] == 2
+        # The tp rows (ground truth) never join furniture even where they overlap it.
+        assert "unattributed" not in table["name"]
+
+    def test_no_furniture_yields_null_descriptor_and_empty_table(self) -> None:
+        payload = eval_spans.build_span_outcomes(
+            _rows(), _corpus(), site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+        )
+        assert payload["furniture"] is None
+        assert payload["by_furniture_kind"] == {}
+        assert payload["schema_version"] == 3
+
+    def test_malformed_furniture_is_an_error(self) -> None:
+        corpus = _corpus()
+        corpus["documents"][0]["furniture"] = [{"start": 5, "end": 4, "kind": "label"}]
+        with pytest.raises(PipelineError, match="malformed furniture region"):
+            eval_spans.build_span_outcomes(
+                _rows(), corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+            )
+        corpus["documents"][0]["furniture"] = [{"start": 0, "end": 4, "kind": ""}]
+        with pytest.raises(PipelineError, match="without a kind"):
+            eval_spans.build_span_outcomes(
+                _rows(), corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
+            )
+
     def test_partial_or_unknown_annotation_is_an_error(self) -> None:
         corpus = _corpus()
         del corpus["documents"][0]["pii_spans"][1]["context_class"]

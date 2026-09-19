@@ -2,12 +2,18 @@
 
 Emits request/response letter text referencing a requester, a subject of
 interest (name + DOB + SSN), and a FOIA exemption citation.
+
+Generator profiles (1.2 C12-95): under Spec-C the ``From:``, ``Re:`` and
+closing-line slots render in their shipped context or one of four
+variants; under Spec-D the letter gains a name-free salutation, 1-3 label
+lines after the body, and its ``Sincerely,`` cue is recorded as closing
+furniture.
 """
 
 from __future__ import annotations
 
 import random
-from typing import Any
+from typing import Any, Final
 
 from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
@@ -23,13 +29,41 @@ from resecta_data.corpus._pii import (
     generate_request_id,
     generate_ssn,
 )
-from resecta_data.corpus._spans import (
-    SpanBuilder,
-    append_name_or_placeholder,
+from resecta_data.corpus._profiles import (
+    FURNITURE_CLOSING,
+    NameContext,
+    Profile,
+    append_cue,
+    header_after,
+    plant_labels,
+    plant_salutation,
+    render_name_slot,
 )
+from resecta_data.corpus._spans import SpanBuilder
 
 # 1.2 T1.1: the no-issuer passport decoy rides its own unconditional draw.
 _PASSPORT_DECOY_PROBABILITY = 0.25
+
+_FROM_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("title_label", "Requester Name: "),
+    NameContext("table_cell", "| From | ", " |"),
+    NameContext("header", "", header_after()),
+    NameContext("body_prose", "This request is submitted by "),
+)
+_SUBJECT_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("subject_line", "Subject: "),
+    NameContext("table_cell", "| Subject | ", " |"),
+    NameContext("body_prose", "I request all records concerning "),
+    NameContext("title_label", "Subject Name: "),
+)
+_CLOSING_VARIANTS: Final[tuple[NameContext, ...]] = (
+    NameContext("closing_line", "/s/ "),
+    NameContext("closing_line", "", "\nRequester"),
+    NameContext("table_cell", "| Signature | ", " |"),
+    NameContext("header", "", header_after()),
+)
+
+_SALUTATION: Final[str] = "Dear Records Officer,"
 
 
 def emit(
@@ -39,7 +73,8 @@ def emit(
     *,
     locale: str = "en_US",
     name_sparse: bool = False,
-) -> tuple[str, list[dict[str, Any]], list[str]]:
+    profile: Profile | None = None,
+) -> tuple[str, list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     # All rng draws are unconditional so the stream is independent of
     # name_sparse; only what gets emitted differs.
     requester = sampler.sample(bucket)
@@ -60,9 +95,13 @@ def emit(
     sb.append("FREEDOM OF INFORMATION ACT REQUEST\n")
     sb.append(f"Request No. {request_id}\n\n")
 
-    sb.append("From: ")
-    append_name_or_placeholder(
-        sb, requester.full_name, name_sparse=name_sparse, context_class="role_label"
+    render_name_slot(
+        sb,
+        profile,
+        requester.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("role_label", "From: "),
+        variants=_FROM_VARIANTS,
     )
     sb.append("\n")
     sb.append_pii(requester_address, "address")
@@ -72,9 +111,13 @@ def emit(
     sb.append_pii(email, "email")
     sb.append("\n\n")
 
-    sb.append("Re: Records pertaining to ")
-    append_name_or_placeholder(
-        sb, subject.full_name, name_sparse=name_sparse, context_class="subject_line"
+    render_name_slot(
+        sb,
+        profile,
+        subject.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("subject_line", "Re: Records pertaining to "),
+        variants=_SUBJECT_VARIANTS,
     )
     sb.append(" (DOB ")
     sb.append_pii(subject_dob, "dob")
@@ -82,15 +125,29 @@ def emit(
     sb.append_pii(subject_ssn, "ssn")
     sb.append(").\n\n")
 
+    # Spec-D: every letter carries a salutation (this one has none as shipped).
+    plant_salutation(sb, profile, _SALUTATION)
+
     sb.append(
         "Pursuant to the Freedom of Information Act, I request records "
         "concerning the above-named individual. Redactions under exemption "
         "(b)(6) are designed to protect personal privacy.\n\n"
     )
 
-    sb.append("Sincerely,\n")
-    append_name_or_placeholder(
-        sb, requester.full_name, name_sparse=name_sparse, context_class="closing_line"
+    # Spec-D: 1-3 registration / plate label lines, well clear of the
+    # keyword-starved plate span appended at the end.
+    if plant_labels(sb, profile):
+        sb.append("\n")
+
+    append_cue(sb, profile, "Sincerely,", FURNITURE_CLOSING)
+    sb.append("\n")
+    render_name_slot(
+        sb,
+        profile,
+        requester.full_name,
+        name_sparse=name_sparse,
+        shipped=NameContext("closing_line"),
+        variants=_CLOSING_VARIANTS,
     )
     sb.append("\n")
 
@@ -98,7 +155,7 @@ def emit(
     _append_passport_and_plate(sb, rng, tags)
 
     text, spans = sb.finalize()
-    return text, spans, tags
+    return text, spans, tags, sb.furniture_sorted()
 
 
 def _append_passport_and_plate(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
