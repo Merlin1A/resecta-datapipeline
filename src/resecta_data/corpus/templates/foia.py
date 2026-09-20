@@ -20,7 +20,6 @@ from resecta_data.corpus._pii import (
     generate_dob,
     generate_email_local,
     generate_license_plate,
-    generate_localized_address,
     generate_passport,
     generate_passport_label,
     generate_passport_shaped_no_issuer,
@@ -37,6 +36,7 @@ from resecta_data.corpus._profiles import (
     header_after,
     plant_labels,
     plant_salutation,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -81,7 +81,7 @@ def emit(
     subject = sampler.sample(bucket)
 
     request_id = generate_request_id(rng)
-    requester_address = generate_localized_address(rng, locale)
+    requester_address = render_address(rng, profile, locale)
     phone = generate_phone(rng)
     # Name-sparse docs must carry no person-name text anywhere, so the
     # email local switches to institution words.
@@ -98,7 +98,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        requester.full_name,
+        requester,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "From: "),
         variants=_FROM_VARIANTS,
@@ -114,7 +114,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        subject.full_name,
+        subject,
         name_sparse=name_sparse,
         shipped=NameContext("subject_line", "Re: Records pertaining to "),
         variants=_SUBJECT_VARIANTS,
@@ -144,7 +144,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        requester.full_name,
+        requester,
         name_sparse=name_sparse,
         shipped=NameContext("closing_line"),
         variants=_CLOSING_VARIANTS,

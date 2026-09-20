@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from typing import Any, Final
 
-from resecta_data.corpus._names import NameSampler, Person
+from resecta_data.corpus._names import FORM_ALL_CAPS, FORM_FULL, NameSampler, Person
 from resecta_data.corpus._pii import (
     generate_business_registration,
     generate_case_number,
@@ -26,7 +26,6 @@ from resecta_data.corpus._pii import (
     generate_email_local,
     generate_filing_date,
     generate_license_plate,
-    generate_localized_address,
     generate_phone,
     generate_plate_label,
     generate_ssn,
@@ -41,13 +40,11 @@ from resecta_data.corpus._profiles import (
     honorific,
     plant_labels,
     plant_role_nouns,
+    render_address,
     render_name_slot,
+    sparse_placeholder,
 )
-from resecta_data.corpus._spans import (
-    REDACTED_NAME_PLACEHOLDER,
-    ContextClass,
-    SpanBuilder,
-)
+from resecta_data.corpus._spans import ContextClass, SpanBuilder
 
 _ADVERSARIAL_PROBABILITY = 0.30
 _ALL_CAPS_PROBABILITY = 0.20
@@ -88,16 +85,20 @@ _WITNESS_VARIANTS: Final[tuple[NameContext, ...]] = (
 
 def _party(
     sb: SpanBuilder,
+    profile: Profile | None,
     text: str,
     context_class: ContextClass,
     *,
     adversarial: bool,
     name_sparse: bool,
+    form: str | None,
 ) -> None:
+    """A caption party: the name span (its surface form recorded under Spec-A),
+    or the sparse placeholder (a role phrase under Spec-H)."""
     if name_sparse:
-        sb.append(REDACTED_NAME_PLACEHOLDER)
+        sb.append(sparse_placeholder(sb, profile))
     else:
-        sb.append_pii(text, "name", adversarial=adversarial, context_class=context_class)
+        sb.append_pii(text, "name", adversarial=adversarial, context_class=context_class, form=form)
 
 
 def _append_caption(
@@ -119,36 +120,42 @@ def _append_caption(
     shape = 0
     if profile is not None and profile.spec_c:
         shape = profile.rng.randrange(_CAPTION_SHAPE_COUNT)
-    kw: dict[str, bool] = {"adversarial": all_caps, "name_sparse": name_sparse}
+    # The caption is not a Spec-A slot (its ALL-CAPS is the adversarial
+    # class); under Spec-A its spans record the surface they carry so the
+    # per-span form join stays total.
+    form: str | None = None
+    if profile is not None and profile.spec_a:
+        form = FORM_ALL_CAPS if all_caps else FORM_FULL
+    kw: dict[str, Any] = {"adversarial": all_caps, "name_sparse": name_sparse, "form": form}
     if shape == 0:
         # The shipped caption: "X v. Y".
-        _party(sb, left, "caption_left", **kw)
+        _party(sb, profile, left, "caption_left", **kw)
         sb.append(" v. ")
-        _party(sb, right, "caption_right", **kw)
+        _party(sb, profile, right, "caption_right", **kw)
     elif shape == 1:
         # The multi-line caption of a real pleading; still the caption classes.
-        _party(sb, left, "caption_left", **kw)
+        _party(sb, profile, left, "caption_left", **kw)
         sb.append(",\n        Plaintiff,\n    v.\n")
-        _party(sb, right, "caption_right", **kw)
+        _party(sb, profile, right, "caption_right", **kw)
         sb.append(",\n        Defendant.")
     elif shape == 2:  # noqa: PLR2004 -- the table shape
         sb.append("| Plaintiff | ")
-        _party(sb, left, "table_cell", **kw)
+        _party(sb, profile, left, "table_cell", **kw)
         sb.append(" |\n| Defendant | ")
-        _party(sb, right, "table_cell", **kw)
+        _party(sb, profile, right, "table_cell", **kw)
         sb.append(" |")
     elif shape == 3:  # noqa: PLR2004 -- the running-header shape
-        _party(sb, left, "header", **kw)
+        _party(sb, profile, left, "header", **kw)
         sb.append(" v. ")
-        _party(sb, right, "header", **kw)
+        _party(sb, profile, right, "header", **kw)
         pages = profile.rng.randint(2, 6) if profile is not None else 2
         page = profile.rng.randint(2, pages) if profile is not None else 2
         sb.append(f" — Page {page} of {pages}")
     else:
         sb.append("This action is brought by ")
-        _party(sb, left, "body_prose", **kw)
+        _party(sb, profile, left, "body_prose", **kw)
         sb.append(" against ")
-        _party(sb, right, "body_prose", **kw)
+        _party(sb, profile, right, "body_prose", **kw)
         sb.append(".")
 
 
@@ -166,7 +173,7 @@ def _append_filing(
     render_name_slot(
         sb,
         profile,
-        plaintiff.full_name,
+        plaintiff,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "PLAINTIFF: "),
         variants=_PLAINTIFF_VARIANTS,
@@ -175,7 +182,7 @@ def _append_filing(
     render_name_slot(
         sb,
         profile,
-        defendant.full_name,
+        defendant,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "DEFENDANT: "),
         variants=_DEFENDANT_VARIANTS,
@@ -231,7 +238,7 @@ def emit(
     filing_date = generate_filing_date(rng)
     dob = generate_dob(rng)
     plaintiff_ssn = generate_ssn(rng)
-    defendant_address = generate_localized_address(rng, locale)
+    defendant_address = render_address(rng, profile, locale)
     phone = generate_phone(rng)
     # Name-sparse docs must carry no person-name text anywhere, so the
     # email local switches to institution words.
@@ -277,7 +284,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        counsel.full_name,
+        counsel,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "Counsel of record: "),
         variants=_COUNSEL_VARIANTS,
@@ -291,7 +298,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        witness.full_name,
+        witness,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "Witness "),
         variants=_WITNESS_VARIANTS,

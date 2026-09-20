@@ -13,13 +13,14 @@ The builder is deterministic: the same seed yields the same corpus.
 Per-document sub-RNGs are derived from the seed, doctype, and index,
 so adding a new doctype does not shift existing document content.
 
-Generator PROFILES (1.2 C12-95 Spec-C / Spec-D, :mod:`corpus._profiles`):
+Generator PROFILES (1.2 C12-95 Spec-A/C/D/G/H, :mod:`corpus._profiles`):
 ``build(seed, profile=)`` keeps every document's base stream byte-identical
 to the ``g8`` corpus and hands the emitter a second stream seeded on
 ``(seed, doctype, index, profile)`` for the profile's own choices (name-slot
-contexts under Spec-C, planted furniture under Spec-D). The ``g8`` profile
-never consults that stream, so ``build(seed)`` and ``build(seed, profile="g8")``
-are the same bytes.
+contexts under Spec-C, planted furniture under Spec-D, name forms under
+Spec-A, the document locale and a re-drawn address under Spec-G, the sparse
+placeholder under Spec-H). The ``g8`` profile never consults that stream, so
+``build(seed)`` and ``build(seed, profile="g8")`` are the same bytes.
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.process import effective_workers, request_parent_death_signal
 
 from ._names import BUCKETS, NameSampler
-from ._profiles import PROFILE_G8, PROFILES, Profile
+from ._profiles import PROFILE_G8, PROFILES, Profile, draw_locale, is_spec_g
 from .templates import EMITTERS, SUB_TEMPLATE_EMITTERS
 
 _MODULE_NAME: Final[str] = "resecta_data.corpus.generate"
@@ -224,11 +225,21 @@ def _generate_one_document(
         profile_rng = random.Random(  # noqa: S311
             _profile_sub_seed(master_seed, doctype, index, profile)
         )
-        active_profile = Profile(profile, profile_rng)
+        # Spec-G: the document's locale is the profile stream's FIRST draw,
+        # crossed with the bucket at g8's corpus-wide marginal; the emitter
+        # still receives the BASE locale so the base stream's address draw
+        # is the same as g8's (see _profiles.render_address).
+        drawn_locale = draw_locale(profile_rng) if is_spec_g(profile) else None
+        active_profile = Profile(profile, profile_rng, locale=drawn_locale)
     emitter = SUB_TEMPLATE_EMITTERS[sub_template] if sub_template is not None else EMITTERS[doctype]
     text, spans, tags, furniture = emitter(
         rng, sampler, bucket, locale=locale, name_sparse=name_sparse, profile=active_profile
     )
+    if active_profile is not None and active_profile.locale is not None:
+        # Every span of a Spec-G document records the drawn locale (the key
+        # exists only on the locale-axis profiles, so no other corpus moves).
+        for span in spans:
+            span["locale"] = active_profile.locale
     return text, spans, tags, bucket, furniture
 
 
@@ -303,7 +314,11 @@ def build(
         profile: The generator profile (:data:`corpus._profiles.PROFILES`).
             ``g8`` (default) is the corpus as furnished; ``g8-specC`` /
             ``g8-specD`` / ``g8-specCD`` re-render the name slots and / or
-            plant furniture on the SAME documents (every value identical).
+            plant furniture on the SAME documents (every value identical);
+            ``g8-specA`` / ``g8-specG`` / ``g8-specH`` / ``g8-specAGH`` draw
+            name forms, the locale axis and the sparse placeholder on them
+            (Spec-A moves the name value, Spec-G the address value of a
+            document whose locale moved; every other value identical).
             A non-default profile is named in the payload's ``profile`` key;
             ``g8`` carries no such key, so its bytes never move.
         parallel: When True (default), each document is rendered in a

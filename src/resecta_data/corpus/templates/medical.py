@@ -24,7 +24,6 @@ from resecta_data.corpus._pii import (
     generate_dob,
     generate_drivers_license,
     generate_email_local,
-    generate_localized_address,
     generate_mrn,
     generate_npi,
     generate_npi_shaped_phone,
@@ -41,6 +40,7 @@ from resecta_data.corpus._profiles import (
     Profile,
     header_after,
     plant_role_nouns,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -87,7 +87,7 @@ def emit(
 
     dob = generate_dob(rng)
     mrn = generate_mrn(rng)
-    address = generate_localized_address(rng, locale)
+    address = render_address(rng, profile, locale)
     npi = generate_npi(rng)
     dea = generate_dea(rng)
     ssn = generate_ssn(rng)
@@ -107,7 +107,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        patient.full_name,
+        patient,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "Patient: "),
         variants=_PATIENT_VARIANTS,
@@ -129,7 +129,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        pcp.full_name,
+        pcp,
         name_sparse=name_sparse,
         shipped=NameContext("title_label", "Primary care: Dr. "),
         variants=_PCP_VARIANTS,
@@ -140,7 +140,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        prescriber.full_name,
+        prescriber,
         name_sparse=name_sparse,
         shipped=NameContext("title_label", "Prescribing: Dr. "),
         variants=_PRESCRIBER_VARIANTS,
