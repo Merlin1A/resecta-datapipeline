@@ -110,6 +110,7 @@ from .gazetteers.context_keywords import build as build_context_keywords
 from .gazetteers.dl_patterns import build as build_dl_patterns
 from .gazetteers.institutions import build as build_institutions
 from .gazetteers.institutions import build_cutover_diff as build_institutions_cutover_diff
+from .gazetteers.name_common_words import build as build_name_common_words
 from .gazetteers.negative_context import build as build_negative_context
 from .gazetteers.negative_context.stage_reviewed import (
     stage_reviewed as stage_reviewed_negative_context,
@@ -189,6 +190,9 @@ SCHEMA_ROUTES: dict[str, str] = {
     # Nickname/diminutive sidecar; built only once the
     # CC0 raw source has been fetched (see the Makefile GAZ_NICKNAMES gate).
     "gazetteers/nicknames.json": "nicknames",
+    # Common-word curation sidecar for the surname Bloom filter (read by the
+    # Swift NameGazetteer; the filters themselves are untouched).
+    "gazetteers/name_common_words.json": "name_common_words",
     "gazetteers/dl_patterns.json": "dl_patterns",
     "gazetteers/passport_patterns.json": "passport_patterns",
     "context/context_keywords.json": "context_keywords",
@@ -304,6 +308,9 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     "gazetteers/institutions.json": ("resources", "Gazetteers/institutions.json"),
     "gazetteers/address_components.json": ("resources", "Gazetteers/address_components.json"),
     "gazetteers/nicknames.json": ("resources", "Gazetteers/nicknames.json"),
+    # Common-word curation sidecar; hyphenated on the iOS side like the other
+    # runtime gazetteer files.
+    "gazetteers/name_common_words.json": ("resources", "Gazetteers/name-common-words.json"),
     "context/context_keywords.json": ("resources", "Gazetteers/context-keywords.json"),
     "rules/rule_catalog.json": ("resources", "Audit/rule-catalog.json"),
     # Phase 3: doctype keywords ship as a runtime resource.
@@ -1703,6 +1710,7 @@ def build_bloom_cmd(build_dir: Path, sources_dir: Path, seed: int, build_date: s
             "dl-patterns",
             "passport-patterns",
             "nicknames",
+            "name-common-words",
         ]
     ),
 )
@@ -1766,6 +1774,11 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
         dest = build_dir / "gazetteers" / "nicknames.json"
         dump_canonical_json(payload, dest)
         click.echo(f"Wrote {dest} ({len(payload['entries'])} nickname entries)")
+    elif kind == "name-common-words":
+        payload = build_name_common_words(seed)
+        dest = build_dir / "gazetteers" / "name_common_words.json"
+        dump_canonical_json(payload, dest)
+        click.echo(f"Wrote {dest} ({len(payload['entries'])} common-word entries)")
     elif kind == "dl-patterns":
         payload = build_dl_patterns(seed)
         dest = build_dir / "gazetteers" / "dl_patterns.json"

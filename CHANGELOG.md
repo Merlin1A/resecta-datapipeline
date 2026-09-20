@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- `build gazetteers name-common-words`: a common-word curation sidecar
+  (`gazetteers/name_common_words.json`, installed as
+  `Gazetteers/name-common-words.json`) built from the in-estate non-name word
+  list; the Swift name gazetteer withholds surname credit for exact members.
+  The Bloom filters are unchanged.
+- Context keywords: the four court role nouns (`plaintiff`, `defendant`,
+  `petitioner`, `respondent`) ship again as court-scoped positive name
+  anchors (`name` 31 → 35; 217 rows); the candidates rows record why.
 - GitHub Actions: a hermetic pull-request gate (lint, types, tests, pure-code
   builders, schema and hash checks), a weekly full-verify workflow with cached
   sources, and a supply-chain job (pip-audit, OSV-Scanner, SBOM); the dev tools

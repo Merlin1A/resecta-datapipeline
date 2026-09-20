@@ -123,6 +123,8 @@ GAZ_NICKNAMES_STAMP := $(STAMP_DIR)/gaz-nicknames
 else
 GAZ_NICKNAMES_STAMP :=
 endif
+GAZ_COMMON_WORDS_PY   := $(shell find src/resecta_data/gazetteers/name_common_words -name '*.py' 2>/dev/null)
+GAZ_COMMON_WORDS_SOURCES := $(wildcard src/resecta_data/gazetteers/name_common_words/sources/*.json)
 PASSPORT_PATTERNS_PY  := $(shell find src/resecta_data/gazetteers/passport_patterns -name '*.py' 2>/dev/null)
 PASSPORT_PATTERNS_SOURCES := $(wildcard src/resecta_data/gazetteers/passport_patterns/sources/*.json)
 DL_PATTERNS_PY        := $(shell find src/resecta_data/gazetteers/dl_patterns -name '*.py' 2>/dev/null)
@@ -213,6 +215,7 @@ PHASE2_ARTIFACTS := \
 	$(BUILD_DIR)/gazetteers/address_components.json \
 	$(BUILD_DIR)/gazetteers/passport_patterns.json \
 	$(BUILD_DIR)/gazetteers/dl_patterns.json \
+	$(BUILD_DIR)/gazetteers/name_common_words.json \
 	$(BUILD_DIR)/context/context_keywords.json \
 	$(BUILD_DIR)/rules/rule_catalog.json \
 	$(BUILD_DIR)/demographics/coverage_report.json
@@ -446,7 +449,7 @@ endif
 .PHONY: build
 build: bootstrap $(STAMP_DIR)/vectors $(STAMP_DIR)/fuzz $(STAMP_DIR)/zip-scf $(STAMP_DIR)/adversarial \
        $(STAMP_DIR)/bloom $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions $(STAMP_DIR)/gaz-address \
-       $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/context $(STAMP_DIR)/rules \
+       $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(STAMP_DIR)/context $(STAMP_DIR)/rules \
        $(STAMP_DIR)/demographics $(STAMP_DIR)/classifier $(STAMP_DIR)/corpus \
        $(STAMP_DIR)/g8-bucket-recall $(STAMP_DIR)/bundle-size $(GAZ_NICKNAMES_STAMP) ## Generate all artifacts into build/
 	@echo "Build complete. Artifacts under $(BUILD_DIR)/."
@@ -567,9 +570,9 @@ bloom: $(STAMP_DIR)/bloom  ## [Phase 2] Build name Bloom filters + manifest
 # requiring callers to pass -j.
 .PHONY: gazetteers
 gazetteers:  ## [Phase 2] Build the non-Bloom gazetteers in parallel
-	@$(MAKE) -j6 $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions \
+	@$(MAKE) -j7 $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions \
 	             $(STAMP_DIR)/gaz-address $(STAMP_DIR)/passport-patterns \
-	             $(STAMP_DIR)/dl-patterns $(GAZ_NICKNAMES_STAMP)
+	             $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(GAZ_NICKNAMES_STAMP)
 
 $(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,gaz-negctx,$(RESECTA_DATA) build gazetteers negative-context --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -607,6 +610,12 @@ $(STAMP_DIR)/gaz-nicknames: $(GAZ_NICKNAMES_PY) $(COMMON_DEPS) $(GAZ_NICKNAMES_S
 
 .PHONY: gazetteers-nicknames
 gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [Phase 2] Build nickname/diminutive sidecar (needs fetched CC0 source)
+
+$(STAMP_DIR)/gaz-common-words: $(GAZ_COMMON_WORDS_PY) $(COMMON_DEPS) $(GAZ_COMMON_WORDS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
+	$(call keyed_stamp,gaz-common-words,$(RESECTA_DATA) build gazetteers name-common-words --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
+
+.PHONY: gazetteers-name-common-words
+gazetteers-name-common-words: $(STAMP_DIR)/gaz-common-words  ## [Phase 2] Build the common-word curation sidecar for the surname Bloom filter
 
 $(STAMP_DIR)/passport-patterns: $(PASSPORT_PATTERNS_PY) $(COMMON_DEPS) $(PASSPORT_PATTERNS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,passport-patterns,$(RESECTA_DATA) build gazetteers passport-patterns --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
