@@ -9,13 +9,16 @@ workflow:
    with per-row provenance and routing decisions, plus four authored
    license-plate label words. 49 rows ship; 22 honorifics stay engine-side.
 2. The authored set: English context-keyword candidates in
-   ``src/resecta_data/context/sources/d12_candidates.json``. 143 rows
+   ``src/resecta_data/context/sources/d12_candidates.json``. 147 rows
    ship across DOB / Name / NPI / DEA / ITIN (dea 29 · dob 26 · itin 28 ·
-   name 31 · npi 29; the X12 ``DMG*D8`` literal ships engine-side as a
-   regex, not as a context keyword, and the four court role nouns
-   ``defendant`` / ``plaintiff`` / ``petitioner`` / ``respondent`` are not
-   positive name anchors — they name a party role, not a person), plus the
-   ssn and ein label rows.
+   name 35 · npi 29; the X12 ``DMG*D8`` literal ships engine-side as a
+   regex, not as a context keyword; the four court role nouns
+   ``defendant`` / ``plaintiff`` / ``petitioner`` / ``respondent`` ship as
+   court-scoped name positives — a positive context keyword names the
+   context a person's name sits in (the caption and role-label slots), not
+   the entity; they were dropped once on the "role, not person" reading and
+   re-landed with that reasoning recorded on the rows), plus the ssn and
+   ein label rows.
 3. The Bates anchors: 10 English ``.legal``-scoped anchors in
    ``src/resecta_data/context/sources/d16_bates_anchors.json``. The
    engine-side baseline regex ``^[A-Z]{1,4}[_-]?0*\\d{4,8}$`` is the Swift
@@ -112,14 +115,15 @@ _SHIPPING_CATEGORIES: Final[frozenset[str]] = frozenset(
 # name 30->35 (+5 IRS 1099/W-2 labels), ein 0->6 (EIN category
 # infrastructure). The context-asset review then added four license-plate
 # label words (licenseplate 11->15) and dropped the four court role nouns
-# from name (35->31). Combined total: 213 shipping rows.
+# from name (35->31); the role nouns were re-landed as court-scoped name
+# positives (31->35). Combined total: 217 shipping rows.
 _EXPECTED_PER_CATEGORY: Final[dict[str, int]] = {
     "ssn": 15,
     "mrn": 13,
     "bates": 21,
     "licenseplate": 15,
     "dob": 26,
-    "name": 31,
+    "name": 35,
     "npi": 29,
     "dea": 29,
     "itin": 28,
@@ -266,8 +270,8 @@ def build(
     Returns:
         A payload dict conforming to ``schemas/context_keywords.schema.json``.
         Rows are sorted by ``(category, term)`` ascending. Total row count
-        is 213 (15 ssn + 13 mrn + 21 bates + 15 licenseplate + 26 dob +
-        31 name + 29 npi + 29 dea + 28 itin + 6 ein; bates count reflects
+        is 217 (15 ssn + 13 mrn + 21 bates + 15 licenseplate + 26 dob +
+        35 name + 29 npi + 29 dea + 28 itin + 6 ein; bates count reflects
         the 10 ``.legal``-scoped anchors on top of the lifted base of 11;
         the dob count reflects dropping the X12 ``DMG*D8`` literal; the
         ssn/name/ein rows were added with the search-and-redact release).

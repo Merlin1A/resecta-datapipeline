@@ -3997,5 +3997,105 @@
     "source_url": "",
     "synthetic_sample": "Tax id: 12-3456789 (synthetic)",
     "term": "tax id"
+  },
+  {
+    "aliases": [
+      "the plaintiff",
+      "plaintiffs"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "plaintiff's counsel",
+      "plaintiff's exhibit",
+      "plaintiff's motion"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Re-landed 2026-09-19 (the 1.2 lane's C12-91). The 08-27 context-asset review dropped the four court role nouns as 'a party role, not a person'; that is true of the word, but a positive context keyword names the CONTEXT a person's name sits in - the caption and role-label slots ('PLAINTIFF: Jane Q. Public', 'Petitioner, Jane Q. Public') - not the entity. Consumer: the label-anchor route that reads name positives from this asset; the engine's legal-prefix pass is a separate consumer and never carried 'petitioner'. Doctype-scoped to court so the words stay out of the global name positives.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "PLAINTIFF: Jane Q. Public (synthetic caption, FRCP 10(a))",
+    "term": "plaintiff"
+  },
+  {
+    "aliases": [
+      "the defendant",
+      "defendants"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "defendant's counsel",
+      "defendant's exhibit",
+      "defendant's answer"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Re-landed 2026-09-19 (the 1.2 lane's C12-91). The 08-27 context-asset review dropped the four court role nouns as 'a party role, not a person'; that is true of the word, but a positive context keyword names the CONTEXT a person's name sits in - the caption and role-label slots ('PLAINTIFF: Jane Q. Public', 'Petitioner, Jane Q. Public') - not the entity. Consumer: the label-anchor route that reads name positives from this asset; the engine's legal-prefix pass is a separate consumer and never carried 'petitioner'. Doctype-scoped to court so the words stay out of the global name positives.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_10",
+    "synthetic_sample": "DEFENDANT: John Q. Public (synthetic caption, FRCP 10(a))",
+    "term": "defendant"
+  },
+  {
+    "aliases": [
+      "the petitioner",
+      "petitioners"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "petitioner's brief",
+      "petition for review",
+      "petitioner's exhibit"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Re-landed 2026-09-19 (the 1.2 lane's C12-91). The 08-27 context-asset review dropped the four court role nouns as 'a party role, not a person'; that is true of the word, but a positive context keyword names the CONTEXT a person's name sits in - the caption and role-label slots ('PLAINTIFF: Jane Q. Public', 'Petitioner, Jane Q. Public') - not the entity. Consumer: the label-anchor route that reads name positives from this asset; the engine's legal-prefix pass is a separate consumer and never carried 'petitioner'. Doctype-scoped to court so the words stay out of the global name positives.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frap/rule_15",
+    "synthetic_sample": "Petitioner, Jane Q. Public (synthetic caption, FRAP 15)",
+    "term": "petitioner"
+  },
+  {
+    "aliases": [
+      "the respondent",
+      "respondents"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "respondent's brief",
+      "responsive pleading",
+      "respondent's exhibit"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Re-landed 2026-09-19 (the 1.2 lane's C12-91). The 08-27 context-asset review dropped the four court role nouns as 'a party role, not a person'; that is true of the word, but a positive context keyword names the CONTEXT a person's name sits in - the caption and role-label slots ('PLAINTIFF: Jane Q. Public', 'Petitioner, Jane Q. Public') - not the entity. Consumer: the label-anchor route that reads name positives from this asset; the engine's legal-prefix pass is a separate consumer and never carried 'petitioner'. Doctype-scoped to court so the words stay out of the global name positives.",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frap/rule_15",
+    "synthetic_sample": "Respondent, John Q. Public (synthetic caption, FRAP 15)",
+    "term": "respondent"
   }
 ]

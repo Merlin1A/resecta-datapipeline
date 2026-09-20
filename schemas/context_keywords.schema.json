@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/context_keywords.schema.json",
   "title": "Per-category positive context-keyword gazetteer",
-  "description": "Positive context keywords promoted into a single shipping gazetteer. The artifact merges three candidate streams: (i) a verbatim lift from per-detector Swift `*ContextKeywords.swift` files (45 rows: ssn, mrn, bates, licenseplate); (ii) authored English context-keyword candidates (142 rows: dob, name, npi, dea, itin; the X12 `DMG*D8` literal was dropped from one row, its regex ships engine-side); (iii) authored Bates `.legal`-scoped anchors (10 rows: bates, all `doctypes: [court]` after a vocabulary translation). Total shipping count: 197 (10 ssn + 13 mrn + 21 bates + 11 licenseplate + 26 dob + 30 name + 29 npi + 29 dea + 28 itin). The 22 honorifics carried in the Swift-lift candidates (`proposed_status: 'engine-side, do not migrate'`) do NOT ship into this gazetteer — they remain flagged engine-side. `polarity` is constant `positive`; the negative-context surface is governed by negative_context.schema.json. `confidence` is required on every row (the Swift-lift rows are backfilled to `high` since they are verbatim from production Swift). `detector_note` and `detector_requires_secondary` are optional engine-routing flags (windowed-matching for the DOB family; a secondary-evidence gate for bare DEA). An engine-side baseline regex `^[A-Z]{1,4}[_-]?0*\\d{4,8}$` for the Bates anchors is the Swift-deferred half and is NOT represented here.",
+  "description": "Positive context keywords promoted into a single shipping gazetteer. The artifact merges three candidate streams: (i) a verbatim lift from per-detector Swift `*ContextKeywords.swift` files (45 rows: ssn, mrn, bates, licenseplate); (ii) authored English context-keyword candidates (142 rows: dob, name, npi, dea, itin; the X12 `DMG*D8` literal was dropped from one row, its regex ships engine-side); (iii) authored Bates `.legal`-scoped anchors (10 rows: bates, all `doctypes: [court]` after a vocabulary translation). Total shipping count: 217 (15 ssn + 13 mrn + 21 bates + 15 licenseplate + 26 dob + 35 name + 29 npi + 29 dea + 28 itin + 6 ein; the four court role nouns ship as court-scoped name positives). The 22 honorifics carried in the Swift-lift candidates (`proposed_status: 'engine-side, do not migrate'`) do NOT ship into this gazetteer — they remain flagged engine-side. `polarity` is constant `positive`; the negative-context surface is governed by negative_context.schema.json. `confidence` is required on every row (the Swift-lift rows are backfilled to `high` since they are verbatim from production Swift). `detector_note` and `detector_requires_secondary` are optional engine-routing flags (windowed-matching for the DOB family; a secondary-evidence gate for bare DEA). An engine-side baseline regex `^[A-Z]{1,4}[_-]?0*\\d{4,8}$` for the Bates anchors is the Swift-deferred half and is NOT represented here.",
   "type": "object",
   "required": ["version", "generated_by", "seed", "entries"],
   "additionalProperties": false,
@@ -24,8 +24,8 @@
     },
     "entries": {
       "type": "array",
-      "minItems": 213,
-      "maxItems": 213,
+      "minItems": 217,
+      "maxItems": 217,
       "description": "Shipping rows in ascending (category, term) order. Pinned at the promotion count: 15 ssn + 13 mrn + 11 bates + 11 licenseplate + 26 dob + 35 name + 29 npi + 29 dea + 28 itin + 6 ein (adds 5 ssn, 5 name, and 6 ein IRS-vocabulary rows on top of the Swift-lift and authored-candidate counts; dob was 27 before the X12 `DMG*D8` literal was dropped from one row) + 10 bates (`.legal`-scoped anchors).",
       "items": {
         "type": "object",
