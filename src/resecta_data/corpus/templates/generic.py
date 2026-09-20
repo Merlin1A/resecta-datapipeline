@@ -22,7 +22,6 @@ from resecta_data.corpus._pii import (
     generate_email_local,
     generate_itin,
     generate_itin_yy_out_of_range,
-    generate_localized_address,
     generate_phone,
 )
 from resecta_data.corpus._profiles import (
@@ -33,6 +32,7 @@ from resecta_data.corpus._profiles import (
     append_cue,
     choose_context,
     header_after,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -87,7 +87,7 @@ def emit(
     sender = sampler.sample(bucket)
     recipient = sampler.sample(bucket)
 
-    sender_address = generate_localized_address(rng, locale)
+    sender_address = render_address(rng, profile, locale)
     sender_phone = generate_phone(rng)
     # Name-sparse docs must carry no person-name text anywhere, so the
     # email local switches to institution words.
@@ -95,14 +95,14 @@ def emit(
     email_last = "office" if name_sparse else sender.surname
     sender_email = generate_email_local(rng, email_first, email_last)
     # Recipient address block keeps name-sparse docs at the 5-span floor.
-    recipient_address = generate_localized_address(rng, locale)
+    recipient_address = render_address(rng, profile, locale)
     account = generate_account_number(rng)
 
     sb = SpanBuilder()
     render_name_slot(
         sb,
         profile,
-        sender.full_name,
+        sender,
         name_sparse=name_sparse,
         shipped=NameContext("document_initial"),
         variants=_SENDER_VARIANTS,
@@ -118,7 +118,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        recipient.full_name,
+        recipient,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "To: "),
         variants=_RECIPIENT_VARIANTS,
@@ -143,7 +143,7 @@ def emit(
         render_name_slot(
             sb,
             profile,
-            recipient.full_name,
+            recipient,
             name_sparse=False,
             shipped=_SALUTATION_SHIPPED,
             variants=_SALUTATION_VARIANTS,
@@ -167,7 +167,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        sender.full_name,
+        sender,
         name_sparse=name_sparse,
         shipped=NameContext("closing_line"),
         variants=_CLOSING_VARIANTS,

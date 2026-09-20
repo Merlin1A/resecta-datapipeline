@@ -52,8 +52,8 @@
     },
     "profile": {
       "type": "string",
-      "enum": ["g8-specC", "g8-specD", "g8-specCD"],
-      "description": "The generator profile this corpus was built under (1.2 C12-95): g8-specC = name-context variety (every name slot in a drawn context, incl. the classes the shipped corpus lacks), g8-specD = furniture density (role nouns, labels, salutations, closings planted and recorded in furniture[]), g8-specCD = both. ABSENT on the g8 corpus as furnished, so its bytes never move. Every profile carries the same documents with every ground-truth value identical; only name-slot contexts and furniture differ."
+      "enum": ["g8-specC", "g8-specD", "g8-specCD", "g8-specA", "g8-specG", "g8-specH", "g8-specAGH"],
+      "description": "The generator profile this corpus was built under (1.2 C12-95): g8-specC = name-context variety (every name slot in a drawn context, incl. the classes the shipped corpus lacks), g8-specD = furniture density (role nouns, labels, salutations, closings planted and recorded in furniture[]), g8-specCD = both; g8-specA = name forms (each rendered name slot draws a form at the pre-registered rates and records it as form), g8-specG = the locale axis (each document's locale drawn at the corpus-wide marginal and crossed with every bucket, recorded on every span as locale; es_MX addresses carry a five-digit codigo postal), g8-specH = the sparse placeholder ([REDACTED] becomes a neutral role phrase drawn per slot), g8-specAGH = A, G and H together. ABSENT on the g8 corpus as furnished, so its bytes never move. Every profile carries the same documents; C/D/H keep every ground-truth value identical, A moves the name value (its form) and G the address value of a document whose locale moved; every other slot is identical."
     },
     "demographic_labels": {
       "type": "array",
@@ -179,6 +179,16 @@
                   "type": "string",
                   "enum": ["redact", "suppress", "flag"],
                   "description": "How the engine is designed to act on this span. 'redact' for true PII; 'suppress' for adversarial decoys; 'flag' for uncertain cases routed to user review."
+                },
+                "form": {
+                  "type": "string",
+                  "enum": ["full", "initial", "last_first", "all_caps", "suffix", "particled"],
+                  "description": "Name spans under a Spec-A profile only (1.2 C12-95): the surface form the value was rendered in -- full (Given Surname), initial (Given L. Surname), last_first (Surname, Given), all_caps (GIVEN SURNAME), suffix (Given Surname Jr./Sr./II/III/IV), particled (a hyphenated double surname or a de la / van / O' particle). Drawn per rendered slot at the pre-registered rates (20 / 10 / 10 / 5 / 5 %, full otherwise); the court caption is not a Spec-A slot and records the surface it carries (all_caps when its adversarial ALL-CAPS class fires, else full). Absent on every other corpus."
+                },
+                "locale": {
+                  "type": "string",
+                  "enum": ["en_US", "es_MX", "es_ES"],
+                  "description": "Every span of a document under a Spec-G profile only (1.2 C12-95): the document's drawn Faker locale (the address family's shape). Absent on every other corpus, where the locale is a function of the seed and the hispanic bucket."
                 }
               }
             }

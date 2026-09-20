@@ -21,7 +21,6 @@ from resecta_data.corpus._pii import (
     generate_email_local,
     generate_invoice_number,
     generate_itin,
-    generate_localized_address,
     generate_luhn_failed_card,
     generate_phone,
     generate_routing_number,
@@ -31,6 +30,7 @@ from resecta_data.corpus._profiles import (
     NameContext,
     Profile,
     header_after,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -69,7 +69,7 @@ def emit(
     invoice = generate_invoice_number(rng)
     account = generate_account_number(rng)
     routing = generate_routing_number(rng)
-    address = generate_localized_address(rng, locale)
+    address = render_address(rng, profile, locale)
     phone = generate_phone(rng)
     # Name-sparse docs must carry no person-name text anywhere (a
     # detector hit on an email local would count as an unmatched name
@@ -91,7 +91,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        customer.full_name,
+        customer,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "Bill to: "),
         variants=_CUSTOMER_VARIANTS,
@@ -118,7 +118,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        ap_contact.full_name,
+        ap_contact,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "AP Contact: "),
         variants=_AP_CONTACT_VARIANTS,
