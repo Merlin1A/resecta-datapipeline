@@ -31,13 +31,13 @@ from resecta_data.corpus._names import NameSampler
 from resecta_data.corpus._pii import (
     generate_ein,
     generate_invoice_number,
-    generate_localized_address,
     generate_phone,
     generate_ssn,
 )
 from resecta_data.corpus._profiles import (
     NameContext,
     Profile,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -83,9 +83,9 @@ def emit(
     ssn = generate_ssn(rng)
     ein = generate_ein(rng)
     employer_name = rng.choice(_EMPLOYER_NAMES)
-    employer_address = generate_localized_address(rng, locale)
+    employer_address = render_address(rng, profile, locale)
     control_number = generate_invoice_number(rng)
-    employee_address = generate_localized_address(rng, locale)
+    employee_address = render_address(rng, profile, locale)
     phone = generate_phone(rng)
 
     tax_year = rng.randint(2022, 2025)
@@ -115,7 +115,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        employee.full_name,
+        employee,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "e. Employee's name: "),
         variants=_EMPLOYEE_VARIANTS,

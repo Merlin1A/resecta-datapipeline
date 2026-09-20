@@ -210,13 +210,19 @@ SCHEMA_ROUTES: dict[str, str] = {
     "classifier/context_scorer_candidates.json": "context_scorer",
     "corpus/g8_corpus.json": "g8_corpus",
     # 1.2 C12-95 generator PROFILES (Spec-C name-context variety, Spec-D
-    # furniture density, both): the same 1,100 documents re-rendered; built
+    # furniture density, both; Spec-A name forms, Spec-G locale axis, Spec-H
+    # sparse placeholder, all three): the same 1,100 documents re-rendered; built
     # by `build corpus g8 --profile <p>`, validated against the same schema,
     # never installed (the engine harness reads one through the test-target
     # override RESECTA_G8_CORPUS_PATH under `make eval EVAL_CORPUS_PROFILE=`).
     "corpus/g8_corpus_g8-specC.json": "g8_corpus",
     "corpus/g8_corpus_g8-specD.json": "g8_corpus",
     "corpus/g8_corpus_g8-specCD.json": "g8_corpus",
+    # Spec-A name forms, Spec-G locale axis, Spec-H sparse placeholder, all three.
+    "corpus/g8_corpus_g8-specA.json": "g8_corpus",
+    "corpus/g8_corpus_g8-specG.json": "g8_corpus",
+    "corpus/g8_corpus_g8-specH.json": "g8_corpus",
+    "corpus/g8_corpus_g8-specAGH.json": "g8_corpus",
     # Eval baseline — deterministic no-PII negative corpus for the
     # document-level FP measurement. Dev/eval fixture; no INSTALL_ROUTES entry
     # (not shipped), like g8_bucket_recall.
@@ -2504,7 +2510,9 @@ def g8_corpus_artifact_path(build_dir: Path, profile: str) -> Path:
     help=(
         "Generator profile(s) to build (repeatable). g8 = the corpus as furnished "
         "(corpus/g8_corpus.json); g8-specC / g8-specD / g8-specCD = the same "
-        "documents with name-context variety, furniture density, or both "
+        "documents with name-context variety, furniture density, or both; "
+        "g8-specA / g8-specG / g8-specH / g8-specAGH = name forms, the locale "
+        "axis, the sparse placeholder, or all three "
         "(corpus/g8_corpus_<profile>.json; never installed)."
     ),
 )

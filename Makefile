@@ -665,10 +665,10 @@ $(STAMP_DIR)/classifier: $(CLASSIFIER_PY) $(COMMON_DEPS) $(STAMP_DIR)/corpus $(F
 classifier: $(STAMP_DIR)/classifier  ## [Phase 3] Build doctype keywords, preset-threshold candidates, and the context scorer
 
 # One invocation writes the corpus as furnished (g8_corpus.json, the fixture)
-# AND the three generator profiles beside it (g8_corpus_<profile>.json; 1.2
+# AND the seven generator profiles beside it (g8_corpus_<profile>.json; 1.2
 # C12-95 Spec-C / Spec-D) — each ~3 s, each with its own lock row, so `make
 # build` regenerates every corpus artifact the lockfile names.
-CORPUS_PROFILES := g8 g8-specC g8-specD g8-specCD
+CORPUS_PROFILES := g8 g8-specC g8-specD g8-specCD g8-specA g8-specG g8-specH g8-specAGH
 $(STAMP_DIR)/corpus: $(CORPUS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,corpus,$(RESECTA_DATA) build corpus g8 --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED) $(foreach p,$(CORPUS_PROFILES),--profile $(p)))
 
