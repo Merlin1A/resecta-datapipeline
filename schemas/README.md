@@ -49,6 +49,7 @@ test suite to exercise the validator.
 - `negative_corpus.schema.json` — deterministic no-PII negative corpus
 - `doctype_softmax_dump.schema.json` / `detector_score_dump.schema.json` — the Swift-produced calibration dumps the Phase 3b `calibrate` targets consume
 - `nicknames.schema.json`, `bundle_size.schema.json`, `cutover_diff.schema.json` — the Phase 2/3 sidecars and probes
+- `name_common_words.schema.json` — the common-word curation sidecar the Swift name gazetteer reads on top of the surname Bloom filter (demote, never strip)
 
 ## Conventions
 
