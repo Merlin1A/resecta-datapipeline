@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- `manifest-assets`: the shipped gazetteer manifest (`gazetteers/gazetteer_manifest.shipped.json`,
+  version 1.1.0) carries an `assets[]` section — the SHA-256 and byte count of
+  every asset `install-assets` routes into the engine bundle, except the
+  manifest, its signature and the public key. Derived at install time from the
+  bloom builder's manifest (unchanged, still locked) and the bytes install
+  ships; `sign-manifest` signs the shipped file; `install-assets` runs
+  `verify → stage-reviewed-negctx → manifest-assets → sign-manifest` before
+  copying. The engine verifies each entry at first load.
 - `build gazetteers name-common-words`: a common-word curation sidecar
   (`gazetteers/name_common_words.json`, installed as
   `Gazetteers/name-common-words.json`) built from the in-estate non-name word

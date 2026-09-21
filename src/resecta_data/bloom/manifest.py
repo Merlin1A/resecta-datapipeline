@@ -9,9 +9,12 @@ Field names here must match the Codable case names there exactly.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from pathlib import Path
+from typing import Any, Final, Literal
 
-from .spec import HASH_ALGORITHM, MANIFEST_VERSION
+from resecta_data.common.io import sha256_file
+
+from .spec import HASH_ALGORITHM, MANIFEST_VERSION, SHIPPED_MANIFEST_VERSION
 
 _GENERATED_BY: Final[str] = "resecta-data/bloom/manifest"
 _CUTOVER_DIFF_VERSION: Final[int] = 1
@@ -128,3 +131,111 @@ def build_cutover_diff(filters: list[FilterBuildResult]) -> dict[str, Any]:
         "rebuild_only": rebuild_only,
         "keyed_diff": keyed_diff,
     }
+
+
+# --- The shipped manifest: `assets[]` ---------------------------------------
+
+#: The three files the signature verdict itself rests on. They are never
+#: listed in `assets[]`: the manifest cannot carry its own digest, and the
+#: `.sig`/`.pem` are the verifier's inputs.
+MANIFEST_TRIPLE_BUNDLE_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "Gazetteers/gazetteer-manifest.json",
+        "Gazetteers/gazetteer_manifest.sig",
+        "Gazetteers/manifest_public_key.pem",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AssetEntry:
+    """One installed engine asset as the shipped manifest lists it.
+
+    Attributes:
+        path: Bundle-relative path (``Gazetteers/surnames.bloom``).
+        sha256: Lowercase hex SHA-256 of the bytes ``install-assets`` ships.
+        size: Byte count of the same bytes (serialized as ``bytes``).
+        source: Where the bytes were read — ``build`` (the artifact is in
+            ``build/`` and install copies it) or ``installed`` (not built on
+            this host; the file already under the iOS Resources tree is what
+            ships). Informational; not serialized.
+        lock: The lock cross-check for the artifact's build path — ``match``,
+            ``differs`` (an installed file the locked build did not produce:
+            the out-of-band supersets) or ``None`` (no lock row: the reviewed
+            and calibrated products). Informational; not serialized.
+    """
+
+    path: str
+    sha256: str
+    size: int
+    source: Literal["build", "installed"]
+    lock: Literal["match", "differs"] | None
+
+
+def collect_asset_entries(
+    *,
+    build_dir: Path,
+    resources_dir: Path | None,
+    routes: dict[str, tuple[str, str]],
+    lock: dict[str, str],
+) -> tuple[list[AssetEntry], list[str]]:
+    """Digest the bytes ``install-assets`` will ship for every resource route.
+
+    For each ``routes`` entry whose target is ``resources`` and whose bundle
+    path is not one of :data:`MANIFEST_TRIPLE_BUNDLE_PATHS`: the artifact in
+    ``build_dir`` when it is built (install copies it), else the file already
+    installed under ``resources_dir`` (install leaves it alone), else the
+    route is skipped and reported — an optional sidecar that neither exists
+    nor ships (the Swift-side pin on the shipped manifest's asset count is
+    what catches an asset that should have been listed).
+
+    Returns:
+        ``(entries sorted by bundle path, skipped build paths)``.
+    """
+    entries: list[AssetEntry] = []
+    skipped: list[str] = []
+    for rel, (target, sub_path) in routes.items():
+        if target != "resources" or sub_path in MANIFEST_TRIPLE_BUNDLE_PATHS:
+            continue
+        built = build_dir / rel
+        installed = resources_dir / sub_path if resources_dir is not None else None
+        if built.is_file():
+            chosen, source = built, "build"
+        elif installed is not None and installed.is_file():
+            chosen, source = installed, "installed"
+        else:
+            skipped.append(rel)
+            continue
+        digest = sha256_file(chosen)
+        lock_row = lock.get(rel)
+        lock_state: Literal["match", "differs"] | None = (
+            None if lock_row is None else ("match" if lock_row == digest else "differs")
+        )
+        entries.append(
+            AssetEntry(
+                path=sub_path,
+                sha256=digest,
+                size=chosen.stat().st_size,
+                source=source,  # type: ignore[arg-type]
+                lock=lock_state,
+            )
+        )
+    entries.sort(key=lambda e: e.path)
+    return entries, sorted(skipped)
+
+
+def build_shipped_manifest(base: dict[str, Any], entries: list[AssetEntry]) -> dict[str, Any]:
+    """Return the shipped manifest: ``base`` (the bloom builder's manifest,
+    ``filters[]`` and all, carried verbatim) with ``version`` set to
+    :data:`SHIPPED_MANIFEST_VERSION` and an ``assets[]`` section.
+
+    The dict is ready for ``dump_canonical_json``; the Swift ``GazetteerManifest``
+    decodes ``assets[].{path, sha256, bytes}`` and fences ``version``.
+    """
+    shipped = dict(base)
+    shipped["version"] = SHIPPED_MANIFEST_VERSION
+    shipped["assets"] = [
+        {"path": e.path, "sha256": e.sha256, "bytes": e.size}
+        for e in sorted(entries, key=lambda e: e.path)
+    ]
+    return shipped

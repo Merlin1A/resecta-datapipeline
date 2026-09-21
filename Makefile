@@ -993,16 +993,28 @@ eval: bootstrap corpus ## corpus (EVAL_CORPUS_PROFILE) -> both G8 emitters (host
 # the bloom builder — so the bloom stamp is the narrowest sound prerequisite.
 # This cannot weaken the ship gate: install-assets still requires full
 # `verify` before any signed byte crosses into the Swift tree.
+# The shipped manifest = the bloom manifest + `assets[]` (every installed
+# asset's sha256 + bytes). Derived at install time, never by `make build`: the
+# digests cover the reviewed negative-context file, the calibrated Classifier
+# files and the installed supersets, none of which the locked build produces.
+# stage-reviewed-negctx runs first so the reviewed file is digested from build/;
+# SWIFT_RESOURCES supplies the installed bytes for assets this host did not
+# build (absent on CI — only built artifacts are listed there).
+.PHONY: manifest-assets
+manifest-assets: bootstrap $(STAMP_DIR)/bloom stage-reviewed-negctx ## Derive gazetteer_manifest.shipped.json (bloom manifest + every installed asset's digest)
+	$(PYTHON_VENV) -m resecta_data.cli manifest-assets --build-dir $(BUILD_DIR) --resources-dir $(SWIFT_RESOURCES)
+
 .PHONY: sign-manifest
-sign-manifest: bootstrap $(STAMP_DIR)/bloom ## Sign gazetteer_manifest.json with Ed25519 (writes .sig + .pem peers)
+sign-manifest: bootstrap manifest-assets ## Sign gazetteer_manifest.shipped.json with Ed25519 (writes .sig + .pem peers)
 	$(PYTHON_VENV) -m resecta_data.cli sign-manifest --build-dir $(BUILD_DIR)
 
 # -----------------------------------------------------------------------------
 # Install into Swift tree
 # -----------------------------------------------------------------------------
 
-# stage-reviewed-negctx is a prerequisite so the reviewed file is always
-# present-and-current in build/ before any byte crosses into the Swift tree.
+# stage-reviewed-negctx is a prerequisite (through manifest-assets) so the
+# reviewed file is always present-and-current in build/ — and digested into
+# the shipped manifest — before any byte crosses into the Swift tree.
 # A drifted candidates file (sidecar not re-stamped) makes install-assets
 # fail by design — installing an unreviewed negative_context.json is the
 # failure mode the sidecar tripwire exists to stop.
@@ -1012,7 +1024,7 @@ sign-manifest: bootstrap $(STAMP_DIR)/bloom ## Sign gazetteer_manifest.json with
 # (the first install after a source refresh).
 INSTALL_ASSETS_FLAGS ?=
 .PHONY: install-assets
-install-assets: verify sign-manifest stage-reviewed-negctx ## Copy artifacts from build/ into the Swift Resources path
+install-assets: verify sign-manifest ## Copy artifacts from build/ into the Swift Resources path (verify → stage-reviewed-negctx → manifest-assets → sign-manifest, then copy)
 	@if [ ! -d "$(SWIFT_RESOURCES)" ]; then \
 		echo "ERROR: Swift Resources path not found: $(SWIFT_RESOURCES)" >&2; \
 		echo "       This target must be run from inside the Resecta repo." >&2; \

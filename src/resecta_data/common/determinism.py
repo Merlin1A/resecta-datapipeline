@@ -56,6 +56,11 @@ OUT_OF_BAND_PREFIXES: Final[tuple[str, ...]] = (
     # is enforced by tests/test_signed_manifest.py and the iOS verifier.
     "gazetteers/gazetteer_manifest.sig",
     "gazetteers/manifest_public_key.pem",
+    # The shipped manifest (`make manifest-assets`): the bloom manifest plus
+    # every installed asset's digest. Its digests cover files the locked
+    # build does not produce (the reviewed and calibrated products, the
+    # installed supersets), so it cannot be a `make build` artifact.
+    "gazetteers/gazetteer_manifest.shipped.json",
     # Search-eval substrate — committed/reference eval fixtures that
     # `make build` does NOT regenerate: the G8 per-fire feature dump is emitted
     # by the iOS G8 harness and committed; the negative corpus is the baseline

@@ -58,16 +58,22 @@ def test_phase_1_fixtures_are_routed_to_fixtures_target() -> None:
 
 
 def test_phase_2_bloom_bundle_is_routed_to_resources() -> None:
-    """surnames.bloom, given-names.bloom, and the manifest land in Resources/Gazetteers/."""
+    """surnames.bloom, given-names.bloom, and the SHIPPED manifest land in Resources/Gazetteers/."""
     expected_resource_paths = {
         "gazetteers/surnames.bloom": "Gazetteers/surnames.bloom",
         "gazetteers/given-names.bloom": "Gazetteers/given-names.bloom",
-        "gazetteers/gazetteer_manifest.json": "Gazetteers/gazetteer-manifest.json",
+        "gazetteers/gazetteer_manifest.shipped.json": "Gazetteers/gazetteer-manifest.json",
     }
     for rel, sub in expected_resource_paths.items():
         target, sub_path = INSTALL_ROUTES[rel]
         assert target == "resources", f"{rel}: expected resources, got {target}"
         assert sub_path == sub, f"{rel}: expected sub_path {sub!r}, got {sub_path!r}"
+    # The bloom builder's manifest is a locked build product held in build/;
+    # only the shipped manifest (with assets[]) reaches the bundle, so the
+    # bundle manifest has exactly one source.
+    assert "gazetteers/gazetteer_manifest.json" not in INSTALL_ROUTES
+    dests = [sub for target, sub in INSTALL_ROUTES.values() if target == "resources"]
+    assert dests.count("Gazetteers/gazetteer-manifest.json") == 1
 
 
 def test_review_gated_artifacts_are_not_installed() -> None:
