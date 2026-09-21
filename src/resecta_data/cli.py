@@ -30,6 +30,8 @@ from .bloom import (
     BloomFilter,
     FilterBuildResult,
     build_manifest,
+    build_shipped_manifest,
+    collect_asset_entries,
     optimal_bits,
 )
 from .bloom import (
@@ -56,6 +58,7 @@ from .bloom.spec import (
     GIVEN_NAME_FILTER_FILE,
     K_HASHES,
     MANIFEST_FILE,
+    SHIPPED_MANIFEST_FILE,
     SURNAME_FILTER_FILE,
 )
 from .classifier import (
@@ -180,6 +183,7 @@ SCHEMA_ROUTES: dict[str, str] = {
     "adversarial/adversarial_patterns.json": "adversarial_patterns",
     # Phase 2
     "gazetteers/gazetteer_manifest.json": "gazetteer_manifest",
+    "gazetteers/gazetteer_manifest.shipped.json": "gazetteer_manifest",
     "gazetteers/name_filters.cutover-diff.json": "cutover_diff",
     "gazetteers/negative_context_candidates.json": "negative_context",
     "gazetteers/negative_context.json": "negative_context",
@@ -286,9 +290,16 @@ INSTALL_ROUTES: dict[str, tuple[str, str]] = {
     ),
     "gazetteers/surnames.bloom": ("resources", "Gazetteers/surnames.bloom"),
     "gazetteers/given-names.bloom": ("resources", "Gazetteers/given-names.bloom"),
-    "gazetteers/gazetteer_manifest.json": ("resources", "Gazetteers/gazetteer-manifest.json"),
+    # The bundle's manifest is the SHIPPED manifest: the bloom builder's
+    # `gazetteer_manifest.json` (locked, a `make build` product, held in
+    # build/) plus the `assets[]` digests `make manifest-assets` derives at
+    # install time. Only the shipped file is routed, so one dest has one source.
+    "gazetteers/gazetteer_manifest.shipped.json": (
+        "resources",
+        "Gazetteers/gazetteer-manifest.json",
+    ),
     # Signed manifest peer files. The .sig is the detached Ed25519
-    # signature over `gazetteer_manifest.json`; the .pem is the public key
+    # signature over the shipped manifest; the .pem is the public key
     # the iOS engine verifies against. Both produced by `make sign-manifest`
     # (a `make install-assets` prerequisite).
     "gazetteers/gazetteer_manifest.sig": ("resources", "Gazetteers/gazetteer_manifest.sig"),
@@ -981,6 +992,80 @@ def install_assets_cmd(
 
 
 # -----------------------------------------------------------------------------
+# Shipped manifest: the bloom manifest + every installed asset's digest
+# -----------------------------------------------------------------------------
+
+
+@main.command("manifest-assets")
+@click.option(
+    "--build-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+)
+@click.option(
+    "--resources-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "The iOS Resources/ tree install-assets targets. A routed asset this "
+        "host did not build is digested from its installed copy here (install "
+        "leaves it alone, so that is what ships). Absent or missing: only built "
+        "artifacts are listed."
+    ),
+)
+@click.option(
+    "--lockfile",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path("asset_hashes.lock"),
+    show_default=True,
+    help=(
+        "Cross-check source: each entry is reported as matching, differing from, "
+        "or absent from the lock."
+    ),
+)
+def manifest_assets_cmd(build_dir: Path, resources_dir: Path | None, lockfile: Path) -> None:
+    """Derive the shipped manifest from the bloom builder's manifest.
+
+    Reads ``build/gazetteers/gazetteer_manifest.json`` (a locked ``make build``
+    product) and writes ``gazetteer_manifest.shipped.json`` beside it: the
+    same ``filters[]``, ``version`` raised to the shipped version, and an
+    ``assets[]`` section with ``{path, sha256, bytes}`` for every asset
+    ``install-assets`` routes into the engine bundle except the manifest
+    triple. The digests are of the bytes install ships — the built artifact
+    when present, else the installed file — so the engine's first-load
+    verification never refuses the bundle the pipeline itself installed.
+    ``sign-manifest`` signs this file; it is out-of-band relative to the lock.
+    """
+    base_path = build_dir / "gazetteers" / MANIFEST_FILE
+    if not base_path.is_file():
+        raise click.ClickException(f"Manifest not found at {base_path}. Run `make bloom` first.")
+    base = load_json(base_path)
+    if not isinstance(base, dict):
+        raise click.ClickException(f"{base_path}: manifest root must be an object")
+    lock = read_hash_lockfile(lockfile) if lockfile.is_file() else {}
+    resources = resources_dir if resources_dir is not None and resources_dir.is_dir() else None
+    entries, skipped = collect_asset_entries(
+        build_dir=build_dir, resources_dir=resources, routes=INSTALL_ROUTES, lock=lock
+    )
+    shipped = build_shipped_manifest(base, entries)
+    dest = build_dir / "gazetteers" / SHIPPED_MANIFEST_FILE
+    dump_canonical_json(shipped, dest)
+
+    for entry in entries:
+        lock_state = entry.lock if entry.lock is not None else "no lock row"
+        click.echo(
+            f"  {entry.path}  {entry.sha256[:12]}…  {entry.size} B  "
+            f"[{entry.source}; lock: {lock_state}]"
+        )
+    click.echo(
+        f"Shipped manifest: {dest.relative_to(build_dir)} "
+        f"({len(entries)} assets; version {shipped['version']})"
+    )
+    for rel in skipped:
+        click.echo(f"  - not listed (neither built nor installed): {rel}")
+
+
+# -----------------------------------------------------------------------------
 # Sign manifest (verified by the iOS engine)
 # -----------------------------------------------------------------------------
 
@@ -1017,7 +1102,7 @@ def sign_manifest_cmd(
     private_key: Path | None,
     generate_key: bool,
 ) -> None:
-    """Sign ``build/gazetteers/gazetteer_manifest.json`` with Ed25519.
+    """Sign the shipped manifest (``gazetteer_manifest.shipped.json``) with Ed25519.
 
     Writes ``gazetteer_manifest.sig`` and ``manifest_public_key.pem`` next
     to the manifest. Both files are picked up by ``install-assets`` via the
@@ -1039,13 +1124,18 @@ def sign_manifest_cmd(
 
     pk = load_private_key(key_path)
 
-    manifest_path = build_dir / "gazetteers" / "gazetteer_manifest.json"
+    manifest_path = build_dir / "gazetteers" / SHIPPED_MANIFEST_FILE
     if not manifest_path.is_file():
         raise click.ClickException(
-            f"Manifest not found at {manifest_path}. Run `make bloom` first."
+            f"Shipped manifest not found at {manifest_path}. Run `make manifest-assets` first."
         )
 
-    signature_path = sign_manifest_file(manifest_path, pk)
+    # The signature file keeps its name (`gazetteer_manifest.sig`): the iOS
+    # verifier reads the manifest as `gazetteer-manifest.json` and the
+    # signature as `gazetteer_manifest.sig` regardless of the build-side stem.
+    signature_path = sign_manifest_file(
+        manifest_path, pk, signature_path=build_dir / "gazetteers" / "gazetteer_manifest.sig"
+    )
     public_key_path = build_dir / "gazetteers" / "manifest_public_key.pem"
     export_public_key(pk, public_key_path)
 

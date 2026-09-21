@@ -31,7 +31,7 @@ test suite to exercise the validator.
 
 ## Phase 2 (landed)
 
-- `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema
+- `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema; the shipped form (`gazetteer_manifest.shipped.json`, `make manifest-assets`) adds `assets[]` — every installed engine asset's SHA-256 and byte count, verified by the engine at first load
 - `negative_context.schema.json` — candidate keywords with (category_scope × doctype_scope) routing; the candidates file ships to build/ only — the reviewed copy is installed under an approved change plan
 - `demographic_coverage.schema.json` — per-filter bucket breakdown across five Census race/ethnicity groups; baseline for the Phase 4 G2 parity-gap CI gate
 
