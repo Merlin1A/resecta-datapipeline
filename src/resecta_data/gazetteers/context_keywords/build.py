@@ -11,7 +11,7 @@ workflow:
 2. The authored set: English context-keyword candidates in
    ``src/resecta_data/context/sources/d12_candidates.json``. 147 rows
    ship across DOB / Name / NPI / DEA / ITIN (dea 29 · dob 26 · itin 28 ·
-   name 35 · npi 29; the X12 ``DMG*D8`` literal ships engine-side as a
+   name 41 · npi 29; the X12 ``DMG*D8`` literal ships engine-side as a
    regex, not as a context keyword; the four court role nouns
    ``defendant`` / ``plaintiff`` / ``petitioner`` / ``respondent`` ship as
    court-scoped name positives — a positive context keyword names the
@@ -116,14 +116,16 @@ _SHIPPING_CATEGORIES: Final[frozenset[str]] = frozenset(
 # infrastructure). The context-asset review then added four license-plate
 # label words (licenseplate 11->15) and dropped the four court role nouns
 # from name (35->31); the role nouns were re-landed as court-scoped name
-# positives (31->35). Combined total: 217 shipping rows.
+# positives (31->35); six title labels landed for the label-anchor route
+# (35->41: counsel of record, bill to, ap contact, employee's name, from, to).
+# Combined total: 223 shipping rows.
 _EXPECTED_PER_CATEGORY: Final[dict[str, int]] = {
     "ssn": 15,
     "mrn": 13,
     "bates": 21,
     "licenseplate": 15,
     "dob": 26,
-    "name": 35,
+    "name": 41,
     "npi": 29,
     "dea": 29,
     "itin": 28,
@@ -270,8 +272,8 @@ def build(
     Returns:
         A payload dict conforming to ``schemas/context_keywords.schema.json``.
         Rows are sorted by ``(category, term)`` ascending. Total row count
-        is 217 (15 ssn + 13 mrn + 21 bates + 15 licenseplate + 26 dob +
-        35 name + 29 npi + 29 dea + 28 itin + 6 ein; bates count reflects
+        is 223 (15 ssn + 13 mrn + 21 bates + 15 licenseplate + 26 dob +
+        41 name + 29 npi + 29 dea + 28 itin + 6 ein; bates count reflects
         the 10 ``.legal``-scoped anchors on top of the lifted base of 11;
         the dob count reflects dropping the X12 ``DMG*D8`` literal; the
         ssn/name/ein rows were added with the search-and-redact release).

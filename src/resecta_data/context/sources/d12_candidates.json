@@ -4097,5 +4097,163 @@
     "source_url": "https://www.law.cornell.edu/rules/frap/rule_15",
     "synthetic_sample": "Respondent, John Q. Public (synthetic caption, FRAP 15)",
     "term": "respondent"
+  },
+  {
+    "aliases": [
+      "attorney of record",
+      "counsel for plaintiff",
+      "counsel for defendant"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "counsel table",
+      "of counsel",
+      "counsel's motion"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. Pleadings and appearance forms name the attorney of record under this label (FRCP 11(a) signature block).",
+    "polarity": "positive",
+    "primary_source_type": "federal-publication",
+    "proposed_doctypes": [
+      ".legal"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.law.cornell.edu/rules/frcp/rule_11",
+    "synthetic_sample": "Counsel of record: Jane Q. Public, Esq. (synthetic appearance line)",
+    "term": "counsel of record"
+  },
+  {
+    "aliases": [
+      "billed to",
+      "bill-to"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "bill of lading",
+      "bill number",
+      "billing period"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. The invoice addressee block; the value is a person or an organisation, and the route keeps only the former.",
+    "polarity": "positive",
+    "primary_source_type": "industry-standard",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.gsa.gov/reference/forms/standard-form-1034",
+    "synthetic_sample": "Bill to: Jane Q. Public (synthetic invoice)",
+    "term": "bill to"
+  },
+  {
+    "aliases": [
+      "accounts payable contact",
+      "a/p contact"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "ap invoice",
+      "ap department",
+      "ap aging"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. Vendor and remittance forms name the accounts-payable contact under this label.",
+    "polarity": "positive",
+    "primary_source_type": "industry-standard",
+    "proposed_doctypes": [
+      ".financial"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.gsa.gov/reference/forms/standard-form-1034",
+    "synthetic_sample": "AP Contact: Jane Q. Public (synthetic vendor form)",
+    "term": "ap contact"
+  },
+  {
+    "aliases": [
+      "employee name",
+      "name of employee"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "employee's signature",
+      "employee's address",
+      "employee's title"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. The possessive form of the W-4 / I-9 label (`employee name` ships as its own row; aliases do not ship).",
+    "polarity": "positive",
+    "primary_source_type": "federal-form",
+    "proposed_doctypes": [
+      ".financial",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.irs.gov/pub/irs-pdf/fw4.pdf",
+    "synthetic_sample": "Employee's name: Jane Q. Public (synthetic W-4)",
+    "term": "employee's name"
+  },
+  {
+    "aliases": [
+      "sender"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "from the desk of",
+      "from date",
+      "from account"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. The memorandum and letter header; every doctype carries memos and cover letters.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical",
+      ".financial",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.archives.gov/records-mgmt/policy/memo-guidance",
+    "synthetic_sample": "From: Jane Q. Public (synthetic memorandum header)",
+    "term": "from"
+  },
+  {
+    "aliases": [
+      "addressee"
+    ],
+    "category": "name",
+    "confidence": "high",
+    "fp_neighbors": [
+      "to whom it may concern",
+      "to date",
+      "to account"
+    ],
+    "license_posture": "public-domain",
+    "locale": "en",
+    "notes": "Landed 2026-09-21 by the 1.2 lane's anchor-route session (C12-92 route 3): a title or field label that introduces a person's name with a colon on letters, invoices, memos and pleadings. Consumer: the engine's label-anchor route, which reads the shipped name positives case-folded and token-bounded and takes only the two-to-three-token capitalised run after the colon on the same line; the scorer never reads name positives. The memorandum and letter header; every doctype carries memos and cover letters.",
+    "polarity": "positive",
+    "primary_source_type": "federal-standard",
+    "proposed_doctypes": [
+      ".legal",
+      ".medical",
+      ".financial",
+      ".foia",
+      ".generic"
+    ],
+    "proposed_status": "a21-shipping",
+    "source_url": "https://www.archives.gov/records-mgmt/policy/memo-guidance",
+    "synthetic_sample": "To: Jane Q. Public (synthetic memorandum header)",
+    "term": "to"
   }
 ]
