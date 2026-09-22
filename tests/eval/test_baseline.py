@@ -11,6 +11,7 @@ See ``src/resecta_data/eval/baseline.py`` for the implementation.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ import pytest
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.eval.baseline import build_baseline
+from resecta_data.eval.payloads import BaselinePayload
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -82,7 +84,7 @@ def _synthetic_cells() -> dict[str, Any]:
     }
 
 
-def _run() -> dict[str, Any]:
+def _run() -> BaselinePayload:
     return build_baseline(_synthetic_cells())
 
 
@@ -197,7 +199,7 @@ def test_malformed_cell_key_fails_loud() -> None:
 
 
 def test_f2_and_wilson_beside_legacy_metrics() -> None:
-    fam = _run()["per_family"]["ssn"]
+    fam: Mapping[str, Any] = _run()["per_family"]["ssn"]
     # P = R = 0.8 -> F2 = 5PR / (4P + R) = 0.8 as well.
     assert fam["f2"] == pytest.approx(0.8)
     lo, hi = fam["recall_wilson95"]
@@ -275,7 +277,7 @@ def _tiered_cells() -> dict[str, Any]:
 
 def test_per_tier_hand_computed() -> None:
     fam = build_baseline(_tiered_cells())["per_family"]["itin"]
-    tiers = fam["per_tier"]
+    tiers: Mapping[str, Any] = fam["per_tier"]
     must, should = tiers["must"], tiers["should"]
     assert (must["total"], must["covered"]) == (50, 40)
     assert must["recall"] == pytest.approx(0.8)

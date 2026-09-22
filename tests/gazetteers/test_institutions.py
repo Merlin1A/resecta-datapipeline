@@ -10,13 +10,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from resecta_data.common.cutover import build_cutover_diff
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.gazetteers.institutions import (
-    build as build_institutions,
+    INSTITUTIONS_CUTOVER,
+    legacy_institution_rows,
+    rebuild_institution_rows,
 )
 from resecta_data.gazetteers.institutions import (
-    build_cutover_diff as build_institutions_cutover_diff,
+    build as build_institutions,
 )
 from resecta_data.gazetteers.institutions.parse_federalregister import (
     parse_federalregister_agencies,
@@ -110,7 +113,9 @@ def test_sources_record_matches_raw_sha() -> None:
 
 def test_cutover_diff_schema(tmp_build_dir: Path) -> None:
     """build_cutover_diff() output validates against cutover_diff.schema.json."""
-    diff = build_institutions_cutover_diff()
+    diff = build_cutover_diff(
+        legacy_institution_rows(), rebuild_institution_rows(), spec=INSTITUTIONS_CUTOVER
+    )
     dest = tmp_build_dir / "gazetteers" / "institutions.cutover-diff.json"
     dump_canonical_json(diff, dest)
     validate_file(dest, SCHEMAS_DIR, "cutover_diff")

@@ -32,6 +32,7 @@ from resecta_data.eval.documents import (
     join_occurrence,
     wilson_ci,
 )
+from resecta_data.eval.payloads import HarnessRun, Hit, Occurrence, OccurrenceMeta, OccurrenceSpan
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -45,11 +46,11 @@ def _occ(
     expectation: str = "must_fire",
     legs: list[str] | None = None,
     value: str = "555-12-3456",
-    spans: list[dict[str, Any]] | None = None,
+    spans: list[OccurrenceSpan] | None = None,
     context_class: str | None = None,
     caption: tuple[float, str] | None = None,
-) -> dict[str, Any]:
-    occ: dict[str, Any] = {
+) -> Occurrence:
+    occ: Occurrence = {
         "id": occ_id,
         "category": category,
         "page": page,
@@ -68,7 +69,7 @@ def _occ(
 
 def _hit(
     rect: list[float], category: str = "ssn", *, page: int = 0, text: str = "555-12-3456"
-) -> dict[str, Any]:
+) -> Hit:
     return {
         "page": page,
         "category": category,
@@ -81,12 +82,12 @@ def _hit(
 
 
 def _run(
-    hits: list[dict[str, Any]],
+    hits: list[Hit],
     *,
     leg: str = "natural",
     statuses: list[str] | None = None,
     run_index: int = 1,
-) -> dict[str, Any]:
+) -> HarnessRun:
     return {
         "leg": leg,
         "run_index": run_index,
@@ -231,7 +232,7 @@ class TestEvaluateRun:
 
 
 class TestJoinRules:
-    def _split_hits(self) -> list[dict[str, Any]]:
+    def _split_hits(self) -> list[Hit]:
         # A name box [0.1, 0.1, 0.5, 0.15] surfaced as two adjacent name hits,
         # each covering about 0.45 of the box: neither alone reaches 0.5.
         return [
@@ -311,7 +312,7 @@ def _hit_verdict() -> dict[str, Any]:
 
 class TestAttribution:
     def test_twins_and_classes(self, tmp_path: Path) -> None:
-        per_document = {
+        per_document: dict[str, Any] = {
             # The master ran a text leg: its own ocr-forced misses twin to it.
             "master": {
                 "variant": None,
@@ -462,7 +463,7 @@ class TestCaptionMerge:
             "a": {"strict": True},
             "plain": {"strict": True},  # no caption above -> not a row
         }
-        per_document = {
+        per_document: dict[str, Any] = {
             "w2": {
                 "variant": "scan-sim",
                 "ocr": {"median_run_index": 2, "median": {"verdicts": verdicts}},
@@ -472,7 +473,7 @@ class TestCaptionMerge:
                 "ocr": {"median_run_index": 1, "median": {"verdicts": verdicts}},
             },
         }
-        index: dict[str, dict[str, dict[str, Any]]] = {
+        index: dict[str, dict[str, OccurrenceMeta]] = {
             doc: {
                 "e": {
                     "value": "Delia Hartwell",

@@ -130,6 +130,7 @@ Primary targets:
   calibrate            [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
   sources              Fetch raw inputs (the ONLY network target)
   lint                 Run ruff check + format check, the planning-id gate, and the README block currency checks
+  security-check       Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
   format               Apply ruff formatting
   graph                Regenerate the ETL stage map in README.md from the make database (Mermaid; stdlib)
   readme-targets       Regenerate the Makefile-targets block in README.md from the help output

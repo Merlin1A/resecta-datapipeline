@@ -18,7 +18,6 @@ import sys
 import tempfile
 import threading
 from collections import deque
-from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -27,15 +26,13 @@ import click
 
 from .adversarial import build as build_adversarial_patterns
 from .bloom import (
+    NAME_FILTERS_CUTOVER,
     BloomFilter,
     FilterBuildResult,
     build_manifest,
     build_shipped_manifest,
     collect_asset_entries,
     optimal_bits,
-)
-from .bloom import (
-    build_cutover_diff as build_name_filters_cutover_diff,
 )
 from .bloom.corpus_ingest import (
     IngestResult,
@@ -69,6 +66,7 @@ from .classifier import (
     build_sweep_thresholds,
     finalize_sweep_thresholds,
 )
+from .common.cutover import build_cutover_diff
 from .common.determinism import (
     CANONICAL_SEED,
     OUT_OF_BAND_PREFIXES,
@@ -105,14 +103,16 @@ from .eval.compare_documents import build_compare_documents
 from .eval.sitegap import build_site_gap
 from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
+from .gazetteers.address_components import ADDRESS_COMPONENTS_CUTOVER
 from .gazetteers.address_components import build as build_address_components
-from .gazetteers.address_components import (
-    build_cutover_diff as build_address_components_cutover_diff,
-)
 from .gazetteers.context_keywords import build as build_context_keywords
 from .gazetteers.dl_patterns import build as build_dl_patterns
+from .gazetteers.institutions import (
+    INSTITUTIONS_CUTOVER,
+    legacy_institution_rows,
+    rebuild_institution_rows,
+)
 from .gazetteers.institutions import build as build_institutions
-from .gazetteers.institutions import build_cutover_diff as build_institutions_cutover_diff
 from .gazetteers.name_common_words import build as build_name_common_words
 from .gazetteers.negative_context import build as build_negative_context
 from .gazetteers.negative_context.stage_reviewed import (
@@ -132,23 +132,7 @@ from .manifest_signing import (
     sign_manifest_file,
 )
 from .rules import build as build_rule_catalog
-from .vectors import (
-    build_bates_vectors,
-    build_credit_card_vectors,
-    build_dea_vectors,
-    build_dob_vectors,
-    build_drivers_license_vectors,
-    build_ein_vectors,
-    build_email_vectors,
-    build_itin_vectors,
-    build_license_plate_vectors,
-    build_mrn_vectors,
-    build_npi_vectors,
-    build_passport_vectors,
-    build_phone_vectors,
-    build_routing_number_vectors,
-    build_ssn_vectors,
-)
+from .vectors import VECTOR_FAMILIES, VectorBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -560,7 +544,7 @@ def _run_rebuild_streaming(full_command: str) -> tuple[int, deque[str]]:
             with contextlib.suppress(subprocess.TimeoutExpired):
                 proc.wait(timeout=_REBUILD_TERM_GRACE_SECONDS)
 
-    def _signal_handler(signum: int, frame: object) -> None:
+    def _signal_handler(signum: int, _frame: object) -> None:
         # Make the interruption visible to the operator before the parent
         # exits so they understand why the rebuild stopped.
         click.echo(
@@ -1153,60 +1137,11 @@ def build_group() -> None:
     """Generate Phase 1+ artifacts into build/."""
 
 
-_VECTOR_BUILDERS: dict[str, Callable[[int], dict[str, Any]]] = {
-    "npi": build_npi_vectors,
-    "dea": build_dea_vectors,
-    "ssn": build_ssn_vectors,
-    "credit-card": build_credit_card_vectors,
-    "ein": build_ein_vectors,
-    "itin": build_itin_vectors,
-    "dob": build_dob_vectors,
-    "phone": build_phone_vectors,
-    "email": build_email_vectors,
-    "passport": build_passport_vectors,
-    "drivers-license": build_drivers_license_vectors,
-    "mrn": build_mrn_vectors,
-    "bates": build_bates_vectors,
-    "license-plate": build_license_plate_vectors,
-    "routing-number": build_routing_number_vectors,
-}
-
-_VECTOR_OUTPUT_FILENAMES: dict[str, str] = {
-    "npi": "npi_test_vectors.json",
-    "dea": "dea_test_vectors.json",
-    "ssn": "ssn_structural_vectors.json",
-    "credit-card": "credit_card_vectors.json",
-    "ein": "ein_vectors.json",
-    "itin": "itin_vectors.json",
-    "dob": "dob_vectors.json",
-    "phone": "phone_test_vectors.json",
-    "email": "email_test_vectors.json",
-    "passport": "passport_test_vectors.json",
-    "drivers-license": "drivers_license_test_vectors.json",
-    "mrn": "mrn_test_vectors.json",
-    "bates": "bates_test_vectors.json",
-    "license-plate": "license_plate_test_vectors.json",
-    "routing-number": "routing_number_vectors.json",
-}
-
-
-_VECTOR_KINDS: tuple[str, ...] = (
-    "npi",
-    "dea",
-    "ssn",
-    "credit-card",
-    "ein",
-    "itin",
-    "dob",
-    "phone",
-    "email",
-    "passport",
-    "drivers-license",
-    "mrn",
-    "bates",
-    "license-plate",
-    "routing-number",
-)
+# Views over the one vector-family config (``vectors/__init__.py``): the CLI
+# ``kind`` names, their builders and their output filenames come from one tuple.
+_VECTOR_BUILDERS: dict[str, VectorBuilder] = {f.kind: f.builder for f in VECTOR_FAMILIES}
+_VECTOR_OUTPUT_FILENAMES: dict[str, str] = {f.kind: f.output_filename for f in VECTOR_FAMILIES}
+_VECTOR_KINDS: tuple[str, ...] = tuple(f.kind for f in VECTOR_FAMILIES)
 
 
 @build_group.command("vectors")
@@ -1775,7 +1710,7 @@ def build_bloom_cmd(build_dir: Path, sources_dir: Path, seed: int, build_date: s
     manifest = build_manifest(filters, seed=seed, built_at=build_date)
     dump_canonical_json(manifest, build_dir / "gazetteers" / MANIFEST_FILE)
 
-    cutover_diff = build_name_filters_cutover_diff(filters)
+    cutover_diff = build_cutover_diff((), (), spec=NAME_FILTERS_CUTOVER)
     cutover_dest = build_dir / "gazetteers" / "name_filters.cutover-diff.json"
     dump_canonical_json(cutover_diff, cutover_dest)
     summary = cutover_diff["summary"]
@@ -1833,7 +1768,9 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
         payload = build_institutions(seed)
         dest = build_dir / "gazetteers" / "institutions.json"
         dump_canonical_json(payload, dest)
-        cutover_diff = build_institutions_cutover_diff()
+        cutover_diff = build_cutover_diff(
+            legacy_institution_rows(), rebuild_institution_rows(), spec=INSTITUTIONS_CUTOVER
+        )
         cutover_dest = build_dir / "gazetteers" / "institutions.cutover-diff.json"
         dump_canonical_json(cutover_diff, cutover_dest)
         summary = cutover_diff["summary"]
@@ -1847,7 +1784,7 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
         payload = build_address_components(seed)
         dest = build_dir / "gazetteers" / "address_components.json"
         dump_canonical_json(payload, dest)
-        cutover_diff = build_address_components_cutover_diff()
+        cutover_diff = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
         cutover_dest = build_dir / "gazetteers" / "address_components.cutover-diff.json"
         dump_canonical_json(cutover_diff, cutover_dest)
         summary = cutover_diff["summary"]

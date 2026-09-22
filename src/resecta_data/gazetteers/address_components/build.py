@@ -54,6 +54,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.cutover import CutoverSpec
 from resecta_data.common.io import sha256_file
 
 from .parse_census_counties import parse_census_counties
@@ -62,8 +63,6 @@ from .parse_usgs_gnis import parse_usgs_gnis
 
 _GENERATED_BY: Final[str] = "resecta-data/gazetteers/address_components"
 _SCHEMA_VERSION: Final[int] = 1
-_CUTOVER_DIFF_VERSION: Final[int] = 1
-_CUTOVER_ARTIFACT: Final[str] = "gazetteers/address_components.json"
 
 _SOURCE_DIR: Final[Path] = Path(__file__).resolve().parent.parent / "institutions" / "sources"
 _GNIS_SOURCE: Final[Path] = _SOURCE_DIR / "usgs_gnis_pop_places_20260419.zip"
@@ -239,34 +238,17 @@ def build(
     }
 
 
-def build_cutover_diff() -> dict[str, Any]:
-    """Return the legacy→rebuild cutover diff for ``address_components.json``.
+ADDRESS_COMPONENTS_CUTOVER: Final[CutoverSpec] = CutoverSpec(
+    artifact="gazetteers/address_components.json", generated_by=_GENERATED_BY
+)
+"""The envelope of ``address_components.json``'s advisory cutover diff.
 
-    This builder already consumes the vintage-pinned Census-counties and
-    GNIS sources that a rebuilt source chain requires. An internal coverage
-    snapshot (cities=110434, counties=1960, street_types=20) was captured
-    from the same builder; no legacy parser variant was
-    retired in this rebuild, so there is no LEGACY corpus to diff against
-    the rebuild output. ``legacy_only`` / ``rebuild_only`` / ``keyed_diff``
-    are empty by construction — this builder's entries are plain strings
-    (cities / counties / street_types arrays), so even with two corpora
-    ``keyed_diff`` would always be empty while the wire format stays
-    stable.
-
-    The empty diff is expected by construction; the PR review confirms it,
-    attesting that this builder has no shipped-vs-rebuild divergence. The
-    diff is included as review material for the paired engine change.
-    """
-    return {
-        "version": _CUTOVER_DIFF_VERSION,
-        "generated_by": _GENERATED_BY,
-        "artifact": _CUTOVER_ARTIFACT,
-        "summary": {
-            "legacy_only_count": 0,
-            "rebuild_only_count": 0,
-            "keyed_diff_count": 0,
-        },
-        "legacy_only": [],
-        "rebuild_only": [],
-        "keyed_diff": [],
-    }
+This builder already consumes the vintage-pinned Census-counties and GNIS
+sources that a rebuilt source chain requires; no legacy parser variant was
+retired, so there is no legacy corpus to diff against and the diff
+``common.cutover.build_cutover_diff`` emits for this spec is empty by
+construction. Its entries are plain strings (cities / counties /
+street_types), so even with two corpora ``keyed_diff`` would stay empty while
+the wire format stays stable. The empty sidecar is review material for the
+paired engine change.
+"""

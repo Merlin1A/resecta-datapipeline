@@ -21,13 +21,14 @@ from pathlib import Path
 
 import pytest
 
+from resecta_data.common.cutover import build_cutover_diff
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.gazetteers.address_components import (
-    build as build_address_components,
+    ADDRESS_COMPONENTS_CUTOVER,
 )
 from resecta_data.gazetteers.address_components import (
-    build_cutover_diff as build_address_components_cutover_diff,
+    build as build_address_components,
 )
 from resecta_data.gazetteers.address_components.parse_census_counties import (
     parse_census_counties,
@@ -456,7 +457,7 @@ def test_cutover_diff_schema(tmp_build_dir: Path) -> None:
     in this rebuild). The summary counts mirror the array lengths; the
     artifact field points at the rebuild artifact this diff covers.
     """
-    diff = build_address_components_cutover_diff()
+    diff = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
     dest = tmp_build_dir / "gazetteers" / "address_components.cutover-diff.json"
     dump_canonical_json(diff, dest)
     validate_file(dest, SCHEMAS_DIR, "cutover_diff")
@@ -476,6 +477,6 @@ def test_cutover_diff_schema(tmp_build_dir: Path) -> None:
 
 def test_cutover_diff_determinism() -> None:
     """build_cutover_diff() returns byte-identical output across two calls."""
-    first = build_address_components_cutover_diff()
-    second = build_address_components_cutover_diff()
+    first = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
+    second = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
     assert first == second

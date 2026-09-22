@@ -11,6 +11,7 @@ against its schema, and the ``build eval-baseline --spans`` wiring.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -254,7 +255,7 @@ class TestValidation:
 
 class TestJoin:
     def test_hand_computed_aggregate(self) -> None:
-        payload = eval_spans.build_span_outcomes(
+        payload: Mapping[str, Any] = eval_spans.build_span_outcomes(
             _rows(),
             _corpus(),
             site="siteB",
@@ -359,7 +360,7 @@ class TestJoin:
                 "outcome": "fp",
             },
         ]
-        payload = eval_spans.build_span_outcomes(
+        payload: Mapping[str, Any] = eval_spans.build_span_outcomes(
             rows, corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
         )
         descriptor = payload["furniture"]

@@ -78,6 +78,19 @@ These are non-negotiable; the test suite enforces them.
   messages) describes the mechanism, not an outcome. The banned-phrase list is
   in `common/mechanism_language.py`.
 
+## Structure
+
+`src/resecta_data/cli.py` holds the click registration only. A new subcommand
+or eval stage lands as a module under `src/resecta_data/<package>/` — a
+builder beside its siblings, an eval stage under `eval/` — and `cli.py` gains
+the command that parses the options and calls it, not the stage's logic. The
+three eval commands whose loading, wiring and reporting still sit inline in
+`cli.py` (`build eval-documents`, `build eval-compare-documents`,
+`build eval-sitegap`) are the counter-example, kept until the file is split.
+`tests/test_cli.py::test_cli_line_count_does_not_grow` pins the file's line
+count at the value it had when this rule landed; the pin is lowered when the
+file is split, never raised.
+
 ## Commit format and sign-off
 
 Commit subjects describe the mechanism a change introduces (verbs like `add`,
