@@ -544,7 +544,7 @@ def _run_rebuild_streaming(full_command: str) -> tuple[int, deque[str]]:
             with contextlib.suppress(subprocess.TimeoutExpired):
                 proc.wait(timeout=_REBUILD_TERM_GRACE_SECONDS)
 
-    def _signal_handler(signum: int, frame: object) -> None:
+    def _signal_handler(signum: int, _frame: object) -> None:
         # Make the interruption visible to the operator before the parent
         # exits so they understand why the rebuild stopped.
         click.echo(
