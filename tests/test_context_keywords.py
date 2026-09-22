@@ -55,13 +55,16 @@ _EXPECTED_PER_CATEGORY = {
     "bates": 21,  # lifted base 11 + `.legal` anchors 10
     "licenseplate": 15,  # 11 lifted + 4 authored plate label words
     "dob": 26,
-    "name": 35,  # +5 IRS 1099/W-2 labels; +4 court role nouns as court-scoped name positives
+    # +5 IRS 1099/W-2 labels; +4 court role nouns as court-scoped name positives;
+    # +6 title labels for the label-anchor route (counsel of record, bill to,
+    # ap contact, employee's name, from, to).
+    "name": 41,
     "npi": 29,
     "dea": 29,
     "itin": 28,
     "ein": 6,  # EIN category infrastructure (search-and-redact release)
 }
-_EXPECTED_TOTAL = sum(_EXPECTED_PER_CATEGORY.values())  # 217
+_EXPECTED_TOTAL = sum(_EXPECTED_PER_CATEGORY.values())  # 223
 
 # The Bates-anchor file contributes 10 ``.legal``-scoped anchors. They share
 # the bates category with the lift's 11 doctype-unscoped baseline rows; the
@@ -138,12 +141,12 @@ def test_determinism(tmp_build_dir: Path) -> None:
 
 
 def test_row_count_is_two_thirteen(payload: dict[str, Any]) -> None:
-    """The three candidate files produce exactly 217 a21-shipping rows."""
+    """The three candidate files produce exactly 223 a21-shipping rows."""
     assert len(payload["entries"]) == _EXPECTED_TOTAL
 
 
 def test_per_category_counts(payload: dict[str, Any]) -> None:
-    """The per-category split sums to 217."""
+    """The per-category split sums to 223."""
     counts = dict(Counter(row["category"] for row in payload["entries"]))
     assert counts == _EXPECTED_PER_CATEGORY
 
@@ -313,9 +316,9 @@ def test_d12_authored_confidence_passthrough(payload: dict[str, Any]) -> None:
     The check is restricted to rows whose (category, term) key exists in the
     authored file. SSN rows that originated in the Swift lift are excluded;
     only the 5 authored SSN rows and 6 EIN rows are checked alongside the
-    original authored rows (dea 29 + dob 26 + itin 28 + name 35 + npi 29
-    = 147; ssn 5 + ein 6 = 11 later additions; total authored shipping
-    rows = 158).
+    original authored rows (dea 29 + dob 26 + itin 28 + name 41 + npi 29
+    = 153; ssn 5 + ein 6 = 11 later additions; total authored shipping
+    rows = 164).
     """
     candidates = load_json(D12_CANDIDATES_PATH)
     by_term = {(c["category"], c["term"]): c["confidence"] for c in candidates}
@@ -328,7 +331,7 @@ def test_d12_authored_confidence_passthrough(payload: dict[str, Any]) -> None:
                 f" got {row['confidence']!r}"
             )
             seen += 1
-    assert seen == 158
+    assert seen == 164
 
 
 def test_d16_bates_legal_anchors_ship(payload: dict[str, Any]) -> None:

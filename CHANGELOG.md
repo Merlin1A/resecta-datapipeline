@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- `context`: six title labels — `counsel of record` (court), `bill to` and `ap contact`
+  (financial), `employee's name` (financial, generic), `from` and `to` (every doctype) —
+  ship as GLOBAL positive name anchors in the context-keyword gazetteer (no doctype scope: the
+  label word is its own context and the search leg detects without a doctype; name 35 → 41; 223 rows;
+  the schema pin and the lock row move). Consumer: the engine's label-anchor route, which
+  reads the name positives case-folded and token-bounded with a colon and takes only the
+  capitalised run after it on the same line.
 - `manifest-assets`: the shipped gazetteer manifest (`gazetteers/gazetteer_manifest.shipped.json`,
   version 1.1.0) carries an `assets[]` section — the SHA-256 and byte count of
   every asset `install-assets` routes into the engine bundle, except the
