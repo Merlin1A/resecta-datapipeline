@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner, Result
 
+from resecta_data import cli as cli_module
 from resecta_data.cli import INSTALL_ROUTES, SHRINK_GUARDED_ROUTES, main
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import write_hash_lockfile
@@ -23,6 +24,26 @@ from resecta_data.vectors import VECTOR_FAMILIES
 @pytest.fixture
 def runner() -> CliRunner:
     return CliRunner()
+
+
+# -----------------------------------------------------------------------------
+# Structure: cli.py holds registration only (CONTRIBUTING.md, "Structure")
+# -----------------------------------------------------------------------------
+
+# cli.py's line count when this pin landed. Lowered when the file is split,
+# never raised: a new subcommand or eval stage lands as a module and adds only
+# its click registration here.
+_CLI_LINE_CEILING = 2843
+
+
+def test_cli_line_count_does_not_grow() -> None:
+    assert cli_module.__file__ is not None
+    line_count = len(Path(cli_module.__file__).read_text(encoding="utf-8").splitlines())
+    assert line_count <= _CLI_LINE_CEILING, (
+        f"src/resecta_data/cli.py has {line_count} lines, above the {_CLI_LINE_CEILING}-line "
+        "ceiling: move the new logic into a module and keep only its click registration here "
+        "(CONTRIBUTING.md, Structure)."
+    )
 
 
 # -----------------------------------------------------------------------------
