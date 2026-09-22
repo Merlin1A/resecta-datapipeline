@@ -4,7 +4,7 @@ Emits discharge-summary-style text with patient demographics, MRN, DOB,
 provider NPI, prescribing DEA, and (25% of the time) adversarial
 NPI-shaped phone-number decoys.
 
-Generator profiles (1.2 C12-95): under Spec-C the ``Patient:`` slot and the
+Generator profiles: under Spec-C the ``Patient:`` slot and the
 two ``Dr.`` title slots render in their shipped context or one of four
 variants; under Spec-D the document plants 4-8 role-noun sentences
 (Patient / Provider / Dr.) after the clinical-furniture lines.
@@ -191,7 +191,7 @@ def _append_callback_decoy(sb: SpanBuilder, rng: random.Random, tags: list[str])
 
 
 def _append_identity_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): driversLicense / passport at intake + creditCard.
+    """The 17-family extension: driversLicense / passport at intake + creditCard.
 
     Append-only after the last pre-existing draw (see court.py for the
     byte-preservation rule); every draw is unconditional.

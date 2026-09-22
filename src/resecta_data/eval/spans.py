@@ -41,7 +41,7 @@ family x doctype x bucket x context class (``cells_by_context_class``); the
 emitter never classifies, the class is read from the corpus at the join.
 Detection-only ``fp`` rows name no ground-truth span and so carry no class;
 when the corpus carries planted FURNITURE (a generator profile's
-``furniture[] {start, end, kind}`` regions -- 1.2 C12-95 Spec-D), every
+``furniture[] {start, end, kind}`` regions -- the Spec-D axis), every
 detection-only ``fp`` row is instead joined to the furniture regions it
 overlaps and counted per family x furniture kind (``by_furniture_kind``),
 the rows overlapping no region as ``unattributed``. An unannotated corpus

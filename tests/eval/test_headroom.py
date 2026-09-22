@@ -6,7 +6,7 @@ Builds a small synthetic ``_raw_scores.json`` payload inline, runs
 suppressible FP mass, the score gap, and the posterior arithmetic (which
 mirrors the engine seam ``sigmoid(logit(raw) + logit(floor))``).
 
-See CONTRACT.md File 2.
+See file 2 in ``src/resecta_data/eval/README.md``.
 """
 
 from __future__ import annotations

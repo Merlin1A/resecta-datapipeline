@@ -2,10 +2,10 @@
 
 The Swift ``G8BaselineHarness.sweepG8Corpus`` already performed the
 offset-overlap join and emitted per-``(category, doctype, bucket)`` counts
-(``_cells.json``, CONTRACT.md File 1). This module turns those raw counts into
-the committed-ready detection baseline: precision / recall / F1 / adversarial-
-suppression FP-rate, computed per cell and aggregated four ways (per-family,
-per-doctype, per-demographic, grand-total).
+(``_cells.json``, file 1 in ``src/resecta_data/eval/README.md``). This module
+turns those raw counts into the committed-ready detection baseline: precision /
+recall / F1 / adversarial-suppression FP-rate, computed per cell and aggregated
+four ways (per-family, per-doctype, per-demographic, grand-total).
 
 No re-join, no IoU, no device score-dump: every metric here is pure arithmetic
 over the counts the Swift side supplied. The derivation is deterministic
@@ -17,7 +17,7 @@ support N (TP + FN) is below ``_LOW_CONFIDENCE_SUPPORT``: a low-support
 demographic slice is reported with ``low_confidence: true`` rather than
 silently presented as a reliable number.
 
-1.2 P1.10 (C12-25 clause 2) -- the packet-tier bridge. The harness cells
+The packet-tier bridge. The harness cells
 additionally carry eight ``tier_*`` counters (the same ground truth split by
 the packet tiers must / should / watch / must_not that the dp generator
 writes on every span). Every aggregate here derives a ``per_tier`` block from
@@ -30,7 +30,7 @@ and Wilson intervals on precision and recall are added beside them. A cells
 file from before the extension carries no ``tier_*`` counters and derives an
 all-zero ``per_tier`` block.
 
-See CONTRACT.md File 1; this module follows the pipeline's determinism
+See ``src/resecta_data/eval/README.md`` (file 1); this module follows the pipeline's determinism
 (``common/determinism.py``) and mechanism-language
 (``common/mechanism_language.py``) rules.
 """
@@ -55,7 +55,7 @@ _METRIC: Final[str] = "g8_detection_baseline"
 # The five doctypes and five demographic buckets the harness stratifies by.
 # Every aggregate is emitted for all members of these axes even when a slice
 # has zero support, so a downstream consumer can rely on a stable shape and
-# the fairness guardrail can flag the empty slices (CONTRACT.md File 1).
+# the fairness guardrail can flag the empty slices (src/resecta_data/eval/README.md, file 1).
 _DOCTYPES: Final[tuple[str, ...]] = ("court", "medical", "financial", "foia", "generic")
 _BUCKETS: Final[tuple[str, ...]] = ("white", "black", "hispanic", "asian", "ai_an")
 
@@ -336,7 +336,8 @@ def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
     """Derive the committed-ready G8 detection baseline from raw join cells.
 
     Args:
-        cells_payload: The parsed ``_cells.json`` payload (CONTRACT.md File 1).
+        cells_payload: The parsed ``_cells.json`` payload (file 1 in
+            ``src/resecta_data/eval/README.md``).
             Must carry a ``cells`` mapping keyed
             ``"<category>_<doctype>_<bucket>"``, each value carrying the six raw
             counts. Other top-level fields (``doc_count`` etc.) are ignored by

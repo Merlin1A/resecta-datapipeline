@@ -34,6 +34,28 @@ the local gate before any change ships. A scheduled job refreshes a
 `ci-keepalive` side branch when `main` has been quiet for ~50 days, so the
 weekly workflows never lapse into the platform's scheduled-run auto-disable.
 
+### Environment notes
+
+`gmake doctor` prints a read-only health summary: the host and venv Python
+versions, whether the ParaNames corpus is fetched (path, size, `hydrated:
+yes|no`), the `asset_hashes.lock` mtime, the `build/` size, file count and
+stamp state, the make and venv freshness, the determinism witness, the
+lock / out-of-band and bundle-size parity checks, the calibration dumps, the
+signing key, the ingest cache and any stale worker processes. It runs on
+macOS as well as Linux (the size and mtime probes try BSD `stat -f` first,
+then GNU `stat -c`).
+
+The fetch chains (`scripts/fetch_*.sh`) need Linux: `scripts/_fetch_lib.sh`
+serialises the `SOURCES.md` row append with `flock`, which macOS does not
+ship — see `scripts/_fetch_lib.README.md`. Everything else, including the
+full build and verify, runs on either.
+
+`gmake verify`'s determinism check rebuilds every artifact and diffs it. A
+cold run costs about 44–55 minutes on an M1 Pro laptop (the figure
+`scripts/ci_verify.sh` carries; CI forces this mode). The witness stamp under
+`build/.stamps/` records the checked input closure, so a warm re-run on
+unchanged inputs takes seconds; `RESECTA_FORCE_DETERMINISM=1` bypasses it.
+
 ## Invariants
 
 These are non-negotiable; the test suite enforces them.
@@ -94,6 +116,26 @@ The same posture covers every change in this list:
 - any release or lockfile decision.
 
 The PR review confirms the plan was carried out.
+
+## Source hygiene
+
+Shipped source, docstrings and emitted strings describe mechanisms — what a
+profile is, what a clause computes — never the private planning documents
+that scheduled the work. Register identifiers (`C12-nn`, `D12-nn`, `M12-nn`,
+`F12-nn`, `RB12-nn`, spec-item labels such as `[Rnn]` and session names) do
+not appear in `src/` or `scripts/`; cite the register in the pull-request
+body instead. `scripts/hygiene_gate.py` enforces this in `make lint`, and so
+on every pull request: it scans every `.py` file under `src/` and `scripts/`
+for the identifier shape and fails on any hit not covered by
+`scripts/hygiene_allowlist.txt`. The allowlist carries the public tokens the
+shape collides with (IRS form names such as `W-2` and `W-9`) and, with a
+reason on the row, the rare line that must keep one (an emitted string a test
+and the hash lock both pin). Generator-profile names (`g8-specC`, the Spec-D
+axis) are product vocabulary, not planning ids.
+
+`make lint` also checks that the two generated README blocks are current: the
+Makefile-targets block (`make readme-targets` regenerates it from `make help`)
+and the ETL stage map (`make graph` regenerates it from the make database).
 
 ## Security
 

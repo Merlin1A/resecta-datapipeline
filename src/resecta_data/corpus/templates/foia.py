@@ -3,7 +3,7 @@
 Emits request/response letter text referencing a requester, a subject of
 interest (name + DOB + SSN), and a FOIA exemption citation.
 
-Generator profiles (1.2 C12-95): under Spec-C the ``From:``, ``Re:`` and
+Generator profiles: under Spec-C the ``From:``, ``Re:`` and
 closing-line slots render in their shipped context or one of four
 variants; under Spec-D the letter gains a name-free salutation, 1-3 label
 lines after the body, and its ``Sincerely,`` cue is recorded as closing
@@ -159,7 +159,7 @@ def emit(
 
 
 def _append_passport_and_plate(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): passport + a keyword-STARVED licensePlate + the decoy.
+    """The 17-family extension: passport + a keyword-STARVED licensePlate + the decoy.
 
     Append-only after the last pre-existing draw (see court.py for the
     byte-preservation rule); every draw is unconditional.

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import random
 from pathlib import Path
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from resecta_data.common.determinism import CANONICAL_SEED
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.vectors import build_credit_card_vectors
 from resecta_data.vectors._checksum import luhn_mod10
+from resecta_data.vectors.credit_card import _complete_with_luhn, _flip_last_digit
 
 SCHEMAS_DIR = Path(__file__).parent.parent.parent / "schemas"
 
@@ -52,6 +57,32 @@ def test_schema(tmp_build_dir: Path) -> None:
     path = tmp_build_dir / "cc.json"
     dump_canonical_json(payload, path)
     validate_file(path, SCHEMAS_DIR, "credit_card_vectors")
+
+
+_PREFIX = st.from_regex(r"^[1-9]\d{0,5}$", fullmatch=True)
+_LENGTH = st.integers(min_value=13, max_value=19)
+_SEED = st.integers(min_value=0, max_value=2**32 - 1)
+
+
+@settings(deadline=None)
+@given(prefix=_PREFIX, length=_LENGTH, seed=_SEED)
+def test_luhn_completion_is_sized_prefixed_and_valid(prefix: str, length: int, seed: int) -> None:
+    """For every prefix, PAN length and seed the completion keeps the prefix, has exactly
+    ``length`` digits and passes Luhn."""
+    pan = _complete_with_luhn(prefix, length, random.Random(seed))  # noqa: S311 — determinism
+    assert len(pan) == length
+    assert pan.startswith(prefix)
+    assert luhn_mod10(pan)
+
+
+@settings(deadline=None)
+@given(prefix=_PREFIX, length=_LENGTH, seed=_SEED)
+def test_flipped_last_digit_always_fails_luhn(prefix: str, length: int, seed: int) -> None:
+    """The decoy construction is sound: offsetting the undoubled final digit by 1..9 always
+    breaks the Luhn sum."""
+    rng = random.Random(seed)  # noqa: S311 — determinism, not security
+    pan = _complete_with_luhn(prefix, length, rng)
+    assert not luhn_mod10(_flip_last_digit(pan, rng))
 
 
 def test_brand_coverage() -> None:
