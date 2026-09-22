@@ -33,11 +33,10 @@ iteration).
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Final
 
-from resecta_data.common.io import sha256_bytes
+from resecta_data.common.io import canonical_bytes, sha256_bytes
 
 from .compare import _C4, _family_verdict
 
@@ -250,8 +249,8 @@ def build_compare_documents(
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "metric": _METRIC,
-        "before_sha256": sha256_bytes(_canonical_bytes(before)),
-        "after_sha256": sha256_bytes(_canonical_bytes(after)),
+        "before_sha256": sha256_bytes(canonical_bytes(before)),
+        "after_sha256": sha256_bytes(canonical_bytes(after)),
         "before_site": str(before.get("site", "unknown")),
         "after_site": str(after.get("site", "unknown")),
         "thresholds": {
@@ -273,18 +272,6 @@ def build_compare_documents(
         aggregate["regression"],
     )
     return payload
-
-
-def _canonical_bytes(payload: dict[str, Any]) -> bytes:
-    """Canonical-JSON bytes of ``payload`` for the provenance digest."""
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "),
-        ensure_ascii=False,
-    )
-    return encoded.encode("utf-8") + b"\n"
 
 
 __all__ = ["build_compare_documents"]

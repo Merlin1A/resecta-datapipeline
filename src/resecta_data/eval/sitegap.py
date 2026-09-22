@@ -21,11 +21,10 @@ input digests instead of a wall-clock. Dev/eval artifact; no install route.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Final
 
-from resecta_data.common.io import sha256_bytes
+from resecta_data.common.io import canonical_bytes, sha256_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -179,8 +178,8 @@ def build_site_gap(detector: dict[str, Any], siteb: dict[str, Any]) -> dict[str,
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "metric": _METRIC,
-        "detector_sha256": sha256_bytes(_canonical_bytes(detector)),
-        "siteb_sha256": sha256_bytes(_canonical_bytes(siteb)),
+        "detector_sha256": sha256_bytes(canonical_bytes(detector)),
+        "siteb_sha256": sha256_bytes(canonical_bytes(siteb)),
         "families": families,
         "families_with_gap": families_with_gap,
         "per_family": per_family,
@@ -195,23 +194,6 @@ def build_site_gap(detector: dict[str, Any], siteb: dict[str, Any]) -> dict[str,
         total_delta["precision"],
     )
     return payload
-
-
-def _canonical_bytes(payload: dict[str, Any]) -> bytes:
-    """Canonical-JSON bytes of ``payload`` for the provenance digest.
-
-    Mirrors :func:`resecta_data.common.io.dump_canonical_json` (sorted keys,
-    indent 2, the canonical separators, ``ensure_ascii=False``, trailing
-    newline) so an unchanged baseline yields an unchanged digest.
-    """
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "),
-        ensure_ascii=False,
-    )
-    return encoded.encode("utf-8") + b"\n"
 
 
 __all__ = ["build_site_gap"]

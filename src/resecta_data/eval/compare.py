@@ -53,11 +53,10 @@ coordinates.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Final
 
-from resecta_data.common.io import sha256_bytes
+from resecta_data.common.io import canonical_bytes, sha256_bytes
 from resecta_data.common.mechanism_language import assert_safe
 
 logger = logging.getLogger(__name__)
@@ -379,8 +378,8 @@ def build_compare(
     eps = float(thresholds["eps"])
     delta_slice = float(thresholds["delta_slice"])
 
-    before_sha = sha256_bytes(_canonical_bytes(before))
-    after_sha = sha256_bytes(_canonical_bytes(after))
+    before_sha = sha256_bytes(canonical_bytes(before))
+    after_sha = sha256_bytes(canonical_bytes(after))
 
     before_families: dict[str, Any] = before["per_family"]
     after_families: dict[str, Any] = after["per_family"]
@@ -472,25 +471,6 @@ def build_compare(
     )
 
     return payload
-
-
-def _canonical_bytes(payload: dict[str, Any]) -> bytes:
-    """Return the canonical-JSON byte encoding of ``payload`` for hashing.
-
-    Mirrors the serialization parameters of
-    :func:`resecta_data.common.io.dump_canonical_json` (sorted keys, indent 2,
-    the canonical separators, ``ensure_ascii=False``, trailing newline) so each
-    input's provenance digest is invariant to upstream whitespace / key-order
-    churn: an unchanged baseline yields an unchanged ``*_sha256``.
-    """
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "),
-        ensure_ascii=False,
-    )
-    return encoded.encode("utf-8") + b"\n"
 
 
 __all__ = ["build_compare"]

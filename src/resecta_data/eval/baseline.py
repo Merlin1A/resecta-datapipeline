@@ -37,11 +37,10 @@ See ``src/resecta_data/eval/README.md`` (file 1); this module follows the pipeli
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any, Final
 
-from resecta_data.common.io import sha256_bytes
+from resecta_data.common.io import canonical_bytes, sha256_bytes
 from resecta_data.common.mechanism_language import assert_safe
 
 from .documents import wilson_ci
@@ -363,7 +362,7 @@ def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
     # (rather than hashing whatever bytes happened to arrive) makes the digest
     # invariant to upstream whitespace/key-order churn, so an unchanged join
     # produces an unchanged baseline hash.
-    source_sha = sha256_bytes(_canonical_bytes(cells_payload))
+    source_sha = sha256_bytes(canonical_bytes(cells_payload))
 
     per_cell_counts: dict[str, _Counts] = {}
     per_family_counts: dict[str, _Counts] = {}
@@ -422,25 +421,6 @@ def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
         logger.info("%s", note)
 
     return payload
-
-
-def _canonical_bytes(payload: dict[str, Any]) -> bytes:
-    """Return the canonical-JSON byte encoding of ``payload`` for hashing.
-
-    Mirrors the serialization parameters of
-    ``common.io.dump_canonical_json`` (sorted keys, indent 2, the canonical
-    separators, ``ensure_ascii=False``, trailing newline) so the provenance
-    digest is invariant to upstream whitespace and key-order churn: an
-    unchanged join yields an unchanged ``source_cells_sha256``.
-    """
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "),
-        ensure_ascii=False,
-    )
-    return encoded.encode("utf-8") + b"\n"
 
 
 __all__ = ["build_baseline"]
