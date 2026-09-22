@@ -803,6 +803,14 @@ lint: bootstrap ## Run ruff check + format check, the planning-id gate, and the 
 	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --check
 	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --check
 
+.PHONY: security-check
+security-check: bootstrap ## Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
+	# The same invocation as the pip-audit job in .github/workflows/security.yml,
+	# so a maintainer's machine and CI read the same advisory set for the same
+	# locks. osv-scanner and the SBOM stay CI-only: both are GitHub Actions,
+	# not Python packages, and neither is pinned in this repo's dependency set.
+	$(PYTHON_VENV) -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes
+
 .PHONY: format
 format: bootstrap ## Apply ruff formatting
 	$(RUFF) format src tests scripts

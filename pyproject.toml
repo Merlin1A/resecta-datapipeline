@@ -40,6 +40,8 @@ dev = [
     "ruff==0.15.12",
     "mypy==1.20.2",
     "pip-tools>=7.4,<8",
+    # Local mirror of security.yml's pip-audit leg (`make security-check`).
+    "pip-audit>=2.10,<3",
     "types-jsonschema>=4.22,<5",
 ]
 
