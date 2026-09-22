@@ -28,6 +28,8 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+import pytest
+
 _HEADER = b"wikidata_id\tlabel\tlanguage\ttype\n"
 _SHARD_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "shard_paranames.py"
 
@@ -97,6 +99,18 @@ def _decompressed_bytes(path: Path) -> bytes:
         return fh.read()
 
 
+def _sha256_raw(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _gzip_header_fields(path: Path) -> tuple[int, int]:
+    """Return (FLG, MTIME) from the gzip member header at the start of ``path``."""
+    header = path.read_bytes()[:10]
+    assert header[:2] == b"\x1f\x8b", f"{path}: not a gzip member"
+    assert header[2] == 8, f"{path}: compression method {header[2]} is not deflate"
+    return header[3], int.from_bytes(header[4:8], "little")
+
+
 def _sha256_decompressed(path: Path) -> str:
     return hashlib.sha256(_decompressed_bytes(path)).hexdigest()
 
@@ -153,3 +167,36 @@ def test_shard_output_deterministic(tmp_path: Path) -> None:
             f"shard {name} decompressed content is not identical across runs; "
             "this would break the bloom pipeline's byte-identity guarantee (I1)."
         )
+
+
+_FNAME_LEAK = (
+    "scripts/shard_paranames.py passes the tempfile path to GzipFile(filename=...), so the "
+    "random basename lands in the FNAME header field; the fix rides a host with the corpus "
+    "because the shard-meta sidecar (hash-locked) records the script's git blob."
+)
+
+
+@pytest.mark.xfail(strict=True, reason=_FNAME_LEAK)
+def test_shard_raw_bytes_deterministic(tmp_path: Path) -> None:
+    fixture = tmp_path / "mini.tsv.gz"
+    _build_synthetic_fixture(fixture)
+    out_a = tmp_path / "shards_a"
+    out_b = tmp_path / "shards_b"
+    _run_shard_script(fixture, out_a, n_shards=3)
+    _run_shard_script(fixture, out_b, n_shards=3)
+    for idx in range(3):
+        name = f"paranames_full_shard_{idx:02d}.tsv.gz"
+        assert _sha256_raw(out_a / name) == _sha256_raw(out_b / name)
+
+
+@pytest.mark.xfail(strict=True, reason=_FNAME_LEAK)
+def test_shard_gzip_header_is_deterministic(tmp_path: Path) -> None:
+    """Every shard's gzip header carries no FNAME field and a zero MTIME."""
+    fixture = tmp_path / "mini.tsv.gz"
+    _build_synthetic_fixture(fixture)
+    out = tmp_path / "shards"
+    _run_shard_script(fixture, out, n_shards=3)
+    for idx in range(3):
+        flg, mtime = _gzip_header_fields(out / f"paranames_full_shard_{idx:02d}.tsv.gz")
+        assert flg & 0x08 == 0, f"shard {idx}: FNAME field present (FLG={flg:#04x})"
+        assert mtime == 0, f"shard {idx}: MTIME={mtime}"
