@@ -11,12 +11,12 @@ Invariants asserted:
     ingest relies on this to preserve ``parse_paranames_full``'s
     sort-invariant check);
   * re-running the script against the same input yields the same
-    decompressed shard content across runs — which is the determinism
-    the bloom pipeline actually consumes. The raw gzip bytes are NOT
-    byte-identical because the current script passes a tempfile path
-    to ``gzip.GzipFile(filename=...)``, which leaks the tempfile's
-    random basename into the gzip FNAME header. Fixing that is a
-    separate follow-up against ``scripts/shard_paranames.py``.
+    decompressed shard content across runs — the determinism the bloom
+    pipeline actually consumes;
+  * the raw gzip bytes are byte-identical across runs as well, and every
+    member header carries a zero MTIME and no FNAME field: the script opens
+    each member on a file object with an empty ``filename``, so the
+    tempfile's random basename never reaches the header.
 """
 
 from __future__ import annotations
@@ -27,8 +27,6 @@ import subprocess
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-
-import pytest
 
 _HEADER = b"wikidata_id\tlabel\tlanguage\ttype\n"
 _SHARD_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "shard_paranames.py"
@@ -169,14 +167,6 @@ def test_shard_output_deterministic(tmp_path: Path) -> None:
         )
 
 
-_FNAME_LEAK = (
-    "scripts/shard_paranames.py passes the tempfile path to GzipFile(filename=...), so the "
-    "random basename lands in the FNAME header field; the fix rides a host with the corpus "
-    "because the shard-meta sidecar (hash-locked) records the script's git blob."
-)
-
-
-@pytest.mark.xfail(strict=True, reason=_FNAME_LEAK)
 def test_shard_raw_bytes_deterministic(tmp_path: Path) -> None:
     fixture = tmp_path / "mini.tsv.gz"
     _build_synthetic_fixture(fixture)
@@ -189,7 +179,6 @@ def test_shard_raw_bytes_deterministic(tmp_path: Path) -> None:
         assert _sha256_raw(out_a / name) == _sha256_raw(out_b / name)
 
 
-@pytest.mark.xfail(strict=True, reason=_FNAME_LEAK)
 def test_shard_gzip_header_is_deterministic(tmp_path: Path) -> None:
     """Every shard's gzip header carries no FNAME field and a zero MTIME."""
     fixture = tmp_path / "mini.tsv.gz"
