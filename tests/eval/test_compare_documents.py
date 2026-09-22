@@ -12,6 +12,7 @@ trips the aggregate's C4; a row on one side only is skipped, never evaluated.
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -109,8 +110,8 @@ def _eval() -> dict[str, Any]:
     }
 
 
-def _row(verdict: dict[str, Any], name: str) -> dict[str, Any]:
-    rows: list[dict[str, Any]] = verdict["rows"]
+def _row(verdict: Mapping[str, Any], name: str) -> Mapping[str, Any]:
+    rows: list[Mapping[str, Any]] = verdict["rows"]
     for row in rows:
         if row["name"] == name:
             return row
@@ -202,7 +203,7 @@ def test_leg_pool_collapse_trips_the_aggregate_c4() -> None:
         55, 46, 31, 12
     )
     verdict = build_compare_documents(before, after, _TH)
-    c4 = verdict["aggregate"]["clauses"][3]
+    c4: Mapping[str, Any] = verdict["aggregate"]["clauses"][3]
     assert "leg:ocr" in c4["regressed_slices"]
     assert verdict["aggregate"]["regression"] is True
     assert verdict["regression"] is True

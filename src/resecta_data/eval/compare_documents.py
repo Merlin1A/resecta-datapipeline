@@ -34,11 +34,28 @@ iteration).
 from __future__ import annotations
 
 import logging
-from typing import Any, Final
+from collections.abc import Mapping
+from typing import Final
 
 from resecta_data.common.io import canonical_bytes, sha256_bytes
 
 from .compare import _C4, _family_verdict
+from .payloads import (
+    LEG_KINDS,
+    ClauseCell,
+    CompareDocumentsPayload,
+    DocumentBlock,
+    DocumentRowVerdict,
+    DocumentsAggregateVerdict,
+    DocumentsEvalPayload,
+    FamilyVerdict,
+    LegKind,
+    MedianBlock,
+    MetricView,
+    SliceClause,
+    SliceRecord,
+    as_documents_eval,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +80,11 @@ def _leg_rank(leg: str) -> int:
     return _LEG_ORDER.get(leg, len(_LEG_ORDER))
 
 
-def _headline(eval_payload: dict[str, Any], document: str, leg: str) -> dict[str, Any]:
-    block: dict[str, Any] = eval_payload["per_document"][document][leg]["median"]
-    return block
+def _headline(eval_payload: DocumentsEvalPayload, document: str, leg: LegKind) -> MedianBlock:
+    return eval_payload["per_document"][document][leg]["median"]
 
 
-def _cell_from_headline(headline: dict[str, Any]) -> dict[str, Any]:
+def _cell_from_headline(headline: MetricView) -> ClauseCell:
     """The Option-C strict headline as the cell shape the G8 clauses read."""
     strict = headline["strict"]
     return {
@@ -80,7 +96,7 @@ def _cell_from_headline(headline: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _pooled_counts(headline: dict[str, Any]) -> tuple[int, int, int]:
+def _pooled_counts(headline: MetricView) -> tuple[int, int, int]:
     """(must-fire support, strict hits, must-not-fire fired as category)."""
     support = int(headline["support"])
     hits = round(float(headline["strict"]["recall"]) * support)
@@ -88,7 +104,7 @@ def _pooled_counts(headline: dict[str, Any]) -> tuple[int, int, int]:
     return support, hits, fired
 
 
-def _cell_from_counts(support: int, hits: int, fired: int, low_confidence: bool) -> dict[str, Any]:
+def _cell_from_counts(support: int, hits: int, fired: int, low_confidence: bool) -> ClauseCell:
     denominator = hits + fired
     precision = hits / denominator if denominator else 1.0
     recall = hits / support if support else 0.0
@@ -102,9 +118,9 @@ def _cell_from_counts(support: int, hits: int, fired: int, low_confidence: bool)
 
 def _slice_clause(
     before: dict[str, float], after: dict[str, float], axis: str, delta_slice: float
-) -> dict[str, Any]:
+) -> SliceClause:
     """C4 over one axis of named slices (strict precision before/after)."""
-    records: list[dict[str, Any]] = []
+    records: list[SliceRecord] = []
     for name in sorted(set(before) & set(after)):
         before_p, after_p = before[name], after[name]
         delta = after_p - before_p
@@ -129,12 +145,12 @@ def _slice_clause(
     }
 
 
-def _category_precisions(headline_block: dict[str, Any]) -> dict[str, float]:
-    per_category: dict[str, Any] = headline_block["per_category"]
+def _category_precisions(headline_block: MedianBlock) -> dict[str, float]:
+    per_category = headline_block["per_category"]
     return {cat: float(view["strict"]["precision"]) for cat, view in per_category.items()}
 
 
-def _attach_c4(verdict: dict[str, Any], c4: dict[str, Any]) -> None:
+def _attach_c4(verdict: FamilyVerdict, c4: SliceClause) -> None:
     """Fold a C4 clause into a verdict built by ``_family_verdict``."""
     verdict["clauses"].append(c4)
     if c4["regressed"]:
@@ -144,10 +160,10 @@ def _attach_c4(verdict: dict[str, Any], c4: dict[str, Any]) -> None:
 
 
 def build_compare_documents(
-    before: dict[str, Any],
-    after: dict[str, Any],
+    before: Mapping[str, object],
+    after: Mapping[str, object],
     thresholds: dict[str, float],
-) -> dict[str, Any]:
+) -> CompareDocumentsPayload:
     """Decide the four-clause predicate over document rows of two evals.
 
     Args:
@@ -171,23 +187,26 @@ def build_compare_documents(
     eps = float(thresholds["eps"])
     delta_slice = float(thresholds["delta_slice"])
 
-    before_docs: dict[str, Any] = before["per_document"]
-    after_docs: dict[str, Any] = after["per_document"]
+    before_eval = as_documents_eval(before)
+    after_eval = as_documents_eval(after)
+    before_docs = before_eval["per_document"]
+    after_docs = after_eval["per_document"]
 
-    def legs(block: dict[str, Any]) -> set[str]:
-        return {leg for leg in block if leg != "variant"}
+    def legs(block: DocumentBlock) -> set[LegKind]:
+        # Every key but ``variant`` is a leg kind (the schema admits no other).
+        return {leg for leg in LEG_KINDS if leg in block}
 
     before_rows = {(doc, leg) for doc, block in before_docs.items() for leg in legs(block)}
     after_rows = {(doc, leg) for doc, block in after_docs.items() for leg in legs(block)}
     shared = sorted(before_rows & after_rows, key=lambda r: (r[0], _leg_rank(r[1]), r[1]))
     skipped = sorted(before_rows ^ after_rows, key=lambda r: (r[0], _leg_rank(r[1]), r[1]))
 
-    row_verdicts: list[dict[str, Any]] = []
+    row_verdicts: list[DocumentRowVerdict] = []
     pooled_before: dict[str, list[int]] = {}
     pooled_after: dict[str, list[int]] = {}
     for document, leg in shared:
-        head_before = _headline(before, document, leg)
-        head_after = _headline(after, document, leg)
+        head_before = _headline(before_eval, document, leg)
+        head_after = _headline(after_eval, document, leg)
         verdict = _family_verdict(
             _row_name(document, leg),
             _cell_from_headline(head_before["headline"]),
@@ -197,10 +216,9 @@ def build_compare_documents(
             eps=eps,
             delta_slice=delta_slice,
         )
-        verdict["document"] = document
-        verdict["leg"] = leg
+        row: DocumentRowVerdict = {**verdict, "document": document, "leg": leg}
         _attach_c4(
-            verdict,
+            row,
             _slice_clause(
                 _category_precisions(head_before),
                 _category_precisions(head_after),
@@ -208,7 +226,7 @@ def build_compare_documents(
                 delta_slice,
             ),
         )
-        row_verdicts.append(verdict)
+        row_verdicts.append(row)
         for pool, head in ((pooled_before, head_before), (pooled_after, head_after)):
             counts = _pooled_counts(head["headline"])
             for key in ("__all__", leg):
@@ -217,7 +235,7 @@ def build_compare_documents(
                 acc[1] += counts[1]
                 acc[2] += counts[2]
 
-    def pooled_cell(pool: dict[str, list[int]], key: str) -> dict[str, Any]:
+    def pooled_cell(pool: dict[str, list[int]], key: str) -> ClauseCell:
         support, hits, fired = pool.get(key, [0, 0, 0])
         return _cell_from_counts(support, hits, fired, low_confidence=support < _LOW_SUPPORT)
 
@@ -242,10 +260,10 @@ def build_compare_documents(
             delta_slice,
         ),
     )
-    aggregate["rows_pooled"] = len(shared)
+    aggregate_out: DocumentsAggregateVerdict = {**aggregate, "rows_pooled": len(shared)}
 
-    overall = any(row["regression"] for row in row_verdicts) or bool(aggregate["regression"])
-    payload: dict[str, Any] = {
+    overall = any(row["regression"] for row in row_verdicts) or bool(aggregate_out["regression"])
+    payload: CompareDocumentsPayload = {
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "metric": _METRIC,
@@ -262,14 +280,14 @@ def build_compare_documents(
         "regression": overall,
         "rows": row_verdicts,
         "rows_skipped": [_row_name(doc, leg) for doc, leg in skipped],
-        "aggregate": aggregate,
+        "aggregate": aggregate_out,
     }
     logger.info(
         "eval compare-documents: %s (rows=%d, skipped=%d, aggregate regression=%s)",
         "regression" if overall else "no-regression",
         len(row_verdicts),
         len(skipped),
-        aggregate["regression"],
+        aggregate_out["regression"],
     )
     return payload
 

@@ -20,13 +20,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json, load_json
 
 from .baseline import build_baseline
 from .headroom import build_headroom
+from .payloads import as_cells_payload, as_raw_scores_payload
 from .spans import main as spans_main
 
 logger = logging.getLogger(__name__)
@@ -65,8 +65,8 @@ def main(
         PipelineError: If either input JSON is missing or unparsable
             (propagated from :func:`common.io.load_json`).
     """
-    cells_payload: dict[str, Any] = load_json(cells_path)
-    raw_scores_payload: dict[str, Any] = load_json(raw_scores_path)
+    cells_payload = as_cells_payload(load_json(cells_path))
+    raw_scores_payload = as_raw_scores_payload(load_json(raw_scores_path))
 
     baseline = build_baseline(cells_payload)
     headroom = build_headroom(raw_scores_payload)

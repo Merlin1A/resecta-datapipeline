@@ -57,16 +57,34 @@ from __future__ import annotations
 import json
 import logging
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Final
+from typing import Final, TypeGuard
 
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json, load_json, sha256_bytes
 from resecta_data.corpus._spans import CONTEXT_CLASSES
 
 from .documents import wilson_ci
+from .payloads import (
+    CellsCrosscheck,
+    CellsPayload,
+    ContextClassDescriptor,
+    CorpusDocument,
+    CorpusSpan,
+    FurnitureDescriptor,
+    FurnitureKindEntry,
+    G8Corpus,
+    SidecarRow,
+    SpanCellView,
+    SpanOutcomesPayload,
+    TallyView,
+    as_cells_payload,
+    as_corpus,
+    as_sidecar_row,
+    as_sidecar_rows,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +149,7 @@ _TOKEN_RE: Final[re.Pattern[str]] = re.compile(r"\S+")
 _MAX_BMP_CODE_POINT: Final[int] = 0xFFFF
 
 
-def bridged_tier(span: dict[str, Any]) -> str:
+def bridged_tier(span: Mapping[str, object]) -> str:
     """The packet tier of a corpus span: its explicit ``tier``, else the bridge.
 
     The same bridge the Swift emitters apply (``bridgedTier``): suppress ->
@@ -153,11 +171,11 @@ def bridged_tier(span: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _is_offset(value: Any) -> bool:
+def _is_offset(value: object) -> TypeGuard[int]:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
-def _validate_shape(row: Any, where: str) -> dict[str, Any]:
+def _validate_shape(row: object, where: str) -> SidecarRow:
     """Keys, families, outcomes and offsets of one sidecar row."""
     if not isinstance(row, dict):
         raise PipelineError(f"{where}: row is not a JSON object")
@@ -188,14 +206,20 @@ def _validate_shape(row: Any, where: str) -> dict[str, Any]:
     if has_det and not (row["det_start"] < row["end"] and row["start"] < row["det_end"]):
         raise PipelineError(f"{where}: the detection hull does not overlap the span")
     if has_det:
-        _validate_det_spans(row, where)
-    return row
+        _validate_det_spans(
+            row.get("det_spans"),
+            (row["start"], row["end"]),
+            (row["det_start"], row["det_end"]),
+            where,
+        )
+    return as_sidecar_row(row)
 
 
-def _validate_det_spans(row: dict[str, Any], where: str) -> None:
+def _validate_det_spans(
+    spans: object, span: tuple[int, int], hull_offsets: tuple[int, int], where: str
+) -> None:
     """``det_spans``: non-empty, start-ordered [start, end] pairs inside the hull,
     each overlapping the span, whose hull IS det_start / det_end."""
-    spans = row.get("det_spans")
     if not isinstance(spans, list) or not spans:
         raise PipelineError(f"{where}: det_spans must list every overlapping detection")
     prev = (-1, -1)
@@ -210,15 +234,15 @@ def _validate_det_spans(row: dict[str, Any], where: str) -> None:
             raise PipelineError(f"{where}: det_spans entries are [start, end] offset pairs")
         if (pair[0], pair[1]) < prev:
             raise PipelineError(f"{where}: det_spans must be in start order")
-        if not (pair[0] < row["end"] and row["start"] < pair[1]):
+        if not (pair[0] < span[1] and span[0] < pair[1]):
             raise PipelineError(f"{where}: a det_spans entry does not overlap the span")
         prev = (pair[0], pair[1])
     hull = (min(p[0] for p in spans), max(p[1] for p in spans))
-    if hull != (row["det_start"], row["det_end"]):
+    if hull != hull_offsets:
         raise PipelineError(f"{where}: det_start / det_end must be the hull of det_spans")
 
 
-def _validate_outcome(row: dict[str, Any], where: str) -> None:
+def _validate_outcome(row: SidecarRow, where: str) -> None:
     """The tier / det-offset rules of each outcome."""
     tier, outcome = row["tier"], row["outcome"]
     has_det = "det_start" in row
@@ -240,7 +264,7 @@ def _validate_outcome(row: dict[str, Any], where: str) -> None:
         raise PipelineError(f"{where}: fp rows carry tier null or must_not, got {tier!r}")
 
 
-def _validate_row(row: Any, line_no: int) -> dict[str, Any]:
+def _validate_row(row: object, line_no: int) -> SidecarRow:
     """Validate one sidecar row; return it unchanged."""
     where = f"sidecar line {line_no}"
     checked = _validate_shape(row, where)
@@ -248,11 +272,11 @@ def _validate_row(row: Any, line_no: int) -> dict[str, Any]:
     return checked
 
 
-def read_sidecar(path: Path) -> list[dict[str, Any]]:
+def read_sidecar(path: Path) -> list[SidecarRow]:
     """Read and validate a JSONL sidecar (one object per line, LF-terminated)."""
     if not path.is_file():
         raise PipelineError(f"span sidecar not found: {path}")
-    rows: list[dict[str, Any]] = []
+    rows: list[SidecarRow] = []
     with path.open(encoding="utf-8") as handle:
         for line_no, raw in enumerate(handle, start=1):
             text = raw.rstrip("\n")
@@ -266,7 +290,7 @@ def read_sidecar(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def _is_gt_row(row: dict[str, Any]) -> bool:
+def _is_gt_row(row: SidecarRow) -> bool:
     return row["tier"] is not None
 
 
@@ -296,7 +320,7 @@ def _token_offsets(text: str, start: int, end: int) -> tuple[tuple[int, int], ..
     return tuple((start + m.start(), start + m.end()) for m in _TOKEN_RE.finditer(text[start:end]))
 
 
-def _index_corpus(corpus: dict[str, Any]) -> dict[str, _CorpusDoc]:
+def _index_corpus(corpus: G8Corpus) -> dict[str, _CorpusDoc]:
     docs: dict[str, _CorpusDoc] = {}
     for doc in corpus.get("documents", []):
         text = doc["text"]
@@ -330,7 +354,7 @@ def _index_corpus(corpus: dict[str, Any]) -> dict[str, _CorpusDoc]:
     return docs
 
 
-def _furniture_of(doc: dict[str, Any], text_length: int) -> tuple[tuple[int, int, str], ...]:
+def _furniture_of(doc: CorpusDocument, text_length: int) -> tuple[tuple[int, int, str], ...]:
     """The document's planted furniture regions, validated against its text."""
     regions: list[tuple[int, int, str]] = []
     for item in doc.get("furniture") or []:
@@ -343,7 +367,7 @@ def _furniture_of(doc: dict[str, Any], text_length: int) -> tuple[tuple[int, int
     return tuple(sorted(regions))
 
 
-def _context_class_of(span: dict[str, Any], doc_id: str) -> str | None:
+def _context_class_of(span: CorpusSpan, doc_id: str) -> str | None:
     """The span's annotated context class, or None on an unannotated corpus."""
     value = span.get("context_class")
     if value is None:
@@ -380,12 +404,12 @@ class _Tally:
     tier_covered: dict[str, int] = field(default_factory=lambda: dict.fromkeys(_POSITIVE_TIERS, 0))
     coverage: dict[str, int] = field(default_factory=dict)
 
-    def fold(self, row: dict[str, Any], span: _CorpusSpan | None) -> None:
+    def fold(self, row: SidecarRow, span: _CorpusSpan | None) -> None:
         outcome, tier = row["outcome"], row["tier"]
         if outcome == "tp":
             self.tp += 1
-            self.tier_total[tier] += 1
-            self.tier_covered[tier] += 1
+            self.tier_total[_tier_key(tier)] += 1
+            self.tier_covered[_tier_key(tier)] += 1
             n_det = str(len(row["det_spans"]))
             self.detections_per_tp[n_det] = self.detections_per_tp.get(n_det, 0) + 1
             if span is not None:
@@ -397,7 +421,7 @@ class _Tally:
                     self.one_token_tp += 1
         elif outcome == "fn":
             self.fn += 1
-            self.tier_total[tier] += 1
+            self.tier_total[_tier_key(tier)] += 1
         elif outcome == "tn":
             self.must_not_total += 1
         elif tier is None:
@@ -406,7 +430,7 @@ class _Tally:
             self.must_not_total += 1
             self.must_not_fired += 1
 
-    def view(self) -> dict[str, Any]:
+    def view(self) -> TallyView:
         positives = self.tp + self.fn
         return {
             "tp": self.tp,
@@ -428,13 +452,20 @@ class _Tally:
         }
 
 
+def _tier_key(tier: str | None) -> str:
+    """A tp / fn row's tier (validation guarantees one; a null fails as the lookup would)."""
+    if tier is None:
+        raise KeyError(tier)
+    return tier
+
+
 def _cell_key(family: str, doctype: str, bucket: str) -> str:
     return f"{family}_{doctype}_{bucket}"
 
 
-def _crosscheck_cells(cells_payload: dict[str, Any], tallies: dict[str, _Tally]) -> dict[str, Any]:
+def _crosscheck_cells(cells_payload: CellsPayload, tallies: dict[str, _Tally]) -> CellsCrosscheck:
     """The sidecar must reproduce the trio's per-cell counters exactly."""
-    trio_cells: dict[str, Any] = cells_payload["cells"]
+    trio_cells = cells_payload["cells"]
     seen: set[str] = set()
     mismatches: list[str] = []
     for key, tally in sorted(tallies.items()):
@@ -445,7 +476,7 @@ def _crosscheck_cells(cells_payload: dict[str, Any], tallies: dict[str, _Tally])
             mismatches.append(f"{trio_key}: present in the sidecar, absent from the cells")
             continue
         seen.add(trio_key)
-        expected = {
+        expected: dict[str, int] = {
             "true_positives": tally.tp,
             "false_negatives": tally.fn,
             "false_positives": tally.fp,
@@ -489,7 +520,7 @@ class _JoinResult:
     furniture_fp: dict[tuple[str, str, str], int] = field(default_factory=dict)
 
 
-def _join_rows(rows: list[dict[str, Any]], docs: dict[str, _CorpusDoc]) -> _JoinResult:
+def _join_rows(rows: Sequence[SidecarRow], docs: dict[str, _CorpusDoc]) -> _JoinResult:
     """Fold every row into its cell tally, cross-checking ground truth against the corpus.
 
     Ground-truth rows whose corpus span carries a context class are also folded
@@ -550,7 +581,7 @@ def _furniture_kinds_at(doc: _CorpusDoc, start: int, end: int) -> tuple[str, ...
     return tuple(kinds) if kinds else (_UNATTRIBUTED,)
 
 
-def _corpus_span_for(row: dict[str, Any], doc: _CorpusDoc) -> _CorpusSpan:
+def _corpus_span_for(row: SidecarRow, doc: _CorpusDoc) -> _CorpusSpan:
     """The corpus span a ground-truth row names; family and tier must agree."""
     key = (row["start"], row["end"])
     span = doc.spans.get(key)
@@ -605,31 +636,31 @@ def _roll_up_classes(
 
 
 def build_span_outcomes(
-    rows: list[dict[str, Any]],
-    corpus: dict[str, Any],
+    rows: Sequence[Mapping[str, object]],
+    corpus: Mapping[str, object],
     *,
     site: str,
     spans_sha256: str,
     corpus_sha256: str,
-    cells_payload: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    cells_payload: Mapping[str, object] | None = None,
+) -> SpanOutcomesPayload:
     """Aggregate validated sidecar rows into the ``g8_span_outcomes`` payload."""
-    docs = _index_corpus(corpus)
+    docs = _index_corpus(as_corpus(corpus))
     n_corpus_spans = sum(len(d.spans) for d in docs.values())
-    joined = _join_rows(rows, docs)
+    joined = _join_rows(as_sidecar_rows(rows), docs)
     tallies, n_gt, counts = joined.tallies, joined.n_gt, joined.counts
     if n_gt != n_corpus_spans:
         raise PipelineError(
             f"sidecar carries {n_gt} ground-truth rows; the corpus has {n_corpus_spans} spans"
         )
-    crosscheck = (
-        _crosscheck_cells(cells_payload, tallies)
+    crosscheck: CellsCrosscheck = (
+        _crosscheck_cells(as_cells_payload(cells_payload), tallies)
         if cells_payload is not None
         else {"status": "not_run", "cells_compared": 0}
     )
     per_family, totals = _roll_up(tallies)
 
-    cells_out: dict[str, Any] = {}
+    cells_out: dict[str, SpanCellView] = {}
     for key in sorted(tallies):
         family, doctype, bucket = key.split("_", 2)
         cells_out[key] = {
@@ -641,9 +672,9 @@ def build_span_outcomes(
         }
 
     annotated = joined.classed > 0
-    class_descriptor: dict[str, Any] | None = None
-    by_class_out: dict[str, Any] = {}
-    class_cells_out: dict[str, Any] = {}
+    class_descriptor: ContextClassDescriptor | None = None
+    by_class_out: dict[str, dict[str, TallyView]] = {}
+    class_cells_out: dict[str, SpanCellView] = {}
     if annotated:
         present = sorted({key[3] for key in joined.class_tallies})
         class_descriptor = {
@@ -683,7 +714,11 @@ def build_span_outcomes(
             "total": len(rows),
             "ground_truth": n_gt,
             "corpus_spans": n_corpus_spans,
-            **{k: counts[k] for k in ("tp", "fn", "fp", "tn", "must_not_fired")},
+            "tp": counts["tp"],
+            "fn": counts["fn"],
+            "fp": counts["fp"],
+            "tn": counts["tn"],
+            "must_not_fired": counts["must_not_fired"],
             "one_token_tp": totals.one_token_tp,
         },
         "one_token_rule": "a tp row whose detections together overlap fewer "
@@ -701,7 +736,7 @@ def build_span_outcomes(
 
 def _furniture_tables(
     docs: dict[str, _CorpusDoc], furniture_fp: dict[tuple[str, str, str], int]
-) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+) -> tuple[FurnitureDescriptor | None, dict[str, dict[str, FurnitureKindEntry]]]:
     """The furniture descriptor and the per-family x kind fp table.
 
     Null / empty when no document carries furniture (the corpus as furnished);
@@ -713,14 +748,14 @@ def _furniture_tables(
     if regions == 0:
         return None, {}
     kinds_present = sorted({kind for d in docs.values() for _s, _e, kind in d.furniture})
-    descriptor = {
+    descriptor: FurnitureDescriptor = {
         "source": _FURNITURE_SOURCE,
         "join": _FURNITURE_JOIN_RULE,
         "kinds_present": kinds_present,
         "regions": regions,
         "documents_with_furniture": sum(1 for d in docs.values() if d.furniture),
     }
-    table: dict[str, Any] = {}
+    table: dict[str, dict[str, FurnitureKindEntry]] = {}
     for (family, doctype, kind), n in sorted(furniture_fp.items()):
         entry = table.setdefault(family, {}).setdefault(kind, {"fp": 0, "by_doctype": {}})
         entry["fp"] += n
@@ -733,7 +768,7 @@ def main(
     corpus_path: Path,
     out_dir: Path,
     *,
-    cells_payload: dict[str, Any] | None = None,
+    cells_payload: Mapping[str, object] | None = None,
 ) -> Path:
     """Read a sidecar + the corpus, write ``g8_span_outcomes.json`` into ``out_dir``."""
     spans_bytes = spans_path.read_bytes() if spans_path.is_file() else b""

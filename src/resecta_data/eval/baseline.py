@@ -38,12 +38,21 @@ See ``src/resecta_data/eval/README.md`` (file 1); this module follows the pipeli
 from __future__ import annotations
 
 import logging
-from typing import Any, Final
+from collections.abc import Mapping
+from typing import Final
 
 from resecta_data.common.io import canonical_bytes, sha256_bytes
 from resecta_data.common.mechanism_language import assert_safe
 
 from .documents import wilson_ci
+from .payloads import (
+    BaselineCell,
+    BaselinePayload,
+    PerTier,
+    RawCell,
+    ScoredTier,
+    as_cells_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +118,7 @@ def _f_beta(precision: float, recall: float, beta: float) -> float:
 _TIERS: Final[tuple[str, ...]] = ("must", "should", "watch", "must_not")
 
 
-def _scored_tier(total: int, covered: int, must_not_fired: int) -> dict[str, Any]:
+def _scored_tier(total: int, covered: int, must_not_fired: int) -> ScoredTier:
     """The per-tier block for a tier that carries recall AND Option-C precision.
 
     ``precision_option_c`` = covered / (covered + must_not_fired): the tier's
@@ -132,7 +141,7 @@ def _scored_tier(total: int, covered: int, must_not_fired: int) -> dict[str, Any
     }
 
 
-def _per_tier(counts: _Counts) -> dict[str, Any]:
+def _per_tier(counts: _Counts) -> PerTier:
     """Derive the packet-tier block from the eight ``tier_*`` counters."""
     must_not_fired = counts.tier_must_not_fired
     return {
@@ -217,19 +226,6 @@ class _Counts:
         "true_positives",
     )
 
-    # The additive packet-tier counters (1.2 P1.10). Absent from a cells file
-    # written before the extension, so they are read with a zero default.
-    _TIER_FIELDS: Final[tuple[str, ...]] = (
-        "tier_must_total",
-        "tier_must_covered",
-        "tier_should_total",
-        "tier_should_covered",
-        "tier_watch_total",
-        "tier_watch_covered",
-        "tier_must_not_total",
-        "tier_must_not_fired",
-    )
-
     def __init__(self) -> None:
         self.true_positives = 0
         self.false_negatives = 0
@@ -246,19 +242,29 @@ class _Counts:
         self.tier_must_not_total = 0
         self.tier_must_not_fired = 0
 
-    def add(self, cell: dict[str, Any]) -> None:
-        """Fold one raw cell's six counts (+ the tier counters) into this accumulator."""
+    def add(self, cell: RawCell) -> None:
+        """Fold one raw cell's six counts (+ the tier counters) into this accumulator.
+
+        The additive packet-tier counters (1.2 P1.10) are absent from a cells
+        file written before the extension, so they are read with a zero default.
+        """
         self.true_positives += int(cell["true_positives"])
         self.false_negatives += int(cell["false_negatives"])
         self.false_positives += int(cell["false_positives"])
         self.adversarial_suppress_total += int(cell["adversarial_suppress_total"])
         self.adversarial_suppress_fired += int(cell["adversarial_suppress_fired"])
         self.suppressed_by_negative_context += int(cell["suppressed_by_negative_context"])
-        for field in self._TIER_FIELDS:
-            setattr(self, field, getattr(self, field) + int(cell.get(field, 0)))
+        self.tier_must_total += int(cell.get("tier_must_total", 0))
+        self.tier_must_covered += int(cell.get("tier_must_covered", 0))
+        self.tier_should_total += int(cell.get("tier_should_total", 0))
+        self.tier_should_covered += int(cell.get("tier_should_covered", 0))
+        self.tier_watch_total += int(cell.get("tier_watch_total", 0))
+        self.tier_watch_covered += int(cell.get("tier_watch_covered", 0))
+        self.tier_must_not_total += int(cell.get("tier_must_not_total", 0))
+        self.tier_must_not_fired += int(cell.get("tier_must_not_fired", 0))
 
 
-def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
+def _aggregate_cell(counts: _Counts) -> BaselineCell:
     """Compute the derived metric block for one cell or aggregate.
 
     All metrics follow the contract:
@@ -278,13 +284,15 @@ def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
     downstream. ``f2`` (recall-weighted) and the Wilson 95 % intervals on
     precision and recall (``None`` on a zero denominator) sit beside the
     legacy metrics; ``per_tier`` is the packet-tier block (see the module
-    docstring).
+    docstring). ``low_confidence`` (last) is the fairness flag: it fires when
+    positive support (``support_n``) is below ``_LOW_CONFIDENCE_SUPPORT``. It
+    is advisory -- the slice is always emitted.
 
     Args:
         counts: A summed (or single-cell) count accumulator.
 
     Returns:
-        A JSON-serializable metric dict. Caller adds ``low_confidence``.
+        A JSON-serializable aggregate cell.
     """
     tp = counts.true_positives
     fp = counts.false_positives
@@ -317,21 +325,11 @@ def _metrics_from_counts(counts: _Counts) -> dict[str, Any]:
         "family_false_positive_count": decoy_fp_count,
         "precision_with_decoys": _safe_ratio(tp, tp + decoy_fp_count),
         "per_tier": _per_tier(counts),
+        "low_confidence": support_n < _LOW_CONFIDENCE_SUPPORT,
     }
 
 
-def _aggregate_cell(counts: _Counts) -> dict[str, Any]:
-    """Build an aggregate cell: metrics plus the fairness low-confidence flag.
-
-    The flag fires when positive support (``support_n``) is below
-    ``_LOW_CONFIDENCE_SUPPORT``. It is advisory -- the slice is always emitted.
-    """
-    metrics = _metrics_from_counts(counts)
-    metrics["low_confidence"] = metrics["support_n"] < _LOW_CONFIDENCE_SUPPORT
-    return metrics
-
-
-def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
+def build_baseline(cells_payload: Mapping[str, object]) -> BaselinePayload:
     """Derive the committed-ready G8 detection baseline from raw join cells.
 
     Args:
@@ -356,7 +354,7 @@ def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
             missing a required count (fail loud).
         ValueError: If a cell key is malformed (see :func:`_parse_cell_key`).
     """
-    cells: dict[str, Any] = cells_payload["cells"]
+    cells = as_cells_payload(cells_payload)["cells"]
 
     # Hash the canonical-encoded INPUT for provenance. Re-encoding canonically
     # (rather than hashing whatever bytes happened to arrive) makes the digest
@@ -385,7 +383,7 @@ def build_baseline(cells_payload: dict[str, Any]) -> dict[str, Any]:
         per_demographic_counts[bucket].add(cell)
         totals.add(cell)
 
-    payload: dict[str, Any] = {
+    payload: BaselinePayload = {
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "metric": _METRIC,

@@ -33,7 +33,18 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Final
+from collections.abc import Mapping
+from typing import Final
+
+from .payloads import (
+    FamilyHeadroom,
+    HeadroomPayload,
+    Percentiles,
+    PosteriorSummary,
+    RawPercentiles,
+    ScoreSummary,
+    as_raw_scores_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +113,7 @@ def _posterior(raw: float, floor: float) -> float:
     return _sigmoid(_logit(raw) + _logit(floor))
 
 
-def _percentiles(values: list[float]) -> dict[str, float | None]:
+def _percentiles(values: list[float]) -> Percentiles:
     """Return the ``_PERCENTILES`` of a sorted copy of ``values``.
 
     Uses the nearest-rank method on the sorted sample (deterministic, no
@@ -119,7 +130,7 @@ def _percentiles(values: list[float]) -> dict[str, float | None]:
         return {str(p): None for p in _PERCENTILES}
     ordered = sorted(values)
     n = len(ordered)
-    out: dict[str, float | None] = {}
+    out: Percentiles = {}
     for p in _PERCENTILES:
         # Nearest-rank: rank = ceil(p/100 * n), 1-based, clamped into range.
         rank = math.ceil((p / 100.0) * n)
@@ -128,7 +139,7 @@ def _percentiles(values: list[float]) -> dict[str, float | None]:
     return out
 
 
-def _summ(values: list[float]) -> dict[str, float | int | None]:
+def _summ(values: list[float]) -> ScoreSummary:
     """Return count / min / mean / max of ``values`` (None extrema when empty)."""
     if not values:
         return {"count": 0, "min": None, "mean": None, "max": None}
@@ -146,7 +157,7 @@ def _family_headroom(
     floor: float,
     positives: list[float],
     fp_scores: list[float],
-) -> dict[str, Any]:
+) -> FamilyHeadroom:
     """Compute the M9 headroom block for one family.
 
     Args:
@@ -184,13 +195,13 @@ def _family_headroom(
     max_fp = max(fp_scores) if fp_scores else None
     score_gap = (min_tp - max_fp) if (min_tp is not None and max_fp is not None) else None
 
-    posterior_summary = {
+    posterior_summary: PosteriorSummary = {
         "floor": floor,
         "cutoff_posterior": (None if cutoff is None else _posterior(cutoff, floor)),
         "positive": _summ([_posterior(s, floor) for s in positives]),
         "false_positive": _summ([_posterior(s, floor) for s in fp_scores]),
     }
-    raw_percentiles = {
+    raw_percentiles: RawPercentiles = {
         "positive": _percentiles(positives),
         "false_positive": _percentiles(fp_scores),
     }
@@ -210,7 +221,13 @@ def _family_headroom(
     }
 
 
-def build_headroom(raw_scores_payload: dict[str, Any]) -> dict[str, Any]:
+def _cutoff_of(cutoffs: dict[str, float | None], family: str) -> float | None:
+    """The family's balanced cutoff as a float, or None when the map has none for it."""
+    cutoff = cutoffs.get(family)
+    return None if cutoff is None else float(cutoff)
+
+
+def build_headroom(raw_scores_payload: Mapping[str, object]) -> HeadroomPayload:
     """Derive the per-family M9 learned-term headroom probe from raw scores.
 
     Args:
@@ -231,9 +248,10 @@ def build_headroom(raw_scores_payload: dict[str, Any]) -> dict[str, Any]:
             ``absorbing_state_floor``, or a row is missing a required field
             (fail loud).
     """
-    rows: list[dict[str, Any]] = raw_scores_payload["rows"]
-    floor = float(raw_scores_payload["absorbing_state_floor"])
-    cutoffs: dict[str, Any] = raw_scores_payload.get("balanced_cutoffs", {})
+    raw_scores = as_raw_scores_payload(raw_scores_payload)
+    rows = raw_scores["rows"]
+    floor = float(raw_scores["absorbing_state_floor"])
+    cutoffs = raw_scores.get("balanced_cutoffs", {})
 
     positives_by_family: dict[str, list[float]] = {}
     fp_by_family: dict[str, list[float]] = {}
@@ -255,7 +273,7 @@ def build_headroom(raw_scores_payload: dict[str, Any]) -> dict[str, Any]:
 
     per_family = {
         family: _family_headroom(
-            cutoff=(None if cutoffs.get(family) is None else float(cutoffs[family])),
+            cutoff=_cutoff_of(cutoffs, family),
             floor=floor,
             positives=positives_by_family.get(family, []),
             fp_scores=fp_by_family.get(family, []),

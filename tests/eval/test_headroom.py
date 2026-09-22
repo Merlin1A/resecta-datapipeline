@@ -20,6 +20,7 @@ import pytest
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.eval.headroom import _posterior, build_headroom
+from resecta_data.eval.payloads import HeadroomPayload
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -67,7 +68,7 @@ def _synthetic_raw_scores() -> dict[str, Any]:
     }
 
 
-def _run() -> dict[str, Any]:
+def _run() -> HeadroomPayload:
     return build_headroom(_synthetic_raw_scores())
 
 
