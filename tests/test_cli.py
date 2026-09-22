@@ -17,6 +17,7 @@ from click.testing import CliRunner, Result
 from resecta_data.cli import INSTALL_ROUTES, SHRINK_GUARDED_ROUTES, main
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import write_hash_lockfile
+from resecta_data.vectors import VECTOR_FAMILIES
 
 
 @pytest.fixture
@@ -380,29 +381,22 @@ def test_install_assets_skips_unrouted_artifacts(runner: CliRunner, tmp_path: Pa
 
 # The 15 vector-fixture families are schema-clean and determinism-clean.
 # All must round-trip from build/vectors/ to fixtures/vectors/ via
-# INSTALL_ROUTES. Names mirror the build-side filenames (some use the
-# `_test_` infix, some don't -- the inconsistency is not a blocker).
-# routing_number_vectors.json was added (count: 14->15).
-D19_VECTOR_FAMILIES = (
-    "npi_test_vectors.json",
-    "dea_test_vectors.json",
-    "ssn_structural_vectors.json",
-    "credit_card_vectors.json",
-    "ein_vectors.json",
-    "itin_vectors.json",
-    "dob_vectors.json",
-    "phone_test_vectors.json",
-    "email_test_vectors.json",
-    "passport_test_vectors.json",
-    "drivers_license_test_vectors.json",
-    "mrn_test_vectors.json",
-    "bates_test_vectors.json",
-    "license_plate_test_vectors.json",
-    "routing_number_vectors.json",
-)
+# INSTALL_ROUTES. The filenames are read from the one vector-family config
+# rather than repeated here, so a family added or renamed in one place
+# lands in both the routes and this test.
+D19_VECTOR_FAMILIES = tuple(family.output_filename for family in VECTOR_FAMILIES)
 
 
-def test_install_assets_routes_all_14_d19_vector_fixtures(
+def test_vector_families_are_fifteen_and_unique() -> None:
+    """The config lists fifteen families with distinct kinds and output filenames."""
+    kinds = [family.kind for family in VECTOR_FAMILIES]
+    filenames = [family.output_filename for family in VECTOR_FAMILIES]
+    assert len(VECTOR_FAMILIES) == 15
+    assert len(set(kinds)) == len(kinds)
+    assert len(set(filenames)) == len(filenames)
+
+
+def test_install_assets_routes_all_15_d19_vector_fixtures(
     runner: CliRunner, tmp_path: Path
 ) -> None:
     """All 15 vector-fixture families must round-trip via INSTALL_ROUTES."""
@@ -442,9 +436,9 @@ def test_install_assets_routes_all_14_d19_vector_fixtures(
         assert dest.read_bytes() == src.read_bytes(), f"{family} bytes diverged"
 
 
-def test_install_routes_has_exactly_14_vector_entries() -> None:
+def test_install_routes_has_exactly_15_vector_entries() -> None:
     """Defence against silent route loss: any change to the vector-route count
-    is intentional and must update the D19_VECTOR_FAMILIES tuple in lockstep.
+    is intentional and must update the vector-family config in lockstep.
     Count is 15 (routing_number_vectors.json added)."""
     vector_routes = [k for k in INSTALL_ROUTES if k.startswith("vectors/")]
     assert len(vector_routes) == len(D19_VECTOR_FAMILIES), (
