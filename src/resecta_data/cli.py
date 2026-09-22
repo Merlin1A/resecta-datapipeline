@@ -2042,14 +2042,14 @@ def build_negative_corpus_cmd(build_dir: Path, seed: int) -> None:
     "cells_path",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     required=True,
-    help="Path to the Swift harness _cells.json (CONTRACT.md File 1).",
+    help="Path to the Swift harness _cells.json (file 1 in src/resecta_data/eval/README.md).",
 )
 @click.option(
     "--raw-scores",
     "raw_scores_path",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     required=True,
-    help="Path to the Swift harness _raw_scores.json (CONTRACT.md File 2).",
+    help="Path to the Swift harness _raw_scores.json (file 2 in src/resecta_data/eval/README.md).",
 )
 @click.option(
     "--out-dir",

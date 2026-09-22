@@ -1,9 +1,10 @@
 """Quantify per-family learned-term headroom (M9) from raw match scores.
 
-Input is the Swift harness's ``_raw_scores.json`` (CONTRACT.md File 2): every
-match the detector returned pre-cutoff, tagged ``gt_class`` ("positive" /
-"suppress" / "none") by offset overlap, plus the per-family balanced cutoff map
-and the absorbing-state prior floor.
+Input is the Swift harness's ``_raw_scores.json`` (file 2 in
+``src/resecta_data/eval/README.md``): every match the detector returned
+pre-cutoff, tagged ``gt_class`` ("positive" / "suppress" / "none") by offset
+overlap, plus the per-family balanced cutoff map and the absorbing-state prior
+floor.
 
 M9 asks, per family: is there *headroom* for a learned scoring term -- i.e. do
 the false-positive-class scores (``none`` + ``suppress``) separate from the
@@ -23,7 +24,7 @@ stay finite (the engine clamps identically at the seam).
 
 Deterministic: sorted families, sorted percentile keys, no wall-clock.
 
-See CONTRACT.md File 2; this module follows the pipeline's determinism
+See ``src/resecta_data/eval/README.md`` (file 2); this module follows the pipeline's determinism
 (``common/determinism.py``) and mechanism-language
 (``common/mechanism_language.py``) rules.
 """
@@ -214,9 +215,10 @@ def build_headroom(raw_scores_payload: dict[str, Any]) -> dict[str, Any]:
 
     Args:
         raw_scores_payload: The parsed ``_raw_scores.json`` payload
-            (CONTRACT.md File 2): ``rows`` (each ``{category, doctype, bucket,
-            raw, gt_class}``), ``balanced_cutoffs`` (family -> cutoff; families
-            absent from the map have no cutoff), and ``absorbing_state_floor``.
+            (file 2 in ``src/resecta_data/eval/README.md``): ``rows`` (each
+            ``{category, doctype, bucket, raw, gt_class}``), ``balanced_cutoffs``
+            (family -> cutoff; families absent from the map have no cutoff), and
+            ``absorbing_state_floor``.
 
     Returns:
         A JSON-serializable dict matching ``schemas/g8_headroom.schema.json``:
