@@ -387,7 +387,7 @@ PARANAMES_SHARD_DIR      := src/resecta_data/gazetteers/sources/paranames/shards
 PARANAMES_SHARD_SENTINEL := $(PARANAMES_SHARD_DIR)/paranames_full_shard_00.tsv.gz
 PARANAMES_SHARD_META     := $(BUILD_DIR)/gazetteers/paranames_shards.meta.json
 
-# LFS-pointer files are ~130 B text; the real file is ~954 MB. `$(wildcard)`
+# A stale stub of the corpus is ~130 B text; the real file is ~954 MB. `$(wildcard)`
 # returns the path either way, so a presence check cannot distinguish a
 # hydrated checkout from an unhydrated one — `gzip.open` on a pointer file
 # raises BadGzipFile. Size threshold (>1 MB) cleanly separates the two.
@@ -414,11 +414,11 @@ paranames-shards: $(PARANAMES_SHARD_SENTINEL) $(PARANAMES_SHARD_META) ## Pre-sha
 $(PARANAMES_SHARD_SENTINEL): $(wildcard $(PARANAMES_FULL)) scripts/shard_paranames.py
 ifneq ($(PARANAMES_FULL_HYDRATED),yes)
 ifeq ($(RESECTA_REQUIRE_LFS),1)
-	@echo "ERROR: $(PARANAMES_FULL) appears to be an LFS pointer (size <1MB)." >&2
-	@echo "       Hydrate with: git lfs install && git lfs pull" >&2
+	@echo "ERROR: $(PARANAMES_FULL) is absent or a stub (size <1MB); the full corpus is fetch-on-demand." >&2
+	@echo "       Fetch it with: scripts/fetch_paranames.sh" >&2
 	@exit 1
 else
-	@echo "WARNING: $(PARANAMES_FULL) appears to be an LFS pointer (size <1MB); falling back to monolithic ingest." >&2
+	@echo "WARNING: $(PARANAMES_FULL) is absent or a stub (size <1MB); falling back to monolithic ingest (scripts/fetch_paranames.sh fetches the full corpus)." >&2
 	@mkdir -p $(PARANAMES_SHARD_DIR)
 endif
 else
@@ -432,8 +432,8 @@ $(PARANAMES_SHARD_META): $(PARANAMES_SHARD_SENTINEL) scripts/write_shard_meta.py
 	@mkdir -p $(dir $@)
 ifneq ($(PARANAMES_FULL_HYDRATED),yes)
 ifeq ($(RESECTA_REQUIRE_LFS),1)
-	@echo "ERROR: $(PARANAMES_FULL) appears to be an LFS pointer; meta sidecar requires hydrated source." >&2
-	@echo "       Hydrate with: git lfs install && git lfs pull" >&2
+	@echo "ERROR: $(PARANAMES_FULL) is absent or a stub; the meta sidecar needs the fetched corpus." >&2
+	@echo "       Fetch it with: scripts/fetch_paranames.sh" >&2
 	@exit 1
 else
 	@echo "WARNING: writing empty $(PARANAMES_SHARD_META) (paranames not hydrated)." >&2
@@ -1047,7 +1047,7 @@ doctor: ## Print environment health summary (read-only)
 	@printf "  venv:    "
 	@if [ -x "$(PYTHON_VENV)" ]; then $(PYTHON_VENV) --version 2>&1; else echo "not bootstrapped (run: make bootstrap)"; fi
 	@echo ""
-	@echo "=== ParaNames LFS ==="
+	@echo "=== ParaNames corpus (fetch-on-demand) ==="
 	@printf "  file:     %s\n" "$(PARANAMES_FULL)"
 	@printf "  size:     %s bytes\n" "$(PARANAMES_FULL_SIZE)"
 	@printf "  hydrated: %s\n" "$(PARANAMES_FULL_HYDRATED)"
