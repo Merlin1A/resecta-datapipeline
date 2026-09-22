@@ -1,4 +1,4 @@
-"""Generator profiles for the G8 corpus (1.2 C12-95 Spec-C / Spec-D; C12-29 (b)).
+"""Generator profiles for the G8 corpus (the Spec-C / Spec-D axes and their siblings).
 
 A profile is an AXIS on the shipped emitters, not a copy of them. ``g8`` is
 the corpus as furnished: every template renders exactly the bytes it always
@@ -101,7 +101,7 @@ _LOCALE_ES_MX_MAX: Final[int] = 3
 _LOCALE_ES_ES_MAX: Final[int] = 6
 
 # The neutral role phrases Spec-H renders in place of ``[REDACTED]``: none is
-# a C12-88 stop token, a Spec-D role noun, or a word of any family's shipped
+# a name stop-list token, a Spec-D role noun, or a word of any family's shipped
 # context-keyword phrase (``account holder`` / ``requester`` / ``insured``
 # are, and would feed that family's scorer through the placeholder), so the
 # swap tests the placeholder token alone. Drawn per slot from the profile
@@ -132,7 +132,7 @@ FURNITURE_KINDS: Final[tuple[str, ...]] = (
     FURNITURE_CLOSING,
 )
 
-# The pre-registered per-document rates ([R09] Section 5, D12-75): role nouns
+# The pre-registered per-document rates (fixed before the first measurement): role nouns
 # per court document, per medical document; label lines per court / foia
 # document. Inclusive ranges drawn uniformly from the profile stream.
 COURT_ROLE_NOUNS_PER_DOC: Final[tuple[int, int]] = (6, 12)

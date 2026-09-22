@@ -213,7 +213,7 @@ SCHEMA_ROUTES: dict[str, str] = {
     "classifier/context_scorer.json": "context_scorer",
     "classifier/context_scorer_candidates.json": "context_scorer",
     "corpus/g8_corpus.json": "g8_corpus",
-    # 1.2 C12-95 generator PROFILES (Spec-C name-context variety, Spec-D
+    # Generator PROFILES (Spec-C name-context variety, Spec-D
     # furniture density, both; Spec-A name forms, Spec-G locale axis, Spec-H
     # sparse placeholder, all three): the same 1,100 documents re-rendered; built
     # by `build corpus g8 --profile <p>`, validated against the same schema,
@@ -240,10 +240,10 @@ SCHEMA_ROUTES: dict[str, str] = {
     # Per-span outcome aggregate from the emitters' JSONL sidecars (offsets
     # only); same dev/eval posture as the two rows above.
     "eval/g8_span_outcomes.json": "g8_span_outcomes",
-    # 1.2 P1.10 — the Site-B minus detector-site join of two derived
-    # baselines (M12-02 arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
+    # The Site-B minus detector-site join of two derived baselines (the
+    # site-gap arithmetic). Dev/eval only; no INSTALL_ROUTES entry.
     "eval/g8_site_gap.json": "g8_site_gap",
-    # 1.2 P0.5 — the four-clause comparator over documents_eval.json rows.
+    # The four-clause comparator over documents_eval.json rows.
     "eval/g8_compare_documents_verdict.json": "g8_compare_documents",
     # Phase 3b (produced only when Swift-side dumps are present under
     # build/calibration/).

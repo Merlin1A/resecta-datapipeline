@@ -190,7 +190,7 @@ BUCKETS: Final[tuple[str, ...]] = (
 )
 
 
-# Name FORMS (1.2 C12-95 Spec-A): the surface a person-name slot renders.
+# Name FORMS (the Spec-A profile axis): the surface a person-name slot renders.
 # The corpus as furnished renders every slot as ``full`` (``Given Surname``;
 # the court caption's ALL-CAPS is its own adversarial class). The Spec-A
 # generator profile draws one form per rendered slot at the pre-registered
@@ -213,7 +213,7 @@ NAME_FORMS: Final[tuple[str, ...]] = (
     FORM_PARTICLED,
 )
 
-# The pre-registered per-span rates ([R09] Section 5; 1.2 D12-75 / D12-129):
+# The pre-registered per-span rates (fixed before the first measurement):
 # middle initial 20 %, "Last, First" 10 %, ALL-CAPS 10 %, suffix 5 %,
 # hyphenated / particled 5 %, the remaining 50 % the full form. Cumulative
 # thresholds on one draw in [0, 100). The rates are pre-registered guesses,

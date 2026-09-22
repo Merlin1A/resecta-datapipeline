@@ -22,7 +22,7 @@ ExpectedOutcome = Literal["redact", "suppress", "flag"]
 # ``expected_outcome`` field.
 Tier = Literal["must", "should", "watch", "must_not"]
 
-# The context class of a span: the left-context slot it sits in (1.2 C12-29 (a)).
+# The context class of a span: the left-context slot it sits in.
 # Every span of every family carries one so a per-span join over the corpus is
 # total -- ``none`` where no label applies (every non-name span today). The
 # eight classes the shipped templates draw are the fixed literal preceding the
@@ -106,7 +106,7 @@ class SpanBuilder:
     _parts: list[str] = field(default_factory=list)
     _length: int = 0
     spans: list[dict[str, Any]] = field(default_factory=list)
-    # Non-PII page furniture a generator profile plants (1.2 C12-95 Spec-D):
+    # Non-PII page furniture a generator profile plants (the Spec-D axis):
     # [start, end) regions with a kind, recorded beside the spans and never
     # as a span. Empty under the ``g8`` profile.
     furniture: list[dict[str, Any]] = field(default_factory=list)
@@ -164,7 +164,7 @@ class SpanBuilder:
         (:data:`CONTEXT_CLASSES`); it defaults to ``none`` and every name
         call site passes its slot explicitly.
 
-        ``form`` (name spans only; 1.2 C12-95 Spec-A) names the surface form
+        ``form`` (name spans only; the Spec-A axis) names the surface form
         the value was rendered in (:data:`~resecta_data.corpus._names.NAME_FORMS`).
         The key is written only when given, so a corpus that does not draw
         forms carries no ``form`` key at all.

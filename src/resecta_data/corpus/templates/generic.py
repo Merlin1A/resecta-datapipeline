@@ -4,7 +4,7 @@ Emits a plain correspondence with sender name/address/phone/email, a
 recipient name/address block, and a single account reference. Used as
 the neutral fallback class.
 
-Generator profiles (1.2 C12-95): under Spec-C the document-initial sender
+Generator profiles: under Spec-C the document-initial sender
 line, ``To:``, ``Dear`` and the closing-line slot render in their shipped
 context or one of four variants; under Spec-D the salutation and closing
 cues (``Dear`` / ``Regards,``) are recorded as furniture.
@@ -182,7 +182,7 @@ def emit(
 
 
 def _append_card_and_itin(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): creditCard + itin (labeled or keyword-starved) + decoy.
+    """The 17-family extension: creditCard + itin (labeled or keyword-starved) + decoy.
 
     Append-only after the last pre-existing draw (see court.py for the
     byte-preservation rule); every draw is unconditional.

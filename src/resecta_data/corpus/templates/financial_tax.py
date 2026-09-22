@@ -17,7 +17,7 @@ Two deliberate template-shape decisions:
   first/last boxes: the Swift detector emits full-name spans, so split
   single-token truth spans would systematically fail IoU-0.5 matching.
 
-Generator profiles (1.2 C12-95): under Spec-C the ``e. Employee's name:``
+Generator profiles: under Spec-C the ``e. Employee's name:``
 slot renders in its shipped context or one of four variants; Spec-D plants
 nothing here.
 """

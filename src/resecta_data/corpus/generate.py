@@ -13,7 +13,7 @@ The builder is deterministic: the same seed yields the same corpus.
 Per-document sub-RNGs are derived from the seed, doctype, and index,
 so adding a new doctype does not shift existing document content.
 
-Generator PROFILES (1.2 C12-95 Spec-A/C/D/G/H, :mod:`corpus._profiles`):
+Generator PROFILES (Spec-A/C/D/G/H, :mod:`corpus._profiles`):
 ``build(seed, profile=)`` keeps every document's base stream byte-identical
 to the ``g8`` corpus and hands the emitter a second stream seeded on
 ``(seed, doctype, index, profile)`` for the profile's own choices (name-slot

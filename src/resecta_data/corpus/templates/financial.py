@@ -4,7 +4,7 @@ Emits invoice/statement-style text with account numbers, routing, a tax
 ID (SSN), billing name/address, and no adversarial decoys by default.
 The W-2 shaped sibling lives in :mod:`financial_tax`.
 
-Generator profiles (1.2 C12-95): under Spec-C the ``Bill to:`` and ``AP
+Generator profiles: under Spec-C the ``Bill to:`` and ``AP
 Contact:`` slots render in their shipped context or one of four variants;
 Spec-D plants nothing here (an invoice is neither a pleading nor a letter).
 """
@@ -137,7 +137,7 @@ def emit(
 
 
 def _append_itin_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): itin + creditCard + the Luhn-broken card decoy.
+    """The 17-family extension: itin + creditCard + the Luhn-broken card decoy.
 
     Append-only after the last pre-existing draw (see court.py for the
     byte-preservation rule); every draw is unconditional.

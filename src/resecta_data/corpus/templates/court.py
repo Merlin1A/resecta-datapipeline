@@ -4,7 +4,7 @@ Emits synthetic pleading-style text with plaintiff/defendant parties,
 counsel, one SSN, one DOB, and (30% of the time) adversarial decoys:
 SSN-shaped case numbers, DOB-shaped filing dates, ALL-CAPS header names.
 
-Generator profiles (1.2 C12-95): under Spec-C every name slot -- the caption
+Generator profiles: under Spec-C every name slot -- the caption
 pair, ``PLAINTIFF:``, ``DEFENDANT:``, ``Counsel of record:``, ``Witness`` --
 is rendered in its shipped context or one of four variants drawn from the
 profile stream; under Spec-D the document plants 6-12 role-noun sentences
@@ -310,7 +310,7 @@ def emit(
     _append_vehicle_and_license(sb, rng, tags)
 
     # Spec-D: 1-3 registration / plate label lines at the very end, after the
-    # plate decoy's own sentence (the M12-22 plate-label leg of the spec).
+    # plate decoy's own sentence (the plate-label leg of the profile).
     plant_labels(sb, profile)
 
     text, spans = sb.finalize()
@@ -318,7 +318,7 @@ def emit(
 
 
 def _append_vehicle_and_license(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): driversLicense + licensePlate + the plate-label decoy.
+    """The 17-family extension: driversLicense + licensePlate + the plate-label decoy.
 
     Every draw here happens AFTER the last pre-existing draw and the text is
     appended at the END of the document, so every pre-existing span, offset

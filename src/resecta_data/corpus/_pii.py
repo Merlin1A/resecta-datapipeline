@@ -34,7 +34,7 @@ _LOCALE_EN_US: Final[str] = "en_US"
 _LOCALE_ES_MX: Final[str] = "es_MX"
 # A Mexican codigo postal is five digits (01000-99999). Faker 25.9.2's es_MX
 # ``postcode()`` returns a ZIP+4-shaped ``#####-####`` about half the time;
-# the Spec-G generator profile (1.2 C12-95) replaces it with this draw.
+# the Spec-G generator profile replaces it with this draw.
 _MX_CP_MIN: Final[int] = 1000
 _MX_CP_MAX: Final[int] = 99999
 
@@ -314,7 +314,7 @@ def generate_case_number(rng: random.Random) -> str:
 
 
 def generate_invoice_number(rng: random.Random) -> str:
-    """Return an invoice number like 'INV-2024-001234'."""
+    """Return an invoice number: an ``INV-`` prefix, a year, a six-digit sequence."""
     year = rng.randint(2022, 2025)
     seq = rng.randint(1, 999999)
     return f"INV-{year}-{seq:06d}"
@@ -328,7 +328,7 @@ def generate_request_id(rng: random.Random) -> str:
 
 
 # ---------------------------------------------------------------------------
-# The five categories added for the 17/17 corpus (1.2 T1.1 / C12-25):
+# The five categories that took the corpus from 12 to 17 families:
 # itin, creditCard, driversLicense, passport, licensePlate.
 #
 # Validity rules are imported from the matching ``vectors/`` module (one

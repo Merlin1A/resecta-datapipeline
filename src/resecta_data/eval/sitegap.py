@@ -10,7 +10,7 @@ Each trio is derived into a ``g8_detection_baseline.json`` by
 baselines per family and over the grand total and reports Site B minus
 detector on every headline number (precision / recall / F1 / F2 / the raw
 counts) and on the packet-tier block (must recall + Option-C precision + F2,
-should recall, must_not fire rate). It is the M12-02 arithmetic, in the
+should recall, must_not fire rate). It is the site-gap arithmetic, in the
 pipeline rather than beside it.
 
 Pure arithmetic over the two frozen derived dicts: no re-join, no re-scoring.

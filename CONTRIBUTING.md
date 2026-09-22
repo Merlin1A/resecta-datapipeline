@@ -99,3 +99,23 @@ The PR review confirms the plan was carried out.
 
 Vulnerability disclosure goes through [`SECURITY.md`](./SECURITY.md), not the
 public issue tracker.
+## Source hygiene
+
+Shipped source, docstrings and emitted strings describe mechanisms — what a
+profile is, what a clause computes — never the private planning documents
+that scheduled the work. Register identifiers (`C12-nn`, `D12-nn`, `M12-nn`,
+`F12-nn`, `RB12-nn`, spec-item labels such as `[Rnn]` and session names) do
+not appear in `src/` or `scripts/`; cite the register in the pull-request
+body instead. `scripts/hygiene_gate.py` enforces this in `make lint`, and so
+on every pull request: it scans every `.py` file under `src/` and `scripts/`
+for the identifier shape and fails on any hit not covered by
+`scripts/hygiene_allowlist.txt`. The allowlist carries the public tokens the
+shape collides with (IRS form names such as `W-2` and `W-9`) and, with a
+reason on the row, the rare line that must keep one (an emitted string a test
+and the hash lock both pin). Generator-profile names (`g8-specC`, the Spec-D
+axis) are product vocabulary, not planning ids.
+
+`make lint` also checks that the two generated README blocks are current: the
+Makefile-targets block (`make readme-targets` regenerates it from `make help`)
+and the ETL stage map (`make graph` regenerates it from the make database).
+

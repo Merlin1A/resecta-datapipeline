@@ -17,7 +17,7 @@ support N (TP + FN) is below ``_LOW_CONFIDENCE_SUPPORT``: a low-support
 demographic slice is reported with ``low_confidence: true`` rather than
 silently presented as a reliable number.
 
-1.2 P1.10 (C12-25 clause 2) -- the packet-tier bridge. The harness cells
+The packet-tier bridge. The harness cells
 additionally carry eight ``tier_*`` counters (the same ground truth split by
 the packet tiers must / should / watch / must_not that the dp generator
 writes on every span). Every aggregate here derives a ``per_tier`` block from
