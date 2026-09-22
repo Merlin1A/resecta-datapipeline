@@ -11,8 +11,11 @@ This is a one-off operation per upstream refresh; ``make build`` never
 invokes it. Without shards the build still works — it uses the monolithic
 single-worker path.
 
-Determinism: gzip is written with ``mtime=0`` and a pinned compresslevel so
-shard bytes are reproducible across runs and machines given the same input.
+Determinism: each gzip member is written with ``mtime=0``, a pinned
+compresslevel and an empty FNAME field — the member is opened on a file
+object rather than by path, so the tempfile's random basename never lands
+in the header — and the raw shard bytes are reproducible across runs and
+machines given the same input.
 
 Usage:
     scripts/shard_paranames.py [--shards N] [--input PATH] [--output-dir PATH]
@@ -28,6 +31,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import io
 import os
 import sys
 import tempfile
@@ -164,32 +168,39 @@ def _write_shards(
     rows_in_shard = 0
     current_wid: str | None = None
     current_fh: gzip.GzipFile | None = None
+    current_raw: io.BufferedWriter | None = None
     current_tmp: Path | None = None
 
-    def _open_shard(idx: int) -> tuple[gzip.GzipFile, Path]:
+    def _open_shard(idx: int) -> tuple[gzip.GzipFile, io.BufferedWriter, Path]:
         final_name = f"paranames_full_shard_{idx:02d}.tsv.gz"
         tmp_fd, tmp_name = tempfile.mkstemp(prefix=f".{final_name}.", suffix=".tmp", dir=output_dir)
         tmp = Path(tmp_name)
-        # Close the low-level fd; GzipFile manages its own file object.
-        os.close(tmp_fd)
-        # mtime=0 + compresslevel pinned → reproducible bytes.
+        # The member is opened on the raw file object with an empty
+        # ``filename``: GzipFile copies a non-empty basename into the gzip
+        # FNAME header field, and the tempfile's basename is random per run.
+        # mtime=0 + compresslevel pinned → reproducible raw bytes.
+        raw = os.fdopen(tmp_fd, "wb")
         gz = gzip.GzipFile(
-            filename=str(tmp),
+            filename="",
             mode="wb",
             compresslevel=_GZIP_LEVEL,
+            fileobj=raw,
             mtime=_GZIP_MTIME,
         )
         gz.write(header_line)
-        return gz, tmp
+        return gz, raw, tmp
 
-    def _close_shard(gz: gzip.GzipFile, tmp: Path, idx: int) -> Path:
+    def _close_shard(gz: gzip.GzipFile, raw: io.BufferedWriter, tmp: Path, idx: int) -> Path:
+        # GzipFile does not own a caller-supplied fileobj: closing it writes
+        # the member trailer, then the raw handle is closed by hand.
         gz.close()
+        raw.close()
         final_path = output_dir / f"paranames_full_shard_{idx:02d}.tsv.gz"
         tmp.replace(final_path)
         return final_path
 
     try:
-        current_fh, current_tmp = _open_shard(shard_idx)
+        current_fh, current_raw, current_tmp = _open_shard(shard_idx)
         for wid, raw_line in _iter_per_rows(input_path):
             # Cut only at wid transitions, and only when we're at or past
             # the target size and still have shards to fill.
@@ -198,22 +209,28 @@ def _write_shards(
                 and rows_in_shard >= target_per_shard
                 and shard_idx + 1 < n_shards
             ):
-                assert current_fh is not None and current_tmp is not None
-                shard_paths.append(_close_shard(current_fh, current_tmp, shard_idx))
+                assert current_fh is not None and current_raw is not None
+                assert current_tmp is not None
+                shard_paths.append(_close_shard(current_fh, current_raw, current_tmp, shard_idx))
                 shard_idx += 1
                 rows_in_shard = 0
-                current_fh, current_tmp = _open_shard(shard_idx)
+                current_fh, current_raw, current_tmp = _open_shard(shard_idx)
             current_fh.write(raw_line)
             current_wid = wid
             rows_in_shard += 1
 
-        assert current_fh is not None and current_tmp is not None
-        shard_paths.append(_close_shard(current_fh, current_tmp, shard_idx))
+        assert current_fh is not None and current_raw is not None
+        assert current_tmp is not None
+        shard_paths.append(_close_shard(current_fh, current_raw, current_tmp, shard_idx))
     except Exception:
-        # Clean up the in-flight temp file on failure.
+        # Clean up the in-flight temp file on failure: the member, then the
+        # raw handle beneath it, then the tempfile itself.
         if current_fh is not None:
             with _suppress_error():
                 current_fh.close()
+        if current_raw is not None:
+            with _suppress_error():
+                current_raw.close()
         if current_tmp is not None and current_tmp.exists():
             with _suppress_error():
                 current_tmp.unlink()
