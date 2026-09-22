@@ -252,10 +252,10 @@ help: ## Print this help
 	@echo "Resecta DataPipeline — build targets"
 	@echo ""
 	@echo "Primary targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Current phase: 1+2+3 (Phase 3 adds doctype keywords, preset-threshold candidates, G8 corpus)."
-	@echo "Phase 3b: `make calibrate` is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (see schemas/doctype_softmax_dump.schema.json and schemas/detector_score_dump.schema.json)."
+	@echo "Phase 3b: 'make calibrate' is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (see schemas/doctype_softmax_dump.schema.json and schemas/detector_score_dump.schema.json)."
 
 # -----------------------------------------------------------------------------
 # Environment
@@ -295,7 +295,7 @@ bootstrap: $(VENV_DIR)/pyvenv.cfg ## Create venv and install pinned deps
 # hit a versioned error before a guarded recipe runs.
 .PHONY: check-make
 ifeq ($(filter 4.% 5.%,$(MAKE_VERSION)),)
-check-make:
+check-make: ## Fail with install advice when GNU make is older than 4.0 (the parse-time guard's twin)
 	@echo "ERROR: GNU Make $(MAKE_VERSION) is too old for this Makefile (>= 4.0 required)." >&2
 	@echo "       3.81 cannot run 'verify' (--output-sync is 4.0+) and silently drops" >&2
 	@echo "       .SHELLFLAGS, so recipes run without 'set -euo pipefail'." >&2
@@ -446,12 +446,17 @@ else
 	    --output $@
 endif
 
-.PHONY: build
-build: bootstrap $(STAMP_DIR)/vectors $(STAMP_DIR)/fuzz $(STAMP_DIR)/zip-scf $(STAMP_DIR)/adversarial \
+# The stamps `build` gathers (one per builder; the nicknames stamp is
+# conditional on its fetched source). A variable so the target line below
+# carries its `## ` help text where `make help`'s extractor can see it.
+BUILD_STAMPS = $(STAMP_DIR)/vectors $(STAMP_DIR)/fuzz $(STAMP_DIR)/zip-scf $(STAMP_DIR)/adversarial \
        $(STAMP_DIR)/bloom $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions $(STAMP_DIR)/gaz-address \
        $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(STAMP_DIR)/context $(STAMP_DIR)/rules \
        $(STAMP_DIR)/demographics $(STAMP_DIR)/classifier $(STAMP_DIR)/corpus \
-       $(STAMP_DIR)/g8-bucket-recall $(STAMP_DIR)/bundle-size $(GAZ_NICKNAMES_STAMP) ## Generate all artifacts into build/
+       $(STAMP_DIR)/g8-bucket-recall $(STAMP_DIR)/bundle-size $(GAZ_NICKNAMES_STAMP)
+
+.PHONY: build
+build: bootstrap $(BUILD_STAMPS) ## Generate all artifacts into build/
 	@echo "Build complete. Artifacts under $(BUILD_DIR)/."
 
 .PHONY: build-fast
@@ -791,14 +796,25 @@ sources: bootstrap ## Fetch raw inputs (the ONLY network target)
 # -----------------------------------------------------------------------------
 
 .PHONY: lint
-lint: bootstrap ## Run ruff check and format check
+lint: bootstrap ## Run ruff check + format check, the planning-id gate, and the README block currency checks
 	$(RUFF) check src tests scripts
 	$(RUFF) format --check src tests scripts
+	$(PYTHON_VENV) scripts/hygiene_gate.py
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --check
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --check
 
 .PHONY: format
 format: bootstrap ## Apply ruff formatting
 	$(RUFF) format src tests scripts
 	$(RUFF) check --fix src tests scripts
+
+.PHONY: graph
+graph: bootstrap ## Regenerate the ETL stage map in README.md from the make database (Mermaid; stdlib)
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --write
+
+.PHONY: readme-targets
+readme-targets: bootstrap ## Regenerate the Makefile-targets block in README.md from the help output
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --write
 
 .PHONY: typecheck
 typecheck: bootstrap ## Run mypy --strict
@@ -818,7 +834,7 @@ test-fast: bootstrap ## Run pytest excluding slow tests
 # prereq for direct invocation (`make schema-check` should still work
 # standalone).
 .PHONY: schema-check-only
-schema-check-only: bootstrap
+schema-check-only: bootstrap ## Validate the existing build/ artifacts against their schemas (no rebuild)
 	$(PYTHON_VENV) -m resecta_data.cli validate-schemas --build-dir $(BUILD_DIR) --schemas-dir schemas
 
 .PHONY: schema-check
@@ -872,7 +888,7 @@ $(DETERMINISM_WITNESS): $(WITNESS_KEY_INPUTS) | $(VENV_DIR)/pyvenv.cfg
 determinism-check: bootstrap $(if $(RESECTA_FORCE_DETERMINISM),determinism-check-force,$(DETERMINISM_WITNESS)) ## Rebuild artifacts and diff (cached via .stamps/.determinism-witness; RESECTA_FORCE_DETERMINISM=1 to bypass)
 
 .PHONY: determinism-check-force
-determinism-check-force: bootstrap
+determinism-check-force: bootstrap ## Determinism check with the witness cache bypassed (rebuild and diff every artifact)
 	@rm -f $(DETERMINISM_WITNESS)
 	@tmpdir=$$(mktemp -d /tmp/resecta-rebuild.XXXXXX); \
 	    trap "rm -rf $$tmpdir" EXIT; \
@@ -884,13 +900,13 @@ determinism-check-force: bootstrap
 	@$(STAMP_KEY) write $(DETERMINISM_WITNESS) $(WITNESS_KEY_INPUTS)
 
 .PHONY: hash-check-only
-hash-check-only: bootstrap
+hash-check-only: bootstrap ## Verify asset_hashes.lock against the existing build/ (no rebuild)
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock
 
 # Hash-verify only what the current host actually built; entries for
 # artifacts that need the large fetched sources are reported as skipped.
 .PHONY: hash-check-built-only
-hash-check-built-only: bootstrap
+hash-check-built-only: bootstrap ## Verify asset_hashes.lock against what this host built; entries needing fetched sources are skipped
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock --built-only
 
 .PHONY: hash-check
