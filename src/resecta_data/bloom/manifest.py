@@ -12,13 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, Literal
 
+from resecta_data.common.cutover import CutoverSpec
 from resecta_data.common.io import sha256_file
 
 from .spec import HASH_ALGORITHM, MANIFEST_VERSION, SHIPPED_MANIFEST_VERSION
 
 _GENERATED_BY: Final[str] = "resecta-data/bloom/manifest"
-_CUTOVER_DIFF_VERSION: Final[int] = 1
-_CUTOVER_ARTIFACT: Final[str] = "gazetteers/gazetteer_manifest.json"
 
 
 @dataclass(frozen=True, slots=True)
@@ -82,55 +81,18 @@ def build_manifest(
     }
 
 
-def build_cutover_diff(filters: list[FilterBuildResult]) -> dict[str, Any]:
-    """Return the legacy→rebuild cutover diff for the name-filter manifest.
+NAME_FILTERS_CUTOVER: Final[CutoverSpec] = CutoverSpec(
+    artifact="gazetteers/gazetteer_manifest.json", generated_by=_GENERATED_BY
+)
+"""The envelope of the name-filter manifest's advisory cutover diff.
 
-    Emitted alongside ``gazetteer_manifest.json`` as part of the name-filter
-    rebuild; the surname/given-name filters are 1:1 wire-stable and this
-    diff is advisory. The diff covers the manifest's ``filters[]`` entries
-    (surnames + given-names): ``legacy_only`` lists source identifiers
-    retired in the rebuild, ``rebuild_only`` lists source identifiers
-    added in the rebuild, and ``keyed_diff`` lists filter names whose
-    FPR / size / sources lineage changed.
-
-    The CC-SCRIPT fetcher chain already routed the manifest's
-    source identifiers (``census_surnames``, ``ssa_given_names``,
-    ``popnames_common_surnames``, ``popnames_common_forenames``, etc.)
-    onto vintage-pinned CC-SCRIPT-managed paths; the manifest itself is
-    dynamically built from ``_surname_ingest_specs()`` /
-    ``_given_name_ingest_specs()`` in ``cli.py``. No legacy variant was
-    retired in this rebuild, so the diff is **empty by construction** —
-    the verification-posture stub attests that the surname and
-    given-name filters carry no shipped-vs-rebuild divergence.
-
-    The diff is **advisory** (the surname/given-name filters are 1:1
-    wire-stable) — used for PR-review context, consolidated into the
-    PR description.
-
-    Args:
-        filters: The post-rebuild filter list. Accepted to keep the
-            signature future-extensible (when a real legacy-vs-rebuild
-            diff is needed); unused under verification-posture.
-    """
-    del filters  # accepted for future-extensibility; verification-posture is empty
-
-    legacy_only: list[str] = []
-    rebuild_only: list[str] = []
-    keyed_diff: list[dict[str, Any]] = []
-
-    return {
-        "version": _CUTOVER_DIFF_VERSION,
-        "generated_by": _GENERATED_BY,
-        "artifact": _CUTOVER_ARTIFACT,
-        "summary": {
-            "legacy_only_count": len(legacy_only),
-            "rebuild_only_count": len(rebuild_only),
-            "keyed_diff_count": len(keyed_diff),
-        },
-        "legacy_only": legacy_only,
-        "rebuild_only": rebuild_only,
-        "keyed_diff": keyed_diff,
-    }
+The surname and given-name filters are 1:1 wire-stable and no legacy variant
+was retired in the rebuild (the CC-SCRIPT fetcher chain already routes the
+manifest's source identifiers onto vintage-pinned paths), so the diff
+``common.cutover.build_cutover_diff`` emits for this spec is empty by
+construction: the sidecar attests that the two filters carry no
+shipped-vs-rebuild divergence.
+"""
 
 
 # --- The shipped manifest: `assets[]` ---------------------------------------

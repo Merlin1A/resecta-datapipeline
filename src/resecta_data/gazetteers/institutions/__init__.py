@@ -7,11 +7,18 @@ only; state-level (NAAG, CDC, SSA rosters) is deferred pending a separate
 license-review cycle (findings L4).
 
 The legacy GSA Federal Hierarchy Crosswalk parser is retained for the
-advisory cutover-diff sidecar emitted alongside the rebuild artifact.
+advisory cutover-diff sidecar emitted alongside the rebuild artifact
+(``common.cutover.build_cutover_diff`` over this package's legacy and
+rebuild rows).
 """
 
 from __future__ import annotations
 
-from .build import build, build_cutover_diff
+from .build import (
+    INSTITUTIONS_CUTOVER,
+    build,
+    legacy_institution_rows,
+    rebuild_institution_rows,
+)
 
-__all__ = ["build", "build_cutover_diff"]
+__all__ = ["INSTITUTIONS_CUTOVER", "build", "legacy_institution_rows", "rebuild_institution_rows"]

@@ -26,15 +26,13 @@ import click
 
 from .adversarial import build as build_adversarial_patterns
 from .bloom import (
+    NAME_FILTERS_CUTOVER,
     BloomFilter,
     FilterBuildResult,
     build_manifest,
     build_shipped_manifest,
     collect_asset_entries,
     optimal_bits,
-)
-from .bloom import (
-    build_cutover_diff as build_name_filters_cutover_diff,
 )
 from .bloom.corpus_ingest import (
     IngestResult,
@@ -68,6 +66,7 @@ from .classifier import (
     build_sweep_thresholds,
     finalize_sweep_thresholds,
 )
+from .common.cutover import build_cutover_diff
 from .common.determinism import (
     CANONICAL_SEED,
     OUT_OF_BAND_PREFIXES,
@@ -104,14 +103,16 @@ from .eval.compare_documents import build_compare_documents
 from .eval.sitegap import build_site_gap
 from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
 from .fuzz import build as build_fuzz_redos
+from .gazetteers.address_components import ADDRESS_COMPONENTS_CUTOVER
 from .gazetteers.address_components import build as build_address_components
-from .gazetteers.address_components import (
-    build_cutover_diff as build_address_components_cutover_diff,
-)
 from .gazetteers.context_keywords import build as build_context_keywords
 from .gazetteers.dl_patterns import build as build_dl_patterns
+from .gazetteers.institutions import (
+    INSTITUTIONS_CUTOVER,
+    legacy_institution_rows,
+    rebuild_institution_rows,
+)
 from .gazetteers.institutions import build as build_institutions
-from .gazetteers.institutions import build_cutover_diff as build_institutions_cutover_diff
 from .gazetteers.name_common_words import build as build_name_common_words
 from .gazetteers.negative_context import build as build_negative_context
 from .gazetteers.negative_context.stage_reviewed import (
@@ -1709,7 +1710,7 @@ def build_bloom_cmd(build_dir: Path, sources_dir: Path, seed: int, build_date: s
     manifest = build_manifest(filters, seed=seed, built_at=build_date)
     dump_canonical_json(manifest, build_dir / "gazetteers" / MANIFEST_FILE)
 
-    cutover_diff = build_name_filters_cutover_diff(filters)
+    cutover_diff = build_cutover_diff((), (), spec=NAME_FILTERS_CUTOVER)
     cutover_dest = build_dir / "gazetteers" / "name_filters.cutover-diff.json"
     dump_canonical_json(cutover_diff, cutover_dest)
     summary = cutover_diff["summary"]
@@ -1767,7 +1768,9 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
         payload = build_institutions(seed)
         dest = build_dir / "gazetteers" / "institutions.json"
         dump_canonical_json(payload, dest)
-        cutover_diff = build_institutions_cutover_diff()
+        cutover_diff = build_cutover_diff(
+            legacy_institution_rows(), rebuild_institution_rows(), spec=INSTITUTIONS_CUTOVER
+        )
         cutover_dest = build_dir / "gazetteers" / "institutions.cutover-diff.json"
         dump_canonical_json(cutover_diff, cutover_dest)
         summary = cutover_diff["summary"]
@@ -1781,7 +1784,7 @@ def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: in
         payload = build_address_components(seed)
         dest = build_dir / "gazetteers" / "address_components.json"
         dump_canonical_json(payload, dest)
-        cutover_diff = build_address_components_cutover_diff()
+        cutover_diff = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
         cutover_dest = build_dir / "gazetteers" / "address_components.cutover-diff.json"
         dump_canonical_json(cutover_diff, cutover_dest)
         summary = cutover_diff["summary"]

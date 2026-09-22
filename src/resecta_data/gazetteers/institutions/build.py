@@ -34,6 +34,7 @@ import re
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.cutover import CutoverSpec
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import sha256_file
 
@@ -46,8 +47,6 @@ logger = logging.getLogger(__name__)
 
 _GENERATED_BY: Final[str] = "resecta-data/gazetteers/institutions"
 _SCHEMA_VERSION: Final[int] = 1
-_CUTOVER_DIFF_VERSION: Final[int] = 1
-_CUTOVER_ARTIFACT: Final[str] = "gazetteers/institutions.json"
 
 _SOURCE_DIR: Final[Path] = Path(__file__).resolve().parent / "sources"
 _FR_SOURCE: Final[Path] = _SOURCE_DIR / "federalregister_agencies.json"
@@ -215,40 +214,24 @@ def build(
     }
 
 
-def build_cutover_diff() -> dict[str, Any]:
-    """Return the legacy→rebuild cutover diff for ``institutions.json``.
+INSTITUTIONS_CUTOVER: Final[CutoverSpec] = CutoverSpec(
+    artifact="gazetteers/institutions.json", generated_by=_GENERATED_BY
+)
+"""The envelope of ``institutions.json``'s advisory cutover diff.
 
-    Reads both the legacy GSA Federal Hierarchy Crosswalk and the new
-    Federal Register feed, runs each through its parser, and emits a
-    schema-validated diff payload covering keys present only in the legacy
-    output, keys present only in the rebuild output, and keys present in
-    both with field-level differences.
+``common.cutover.build_cutover_diff`` over :func:`legacy_institution_rows`
+and :func:`rebuild_institution_rows` lists the agency names present only in
+the legacy GSA Federal Hierarchy Crosswalk, those present only in the Federal
+Register feed, and the names present in both with field-level differences.
+The diff is review material for the paired engine change, not a release gate.
+"""
 
-    The diff is advisory — used for
-    PR-review context, not as a release gate.
-    """
-    legacy_entries = {e.name: e.to_dict() for e in parse_gsa_agencies(_GSA_LEGACY_SOURCE)}
-    rebuild_entries = {e.name: e.to_dict() for e in parse_federalregister_agencies(_FR_SOURCE)}
 
-    legacy_only = sorted(legacy_entries.keys() - rebuild_entries.keys())
-    rebuild_only = sorted(rebuild_entries.keys() - legacy_entries.keys())
-    keyed_diff: list[dict[str, Any]] = []
-    for name in sorted(legacy_entries.keys() & rebuild_entries.keys()):
-        legacy = legacy_entries[name]
-        rebuild = rebuild_entries[name]
-        if legacy != rebuild:
-            keyed_diff.append({"key": name, "legacy": legacy, "rebuild": rebuild})
+def legacy_institution_rows() -> list[dict[str, object]]:
+    """Return the legacy GSA crosswalk entries through the retained legacy parser."""
+    return [entry.to_dict() for entry in parse_gsa_agencies(_GSA_LEGACY_SOURCE)]
 
-    return {
-        "version": _CUTOVER_DIFF_VERSION,
-        "generated_by": _GENERATED_BY,
-        "artifact": _CUTOVER_ARTIFACT,
-        "summary": {
-            "legacy_only_count": len(legacy_only),
-            "rebuild_only_count": len(rebuild_only),
-            "keyed_diff_count": len(keyed_diff),
-        },
-        "legacy_only": legacy_only,
-        "rebuild_only": rebuild_only,
-        "keyed_diff": keyed_diff,
-    }
+
+def rebuild_institution_rows() -> list[dict[str, object]]:
+    """Return the Federal Register feed entries the rebuild is built from."""
+    return [entry.to_dict() for entry in parse_federalregister_agencies(_FR_SOURCE)]

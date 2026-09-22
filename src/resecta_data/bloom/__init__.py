@@ -11,9 +11,9 @@ from __future__ import annotations
 from .corpus_ingest import IngestedRow, IngestResult, merge
 from .filter import BloomFilter, optimal_bits
 from .manifest import (
+    NAME_FILTERS_CUTOVER,
     AssetEntry,
     FilterBuildResult,
-    build_cutover_diff,
     build_manifest,
     build_shipped_manifest,
     collect_asset_entries,
@@ -22,13 +22,13 @@ from .normalize import nfkc_lower
 from .packer import RsbfHeader, pack, unpack
 
 __all__ = [
+    "NAME_FILTERS_CUTOVER",
     "AssetEntry",
     "BloomFilter",
     "FilterBuildResult",
     "IngestResult",
     "IngestedRow",
     "RsbfHeader",
-    "build_cutover_diff",
     "build_manifest",
     "build_shipped_manifest",
     "collect_asset_entries",

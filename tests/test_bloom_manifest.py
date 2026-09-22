@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 
 from resecta_data.bloom.manifest import (
+    NAME_FILTERS_CUTOVER,
     FilterBuildResult,
-    build_cutover_diff,
     build_manifest,
 )
 from resecta_data.bloom.packer import unpack
@@ -18,6 +18,7 @@ from resecta_data.bloom.spec import (
     HASH_ALGORITHM,
     SURNAME_FILTER_FILE,
 )
+from resecta_data.common.cutover import build_cutover_diff
 from resecta_data.common.io import load_json
 from resecta_data.common.schema import load_schema, validate
 
@@ -175,7 +176,7 @@ def test_cutover_diff_schema() -> None:
     diff is empty by construction.
     """
     schema = load_schema(_SCHEMAS_DIR, "cutover_diff")
-    diff = build_cutover_diff(_sample_filters())
+    diff = build_cutover_diff((), (), spec=NAME_FILTERS_CUTOVER)
     validate(diff, schema, context="cutover_diff")
     assert diff["artifact"] == "gazetteers/gazetteer_manifest.json"
     assert diff["summary"]["legacy_only_count"] == 0
@@ -188,6 +189,6 @@ def test_cutover_diff_schema() -> None:
 
 def test_cutover_diff_determinism() -> None:
     """Two consecutive ``build_cutover_diff`` calls return byte-identical dicts."""
-    first = build_cutover_diff(_sample_filters())
-    second = build_cutover_diff(_sample_filters())
+    first = build_cutover_diff((), (), spec=NAME_FILTERS_CUTOVER)
+    second = build_cutover_diff((), (), spec=NAME_FILTERS_CUTOVER)
     assert first == second
