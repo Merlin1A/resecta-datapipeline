@@ -25,8 +25,7 @@ from .commands import (
     verify,
 )
 from .commands import eval as eval_commands
-from .commands.bloom import _ingest_surnames
-from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band, _run_rebuild_streaming
+from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band
 from .common.exceptions import (
     DeterminismError,
     HashMismatchError,
@@ -36,16 +35,14 @@ from .common.exceptions import (
 from .routes import INSTALL_ROUTES, SCHEMA_ROUTES, SHRINK_GUARDED_ROUTES
 
 # The names importers read on this module besides ``main``: the routing tables (their
-# historical home) and the private helpers the tests pin, each defined in the module that
-# uses it.
+# historical home) and the out-of-band aliases the doctor tooling and one test pin, each
+# defined in the module that uses it.
 __all__ = [
     "INSTALL_ROUTES",
     "SCHEMA_ROUTES",
     "SHRINK_GUARDED_ROUTES",
     "_OUT_OF_BAND_PREFIXES",
-    "_ingest_surnames",
     "_is_out_of_band",
-    "_run_rebuild_streaming",
     "main",
 ]
 
