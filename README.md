@@ -65,7 +65,9 @@ resecta-datapipeline/
 │   ├── shard_paranames.py   pre-shards the ParaNames corpus for parallel ingest (+ write_shard_meta.py)
 │   └── …                    _fetch_lib.sh, reap_orphan_workers.py, reinstall_signatures.sh
 ├── src/resecta_data/
-│   ├── cli.py               click entry points; the INSTALL_ROUTES / SCHEMA_ROUTES tables
+│   ├── cli.py               the click groups + one register call per command module
+│   ├── commands/            the click commands, one module per builder family
+│   ├── routes.py            the INSTALL_ROUTES / SCHEMA_ROUTES / SHRINK_GUARDED_ROUTES tables
 │   ├── manifest_signing.py  Ed25519 signing of the shipped gazetteer manifest
 │   ├── common/              io, determinism, licensing, mechanism language, stamp keys, exceptions
 │   ├── vectors/             structural test vectors per PII family (Phase 1)

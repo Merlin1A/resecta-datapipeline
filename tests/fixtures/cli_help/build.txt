@@ -1,0 +1,28 @@
+Usage: resecta-data build [OPTIONS] COMMAND [ARGS]...
+
+  Generate Phase 1+ artifacts into build/.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  adversarial             Build adversarial pattern fixtures.
+  bloom                   Build surnames.bloom + given-names.bloom + gazetteer_manifest.json.
+  bundle-size             Build the bundle-size instrumentation probe.
+  calibrate               Phase 3b calibration artifacts produced from Swift-side dumps.
+  classifier              Build doctype keywords and preset threshold candidates.
+  context                 Build the per-category positive context-keyword gazetteer.
+  corpus                  Build the G8 synthetic document corpus (one file per profile).
+  demographics            Build the demographic coverage report from the current name corpora.
+  eval-baseline           Derive the detection baseline + learned-term headroom from the Swift...
+  eval-compare            Decide the four-clause before/after predicate from two derived...
+  eval-compare-documents  Decide the four-clause before/after predicate over document rows.
+  eval-documents          Derive the document-level Site-B eval from the H1.2 harness JSONs.
+  eval-sitegap            Join the detector-site and Site-B derived baselines into the site gap.
+  fuzz                    Build fuzz payload catalogs.
+  g8-bucket-recall        Build the G8 bucket-stratified recall artifact.
+  gazetteers              Build non-Bloom gazetteer artifacts.
+  negative-corpus         Build the deterministic no-PII negative corpus (the baseline FP...
+  rules                   Build the PII detector rule-ID catalog.
+  vectors                 Build Phase 1 test vectors (checksummed + structural PII detectors).
+  zip-scf                 Build the ZIP → SCF → state table from a HUD crosswalk CSV.

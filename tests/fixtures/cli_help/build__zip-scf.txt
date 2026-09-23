@@ -1,0 +1,11 @@
+Usage: resecta-data build zip-scf [OPTIONS]
+
+  Build the ZIP → SCF → state table from a HUD crosswalk CSV.
+
+Options:
+  --source FILE          Path to the HUD ZIP-to-state crosswalk CSV.  [required]
+  --build-dir DIRECTORY  [required]
+  --retrieval-date TEXT  ISO date the source was fetched (YYYY-MM-DD). Must match SOURCES.md.
+                         [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

@@ -62,7 +62,7 @@ STAMP_DIR := $(BUILD_DIR)/.stamps
 # point invalidates every sentinel. The warm-build no-op case is what matters;
 # rebuilding all builders when common/io.py changes is acceptable since
 # common/ rarely changes. Computed at parse time via $(shell find ...).
-COMMON_DEPS := $(shell find src/resecta_data/common -name '*.py' 2>/dev/null) src/resecta_data/cli.py
+COMMON_DEPS := $(shell find src/resecta_data/common src/resecta_data/commands -name '*.py' 2>/dev/null) src/resecta_data/cli.py src/resecta_data/routes.py
 
 # ---- Content-keyed stamps ---------------------------------------------------
 # Stamps are no longer bare `touch` artifacts: each holds a content manifest

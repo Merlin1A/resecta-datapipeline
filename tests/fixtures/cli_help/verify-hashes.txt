@@ -1,0 +1,18 @@
+Usage: resecta-data verify-hashes [OPTIONS]
+
+  Verify every build artifact matches its lockfile entry.
+
+  Fails if:   - A lockfile entry has no corresponding file (unless --built-only).   - A file has no
+  lockfile entry.   - A file's hash does not match the lockfile.
+
+  With --built-only, lockfile entries absent from the build tree are listed as skipped and do not
+  fail the check — for hosts that build a subset of the artifacts (a fresh checkout without the
+  large fetched sources) while still proving every built byte matches the lock.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --lockfile FILE        [required]
+  --built-only           Verify only artifacts present in the build tree; lockfile entries with no
+                         built file are reported as skipped instead of failing. Hash mismatches and
+                         unlisted artifacts still fail.
+  --help                 Show this message and exit.

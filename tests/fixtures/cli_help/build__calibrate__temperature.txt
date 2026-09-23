@@ -1,0 +1,12 @@
+Usage: resecta-data build calibrate temperature [OPTIONS]
+
+  Fit the scalar doctype-softmax temperature T against a Swift dump.
+
+Options:
+  --softmax-dump FILE      Path to the Swift DocumentTypeClassifier softmax (logits) dump.
+                           [required]
+  --corpus FILE            Path to the G8 corpus the dump was produced against.  [required]
+  --schemas-dir DIRECTORY  [default: schemas]
+  --build-dir DIRECTORY    [required]
+  --seed INTEGER           [default: 20260416]
+  --help                   Show this message and exit.

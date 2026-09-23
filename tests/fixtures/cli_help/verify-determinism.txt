@@ -1,0 +1,28 @@
+Usage: resecta-data verify-determinism [OPTIONS]
+
+  Rebuild and confirm bit-identical output.
+
+  Two modes:
+
+  1. **In-place** (``--rebuild-out-dir`` unset): snapshot ``--build-dir``,    wipe it, run the
+  rebuild in place, diff. Out-of-band artifacts    (Swift-produced calibration dumps, the reviewed
+  gazetteer) are    restored across the wipe.
+
+  2. **Side-by-side** (``--rebuild-out-dir`` set): snapshot ``--build-dir``,    run the rebuild into
+  ``--rebuild-out-dir`` (with    ``BUILD_DIR=<path>`` appended to the rebuild command so ``make``
+  writes there), diff snapshot vs the alternate directory. The    original ``--build-dir`` is never
+  modified, so out-of-band    artifacts survive naturally and the determinism step can run in
+  parallel with verifiers that read ``--build-dir``.
+
+  Out-of-band artifacts are excluded from the comparison because the rebuild command does not
+  regenerate them.
+
+Options:
+  --build-dir DIRECTORY        Directory containing the first build's artifacts.  [required]
+  --rebuild-command TEXT       Command to invoke for the second build.  [default: make build]
+  --rebuild-out-dir DIRECTORY  When set, rebuild into this directory instead of wiping --build-dir.
+                               BUILD_DIR=<path> is appended to the rebuild command so make builds
+                               into the alternate location, and the original --build-dir is read-
+                               only across the run. The Makefile's verify recipe uses this to run
+                               determinism-check in parallel with verifiers that read build/.
+  --help                       Show this message and exit.

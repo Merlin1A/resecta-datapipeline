@@ -1,0 +1,13 @@
+Usage: resecta-data build calibrate finalize [OPTIONS]
+
+  Promote a reviewed sweep_raw artifact to the shipping preset file.
+
+  The only writer of ``build/classifier/preset_thresholds.json`` in the calibrate flow. Promoted
+  under an approved change plan via the interactive Makefile target ``calibrate-finalize``.
+
+Options:
+  --sweep-raw FILE         Path to the sweep_raw artifact written by `build calibrate sweep`.
+                           [required]
+  --build-dir DIRECTORY    [required]
+  --schemas-dir DIRECTORY  [default: schemas]
+  --help                   Show this message and exit.

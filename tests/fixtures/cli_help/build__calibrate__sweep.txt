@@ -1,0 +1,21 @@
+Usage: resecta-data build calibrate sweep [OPTIONS]
+
+  Sweep per-category thresholds against a Swift score dump.
+
+  Writes ``preset_thresholds_sweep_raw.json`` (status=sweep_raw) for inspection — never the shipping
+  ``preset_thresholds.json``, which is written only by ``build calibrate finalize`` (0.4 two-stage
+  flow).
+
+Options:
+  --score-dump FILE               Path to the Swift per-candidate detector score dump.  [required]
+  --temperature FILE              Path to the fitted doctype_temperature.json.  [required]
+  --corpus FILE                   Path to the G8 corpus.  [required]
+  --schemas-dir DIRECTORY         [default: schemas]
+  --build-dir DIRECTORY           [required]
+  --seed INTEGER                  [default: 20260416]
+  --prior-mode [corpus|fresh|mixed]
+                                  Prior composition mode for threshold sweep. 'fresh' uses a neutral
+                                  0.5 prior (matches first-scan behavior); 'corpus' uses train-split
+                                  category density (may inflate posteriors when templates are not
+                                  name-sparse); 'mixed' averages the two.  [default: fresh]
+  --help                          Show this message and exit.

@@ -1,0 +1,11 @@
+Usage: resecta-data build calibrate [OPTIONS] COMMAND [ARGS]...
+
+  Phase 3b calibration artifacts produced from Swift-side dumps.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  finalize     Promote a reviewed sweep_raw artifact to the shipping preset file.
+  sweep        Sweep per-category thresholds against a Swift score dump.
+  temperature  Fit the scalar doctype-softmax temperature T against a Swift dump.

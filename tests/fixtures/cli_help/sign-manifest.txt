@@ -1,0 +1,21 @@
+Usage: resecta-data sign-manifest [OPTIONS]
+
+  Sign the shipped manifest (``gazetteer_manifest.shipped.json``) with Ed25519.
+
+  Writes ``gazetteer_manifest.sig`` and ``manifest_public_key.pem`` next to the manifest. Both files
+  are picked up by ``install-assets`` via the routing entries above and copied into the iOS
+  Resources/Gazetteers/ tree. The iOS engine verifies the signature at detector init (see
+  GazetteerLoader.swift).
+
+  Cross-boundary wire-format changes need a paired Swift PR (Ed25519; the signing key rotates per
+  major release).
+
+Options:
+  --build-dir DIRECTORY  Directory containing build/gazetteers/gazetteer_manifest.json.  [required]
+  --private-key FILE     Path to the Ed25519 private key PEM. Defaults to ~/.resecta-data/manifest-
+                         private-key.pem (gitignored — outside both repos so the key never enters
+                         git history).
+  --generate-key         Generate a new Ed25519 private key at --private-key if it does not already
+                         exist. Rotation cadence is per major release; this flag exists for the
+                         initial keypair only.
+  --help                 Show this message and exit.

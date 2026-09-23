@@ -1,0 +1,21 @@
+Usage: resecta-data manifest-assets [OPTIONS]
+
+  Derive the shipped manifest from the bloom builder's manifest.
+
+  Reads ``build/gazetteers/gazetteer_manifest.json`` (a locked ``make build`` product) and writes
+  ``gazetteer_manifest.shipped.json`` beside it: the same ``filters[]``, ``version`` raised to the
+  shipped version, and an ``assets[]`` section with ``{path, sha256, bytes}`` for every asset
+  ``install-assets`` routes into the engine bundle except the manifest triple. The digests are of
+  the bytes install ships — the built artifact when present, else the installed file — so the
+  engine's first-load verification never refuses the bundle the pipeline itself installed. ``sign-
+  manifest`` signs this file; it is out-of-band relative to the lock.
+
+Options:
+  --build-dir DIRECTORY      [required]
+  --resources-dir DIRECTORY  The iOS Resources/ tree install-assets targets. A routed asset this
+                             host did not build is digested from its installed copy here (install
+                             leaves it alone, so that is what ships). Absent or missing: only built
+                             artifacts are listed.
+  --lockfile FILE            Cross-check source: each entry is reported as matching, differing from,
+                             or absent from the lock.  [default: asset_hashes.lock]
+  --help                     Show this message and exit.

@@ -1,0 +1,18 @@
+Usage: resecta-data [OPTIONS] COMMAND [ARGS]...
+
+  Resecta DataPipeline CLI.
+
+Options:
+  -v, --verbose  Increase verbosity (-v, -vv).
+  --help         Show this message and exit.
+
+Commands:
+  build                  Generate Phase 1+ artifacts into build/.
+  install-assets         Copy artifacts from build/ into the Swift tree.
+  manifest-assets        Derive the shipped manifest from the bloom builder's manifest.
+  regenerate-lockfile    Write a fresh asset_hashes.lock matching the current build.
+  sign-manifest          Sign the shipped manifest (``gazetteer_manifest.shipped.json``) with...
+  stage-reviewed-negctx  Stage the committed reviewed negative_context.json into build/.
+  validate-schemas       Validate every build artifact against its routed schema.
+  verify-determinism     Rebuild and confirm bit-identical output.
+  verify-hashes          Verify every build artifact matches its lockfile entry.
