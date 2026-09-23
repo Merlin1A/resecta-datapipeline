@@ -23,7 +23,7 @@ from .classifier import (
     build_sweep_thresholds,
     finalize_sweep_thresholds,
 )
-from .commands import bloom, install, vectors, verify
+from .commands import bloom, gazetteers, install, vectors, verify
 from .commands.bloom import (
     _DEFAULT_SOURCES_DIR,
     _INGEST_CACHE_SUBDIR,
@@ -32,7 +32,6 @@ from .commands.bloom import (
     _paranames_full_specs,
 )
 from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band, _run_rebuild_streaming
-from .common.cutover import build_cutover_diff
 from .common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
 from .common.exceptions import (
     DeterminismError,
@@ -52,21 +51,6 @@ from .eval import documents as eval_documents
 from .eval import run as eval_run
 from .eval.compare_documents import build_compare_documents
 from .eval.sitegap import build_site_gap
-from .gazetteers.address_components import ADDRESS_COMPONENTS_CUTOVER
-from .gazetteers.address_components import build as build_address_components
-from .gazetteers.context_keywords import build as build_context_keywords
-from .gazetteers.dl_patterns import build as build_dl_patterns
-from .gazetteers.institutions import (
-    INSTITUTIONS_CUTOVER,
-    legacy_institution_rows,
-    rebuild_institution_rows,
-)
-from .gazetteers.institutions import build as build_institutions
-from .gazetteers.name_common_words import build as build_name_common_words
-from .gazetteers.negative_context import build as build_negative_context
-from .gazetteers.nicknames import build as build_nicknames
-from .gazetteers.passport_patterns import build as build_passport_patterns
-from .gazetteers.zip_scf import build as build_zip_scf
 from .instrumentation.bundle_size import DEFAULT_SUB_DIRS as BUNDLE_SIZE_DEFAULT_SUB_DIRS
 from .instrumentation.bundle_size import build as build_bundle_size
 from .instrumentation.bundle_size import build_meta as build_bundle_size_meta
@@ -121,166 +105,11 @@ def build_group() -> None:
     """Generate Phase 1+ artifacts into build/."""
 
 
-@build_group.command("zip-scf")
-@click.option(
-    "--source",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    required=True,
-    help="Path to the HUD ZIP-to-state crosswalk CSV.",
-)
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--retrieval-date",
-    required=True,
-    help="ISO date the source was fetched (YYYY-MM-DD). Must match SOURCES.md.",
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-)
-def build_zip_scf_cmd(
-    source: Path,
-    build_dir: Path,
-    retrieval_date: str,
-    seed: int,
-) -> None:
-    """Build the ZIP → SCF → state table from a HUD crosswalk CSV."""
-    assert_hash_seed_pinned()
-    payload = build_zip_scf(seed, source=source, retrieval_date=retrieval_date)
-    dest = build_dir / "gazetteers" / "zip_scf_states.json"
-    dump_canonical_json(payload, dest)
-    click.echo(
-        f"Wrote {dest} ({len(payload['scf_table'])} SCF rows, "
-        f"{len(payload['overrides'])} overrides)"
-    )
-
-
 # The committed File-5 fire-features dump (Swift-harness output, force-tracked
 # under build/; no producing recipe). Repo-root-relative so the in-band scorer
 # fit reads identical bytes in the side-by-side determinism rebuild, where the
 # rebuild out-dir holds no dump (the candidates artifact must stay byte-stable).
 _COMMITTED_FIRE_FEATURES_DUMP = Path("build/corpus/g8_fire_features.json")
-
-
-@build_group.command("gazetteers")
-@click.argument(
-    "kind",
-    type=click.Choice(
-        [
-            "negative-context",
-            "institutions",
-            "address-components",
-            "dl-patterns",
-            "passport-patterns",
-            "nicknames",
-            "name-common-words",
-        ]
-    ),
-)
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--sources-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    default=_DEFAULT_SOURCES_DIR / "negative_context",
-    show_default=True,
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-)
-def build_gazetteers_cmd(kind: str, build_dir: Path, sources_dir: Path, seed: int) -> None:
-    """Build non-Bloom gazetteer artifacts."""
-    assert_hash_seed_pinned()
-    if kind == "negative-context":
-        payload = build_negative_context(seed, source_dir=sources_dir)
-        dest = build_dir / "gazetteers" / "negative_context_candidates.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['entries'])} candidate entries)")
-    elif kind == "institutions":
-        payload = build_institutions(seed)
-        dest = build_dir / "gazetteers" / "institutions.json"
-        dump_canonical_json(payload, dest)
-        cutover_diff = build_cutover_diff(
-            legacy_institution_rows(), rebuild_institution_rows(), spec=INSTITUTIONS_CUTOVER
-        )
-        cutover_dest = build_dir / "gazetteers" / "institutions.cutover-diff.json"
-        dump_canonical_json(cutover_diff, cutover_dest)
-        summary = cutover_diff["summary"]
-        click.echo(
-            f"Wrote {dest} ({len(payload['entries'])} institution entries); "
-            f"{cutover_dest} (legacy_only={summary['legacy_only_count']}, "
-            f"rebuild_only={summary['rebuild_only_count']}, "
-            f"keyed_diff={summary['keyed_diff_count']})"
-        )
-    elif kind == "address-components":
-        payload = build_address_components(seed)
-        dest = build_dir / "gazetteers" / "address_components.json"
-        dump_canonical_json(payload, dest)
-        cutover_diff = build_cutover_diff((), (), spec=ADDRESS_COMPONENTS_CUTOVER)
-        cutover_dest = build_dir / "gazetteers" / "address_components.cutover-diff.json"
-        dump_canonical_json(cutover_diff, cutover_dest)
-        summary = cutover_diff["summary"]
-        click.echo(
-            f"Wrote {dest} ({len(payload['cities'])} cities, "
-            f"{len(payload['counties'])} counties, "
-            f"{len(payload['street_types'])} street types); "
-            f"{cutover_dest} (legacy_only={summary['legacy_only_count']}, "
-            f"rebuild_only={summary['rebuild_only_count']}, "
-            f"keyed_diff={summary['keyed_diff_count']})"
-        )
-    elif kind == "nicknames":
-        payload = build_nicknames(seed)
-        dest = build_dir / "gazetteers" / "nicknames.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['entries'])} nickname entries)")
-    elif kind == "name-common-words":
-        payload = build_name_common_words(seed)
-        dest = build_dir / "gazetteers" / "name_common_words.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['entries'])} common-word entries)")
-    elif kind == "dl-patterns":
-        payload = build_dl_patterns(seed)
-        dest = build_dir / "gazetteers" / "dl_patterns.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['rows'])} dl-pattern rows)")
-    elif kind == "passport-patterns":
-        payload = build_passport_patterns(seed)
-        dest = build_dir / "gazetteers" / "passport_patterns.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['rows'])} passport-pattern rows)")
-
-
-@build_group.command("context")
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-)
-def build_context_cmd(build_dir: Path, seed: int) -> None:
-    """Build the per-category positive context-keyword gazetteer."""
-    assert_hash_seed_pinned()
-    payload = build_context_keywords(seed)
-    dest = build_dir / "context" / "context_keywords.json"
-    dump_canonical_json(payload, dest)
-    click.echo(f"Wrote {dest} ({len(payload['entries'])} context-keyword entries)")
 
 
 @build_group.command("rules")
@@ -1025,6 +854,7 @@ verify.register(main, build_group, build_calibrate_group)
 install.register(main, build_group, build_calibrate_group)
 vectors.register(main, build_group, build_calibrate_group)
 bloom.register(main, build_group, build_calibrate_group)
+gazetteers.register(main, build_group, build_calibrate_group)
 
 
 @build_calibrate_group.command("temperature")
