@@ -7,12 +7,8 @@ from pathlib import Path
 
 import click
 
-from resecta_data.commands.bloom import (
-    _DEFAULT_SOURCES_DIR,
-    _INGEST_CACHE_SUBDIR,
-    _ingest_given_names,
-    _ingest_surnames,
-)
+from resecta_data.bloom.ingest_cache import _INGEST_CACHE_SUBDIR
+from resecta_data.commands.bloom import _DEFAULT_SOURCES_DIR, _ingest_given_names, _ingest_surnames
 from resecta_data.common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
 from resecta_data.common.io import dump_canonical_json, load_json, sha256_file
 from resecta_data.corpus import build_g8_corpus, build_negative_corpus
