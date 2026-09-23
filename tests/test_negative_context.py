@@ -12,13 +12,16 @@ from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.gazetteers.negative_context import build as build_neg
 from resecta_data.gazetteers.negative_context._scope_rules import (
-    _AUDIT_REMOVE_PER_SOURCE,
-    _MANUAL_AUDIT_PART3,
-    _MANUAL_GENERIC,
-    _MANUAL_MEDICAL,
+    load_scope_rules,
     manual_entries,
     scope_keyword,
 )
+
+_RULES = load_scope_rules()
+_AUDIT_REMOVE_PER_SOURCE = _RULES.audit_remove_per_source
+_MANUAL_MEDICAL = _RULES.manual_medical
+_MANUAL_GENERIC = _RULES.manual_generic
+_MANUAL_AUDIT_PART3 = _RULES.manual_audit_part3
 
 _SOURCES = (
     Path(__file__).parent.parent
@@ -79,7 +82,7 @@ def test_entries_are_sorted() -> None:
 
 
 # Source-derived bootstrap pools; everything else in the payload is from the
-# manual path (`_MANUAL_MEDICAL`, `_MANUAL_GENERIC`, `_MANUAL_AUDIT_PART3`).
+# manual path (the four buckets of `sources/scope_rules_v1.json`).
 # After A5 audit (1.md), most manual rows carry a per-Entry primary-source
 # `source_id` (e.g. `nucc_1500_v13`) instead of the synthetic bucket id.
 _BOOTSTRAP_SOURCE_IDS: frozenset[str] = frozenset(
