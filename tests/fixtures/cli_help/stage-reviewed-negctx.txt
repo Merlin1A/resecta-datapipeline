@@ -1,0 +1,13 @@
+Usage: resecta-data stage-reviewed-negctx [OPTIONS]
+
+  Stage the committed reviewed negative_context.json into build/.
+
+  Verifies the meta sidecar's ``reviewed_version`` against the live candidates hash before copying —
+  a mismatch means the candidates changed without the sidecar being re-stamped under an approved
+  change plan, and staging refuses.
+
+Options:
+  --build-dir DIRECTORY     [required]
+  --reviewed-dir DIRECTORY  Directory holding the committed reviewed files. Defaults to
+                            src/resecta_data/gazetteers/negative_context/reviewed/.
+  --help                    Show this message and exit.

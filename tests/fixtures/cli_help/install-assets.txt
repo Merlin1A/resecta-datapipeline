@@ -1,0 +1,19 @@
+Usage: resecta-data install-assets [OPTIONS]
+
+  Copy artifacts from build/ into the Swift tree.
+
+  Routing is defined in ``INSTALL_ROUTES``. Each route names a target ("resources" or "fixtures")
+  and a path within that target directory. Artifacts without an install route remain in build/ and
+  are not copied.
+
+Options:
+  --build-dir DIRECTORY      [required]
+  --resources-dir DIRECTORY  Target: Packages/RedactionEngine/Sources/RedactionEngine/Resources/
+                             [required]
+  --fixtures-dir DIRECTORY   Target: Packages/RedactionEngine/Tests/RedactionEngineTests/Fixtures/
+                             [required]
+  --allow-shrink             Permit a shrink-guarded gazetteer (e.g. institutions.json) to be
+                             overwritten by a smaller build/ artifact. Required only after the
+                             institutions fetches make build/ a verified superset. Off by default so
+                             a bare refresh cannot regress a committed corpus.
+  --help                     Show this message and exit.

@@ -1,0 +1,21 @@
+Usage: resecta-data build eval-compare-documents [OPTIONS]
+
+  Decide the four-clause before/after predicate over document rows.
+
+  Reads two ``documents_eval.json`` dicts and applies the G8 comparator's C1 / C2 / C3 to every
+  ``(document, leg)`` row present on both sides (C4 over the row's per-category strict precision)
+  and to the pooled aggregate (C4 over the leg kinds). Writes the verdict to ``--out`` via the
+  canonical JSON writer. Same units as ``eval-compare``: ``--delta-p`` / ``--delta-slice`` in
+  precision POINTS, ``--eps`` / ``--delta-f-rel`` as fractions. Pure arithmetic; dev/eval only.
+
+Options:
+  --before FILE        Path to the BEFORE documents_eval.json (the H1.3 document-level eval).
+                       [required]
+  --after FILE         Path to the AFTER documents_eval.json.  [required]
+  --delta-p FLOAT      C1 uplift, precision POINTS.  [default: 5.0]
+  --delta-f-rel FLOAT  C2 relative FPR cut, fraction.  [default: 0.3]
+  --eps FLOAT          C3 recall floor slack, fraction.  [default: 0.01]
+  --delta-slice FLOAT  C4 max per-category (row) / per-leg (aggregate) strict-precision drop,
+                       precision POINTS.  [default: 3.0]
+  --out FILE           Path for the g8_compare_documents_verdict.json output.  [required]
+  --help               Show this message and exit.

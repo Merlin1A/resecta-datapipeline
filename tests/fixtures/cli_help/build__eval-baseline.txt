@@ -1,0 +1,21 @@
+Usage: resecta-data build eval-baseline [OPTIONS]
+
+  Derive the detection baseline + learned-term headroom from the Swift JSONs.
+
+  Loads the harness's offset-overlap join cells and raw match scores and writes
+  ``g8_detection_baseline.json`` + ``g8_headroom.json`` into ``--out-dir`` via the canonical JSON
+  writer. With ``--spans`` (and ``--corpus``) the emitter's per-span sidecar is validated,
+  reconciled against the cells, and aggregated into ``g8_span_outcomes.json`` beside them. Dev/eval
+  only -- the artifacts are not installed to the Swift Resources path (like g8_bucket_recall).
+
+Options:
+  --cells FILE         Path to the Swift harness _cells.json (file 1 in
+                       src/resecta_data/eval/README.md).  [required]
+  --raw-scores FILE    Path to the Swift harness _raw_scores.json (file 2 in
+                       src/resecta_data/eval/README.md).  [required]
+  --out-dir DIRECTORY  Directory for g8_detection_baseline.json + g8_headroom.json.  [required]
+  --spans FILE         Optional per-span JSONL sidecar the same emitter wrote beside the trio
+                       (g8_detector_spans.jsonl / g8_siteb_spans.jsonl); derives
+                       g8_span_outcomes.json.
+  --corpus FILE        The G8 corpus the sidecar rows are joined to (required with --spans).
+  --help               Show this message and exit.

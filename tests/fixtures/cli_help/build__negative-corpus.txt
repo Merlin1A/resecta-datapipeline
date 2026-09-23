@@ -1,0 +1,12 @@
+Usage: resecta-data build negative-corpus [OPTIONS]
+
+  Build the deterministic no-PII negative corpus (the baseline FP surface).
+
+  Emits ``corpus/negative_corpus.json``: benign documents that contain no valid PII, so any
+  detection the engine surfaces against them is a false positive. Dev/eval fixture; not installed to
+  the Swift Resources path.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

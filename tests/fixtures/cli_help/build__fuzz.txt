@@ -1,0 +1,14 @@
+Usage: resecta-data build fuzz [OPTIONS] {redos|pdf-mutations}
+
+  Build fuzz payload catalogs.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --packet FILE          Source PDF the pdf-mutations kind damages (a sample-doc checkout's
+                         packet.pdf). Required for that kind; ignored otherwise. Nothing binary is
+                         committed here -- the base is read at build time and its sha256 is recorded
+                         in the manifest.
+  --count INTEGER        How many pdf-mutations fixtures to emit, split evenly across the four
+                         families.  [default: 100]
+  --help                 Show this message and exit.

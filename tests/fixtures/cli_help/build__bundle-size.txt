@@ -1,0 +1,12 @@
+Usage: resecta-data build bundle-size [OPTIONS]
+
+  Build the bundle-size instrumentation probe.
+
+  Walks the configured ``build/`` subdirectories and writes ``instrumentation/bundle_size.json``.
+  Engineer-facing only; the Swift cold-start hook ships from the Mac side.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --sub-dir TEXT         Subdirectory under build/ to include. Repeat to add more; defaults to the
+                         shipping-asset scope.  [default: context, gazetteers, rules, vectors]
+  --help                 Show this message and exit.

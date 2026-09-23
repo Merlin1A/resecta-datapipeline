@@ -1,0 +1,26 @@
+Usage: resecta-data build eval-compare [OPTIONS]
+
+  Decide the four-clause before/after predicate from two derived baselines.
+
+  Reads the two derived ``g8_detection_baseline.json`` dicts (a BEFORE and an AFTER), applies the
+  four-clause predicate per scorer family and over the grand-total aggregate (pure arithmetic; no
+  sim, no re-derivation), and writes ``g8_compare_verdict.json`` to ``--out`` via the canonical JSON
+  writer. Dev/eval only -- no install route, no lock entry, not produced by ``make build``.
+  ``--delta-p`` / ``--delta-slice`` are precision POINTS; ``--eps`` / ``--delta-f-rel`` are
+  fractions.
+
+Options:
+  --before FILE        Path to the BEFORE derived g8_detection_baseline.json (NOT _cells.json).
+                       [required]
+  --after FILE         Path to the AFTER derived g8_detection_baseline.json (NOT _cells.json).
+                       [required]
+  --delta-p FLOAT      Clause 1: minimum precision uplift, in precision POINTS (5 = 5 points =
+                       0.05).  [default: 5.0]
+  --delta-f-rel FLOAT  Clause 2: minimum relative family-FPR cut, as a fraction (0.30 = 30%).
+                       [default: 0.3]
+  --eps FLOAT          Clause 3: recall floor slack, as a fraction (0.01 = 1 point).  [default:
+                       0.01]
+  --delta-slice FLOAT  Clause 4: max per-doctype/per-demographic precision drop, in POINTS (3 = 3
+                       points).  [default: 3.0]
+  --out FILE           Path for the g8_compare_verdict.json output.  [required]
+  --help               Show this message and exit.

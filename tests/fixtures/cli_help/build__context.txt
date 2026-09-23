@@ -1,0 +1,8 @@
+Usage: resecta-data build context [OPTIONS]
+
+  Build the per-category positive context-keyword gazetteer.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

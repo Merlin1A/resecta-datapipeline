@@ -1,0 +1,12 @@
+Usage: resecta-data build bloom [OPTIONS]
+
+  Build surnames.bloom + given-names.bloom + gazetteer_manifest.json.
+
+Options:
+  --build-dir DIRECTORY    [required]
+  --sources-dir DIRECTORY  Directory containing the name-corpus source subdirectories.  [default:
+                           src/resecta_data/gazetteers/sources]
+  --seed INTEGER           [default: 20260416]
+  --build-date TEXT        ISO-8601 UTC timestamp recorded in the manifest. Pinned for determinism.
+                           [default: 2026-04-16T00:00:00Z]
+  --help                   Show this message and exit.
