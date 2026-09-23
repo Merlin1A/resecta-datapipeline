@@ -25,7 +25,7 @@ from .commands import (
     verify,
 )
 from .commands import eval as eval_commands
-from .commands.bloom import _INGEST_CACHE_SUBDIR, _ingest_surnames, _paranames_full_specs
+from .commands.bloom import _INGEST_CACHE_SUBDIR, _ingest_surnames
 from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band, _run_rebuild_streaming
 from .common.exceptions import (
     DeterminismError,
@@ -46,7 +46,6 @@ __all__ = [
     "_OUT_OF_BAND_PREFIXES",
     "_ingest_surnames",
     "_is_out_of_band",
-    "_paranames_full_specs",
     "_run_rebuild_streaming",
     "main",
 ]
