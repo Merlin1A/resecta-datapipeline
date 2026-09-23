@@ -5,7 +5,7 @@ part a quiet Makefile edit could weaken without any Python test noticing:
 
 1. **Closure membership** (real Makefile, via `make -np` database): every
    stamp rule's prerequisites still cover the input classes the key must
-   cover — cli.py + all of common/ everywhere; per-builder sources on their
+   cover — cli.py, routes.py, commands/ + all of common/ everywhere; per-builder sources on their
    stamp; the bloom data corpus on bloom; the 17 stamps + asset_hashes.lock
    on the determinism witness. The key hashes ``$^``, so prereq coverage IS
    key coverage (reviewer R2's floor for #4).
@@ -121,14 +121,21 @@ def _rule(db: str, target: str) -> tuple[list[str], str]:
 
 
 def test_every_stamp_covers_common_deps(make_db: str) -> None:
-    """cli.py, routes.py and every common/*.py module must stay in every
-    stamp's closure — they are the irreducible shared writer set."""
+    """cli.py, routes.py, every command module and every common/*.py module
+    must stay in every stamp's closure — they are the irreducible shared
+    writer set."""
     common_files = {
         p.relative_to(REPO_ROOT).as_posix()
         for p in (REPO_ROOT / "src/resecta_data/common").glob("*.py")
     }
     assert common_files, "no common/*.py found — wrong repo root?"
-    shared = {"src/resecta_data/cli.py", "src/resecta_data/routes.py"} | common_files
+    command_files = {
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in (REPO_ROOT / "src/resecta_data/commands").glob("*.py")
+    }
+    assert command_files, "no commands/*.py found — wrong repo root?"
+    shared = {"src/resecta_data/cli.py", "src/resecta_data/routes.py"}
+    shared |= common_files | command_files
     for stamp in STAMPS:
         prereqs, _ = _rule(make_db, f"build/.stamps/{stamp}")
         missing = shared - set(prereqs)
