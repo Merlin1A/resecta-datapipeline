@@ -39,8 +39,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.candidates import build_from_candidates
 from resecta_data.common.exceptions import PipelineError
-from resecta_data.common.io import load_json
 
 _GENERATED_BY: Final[str] = "resecta-data/gazetteers/passport_patterns"
 _SCHEMA_VERSION: Final[int] = 1
@@ -120,38 +120,30 @@ def build(seed: int, *, candidates_path: Path | None = None) -> dict[str, Any]:
             ship list. Fail-loud.
     """
     path = candidates_path if candidates_path is not None else _CANDIDATES_PATH
-    data = load_json(path)
-    if not isinstance(data, dict) or "entries" not in data:
-        raise PipelineError(
-            f"passport_patterns: candidates file {path} is malformed "
-            "(expected a dict with an 'entries' key)."
-        )
 
-    entries = data["entries"]
-    if not isinstance(entries, list):
-        raise PipelineError(f"passport_patterns: candidates file {path} 'entries' is not a list.")
+    def check_issuer_set(shipping: list[dict[str, Any]]) -> None:
+        actual_issuers = frozenset(entry["issuer_code"] for entry in shipping)
+        if actual_issuers != _EXPECTED_SHIPPING_ISSUERS:
+            missing = sorted(_EXPECTED_SHIPPING_ISSUERS - actual_issuers)
+            extra = sorted(actual_issuers - _EXPECTED_SHIPPING_ISSUERS)
+            raise PipelineError(
+                "passport_patterns: shipping issuer set diverges from the ship list. "
+                f"Expected {sorted(_EXPECTED_SHIPPING_ISSUERS)}, "
+                f"got {sorted(actual_issuers)}. "
+                f"Missing: {missing}. Extra: {extra}. "
+                "This indicates a candidates-file change that needs an approved change plan."
+            )
 
-    shipping = [_strip_audit(entry) for entry in entries if _is_shipping(entry)]
-    shipping.sort(key=lambda entry: entry["issuer_code"])
-
-    actual_issuers = frozenset(entry["issuer_code"] for entry in shipping)
-    if actual_issuers != _EXPECTED_SHIPPING_ISSUERS:
-        missing = sorted(_EXPECTED_SHIPPING_ISSUERS - actual_issuers)
-        extra = sorted(actual_issuers - _EXPECTED_SHIPPING_ISSUERS)
-        raise PipelineError(
-            "passport_patterns: shipping issuer set diverges from the ship list. "
-            f"Expected {sorted(_EXPECTED_SHIPPING_ISSUERS)}, "
-            f"got {sorted(actual_issuers)}. "
-            f"Missing: {missing}. Extra: {extra}. "
-            "This indicates a candidates-file change that needs an approved change plan."
-        )
-
-    expected_count = 11
-    if len(shipping) != expected_count:
-        raise PipelineError(
-            f"passport_patterns: expected {expected_count} shipping rows, "
-            f"got {len(shipping)}. The ship list is closed at 11 issuers."
-        )
+    shipping, data = build_from_candidates(
+        path,
+        label="passport_patterns",
+        rows_key="entries",
+        project=lambda entry: _strip_audit(entry) if _is_shipping(entry) else None,
+        sort_key=lambda entry: entry["issuer_code"],
+        expected_count=11,
+        count_note=". The ship list is closed at 11 issuers.",
+        check=check_issuer_set,
+    )
 
     generated_date = data.get("generated_date")
     if not isinstance(generated_date, str):

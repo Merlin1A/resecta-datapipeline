@@ -431,7 +431,11 @@ class _Tally:
             self.must_not_fired += 1
 
     def view(self) -> TallyView:
+        """The tally as emitted: ``recall`` credits a TP on any overlap with the ground-truth
+        span; ``recall_all_tokens`` credits it only when every token of the span is covered
+        (the TPs ``one_token_tp`` counts are excluded), so the two sit side by side."""
         positives = self.tp + self.fn
+        tp_all_tokens = self.tp - self.one_token_tp
         return {
             "tp": self.tp,
             "fn": self.fn,
@@ -441,6 +445,8 @@ class _Tally:
             "one_token_tp": self.one_token_tp,
             "recall": self.tp / positives if positives else 0.0,
             "recall_wilson95": wilson_ci(self.tp, positives),
+            "recall_all_tokens": tp_all_tokens / positives if positives else 0.0,
+            "recall_all_tokens_wilson95": wilson_ci(tp_all_tokens, positives),
             "by_tier": {
                 tier: {"total": self.tier_total[tier], "covered": self.tier_covered[tier]}
                 for tier in sorted(_POSITIVE_TIERS)

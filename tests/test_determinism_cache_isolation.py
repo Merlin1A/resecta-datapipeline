@@ -29,7 +29,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from resecta_data.cli import _INGEST_CACHE_SUBDIR, main
+from resecta_data.bloom.ingest_cache import _INGEST_CACHE_SUBDIR
+from resecta_data.cli import main
 
 
 @pytest.fixture

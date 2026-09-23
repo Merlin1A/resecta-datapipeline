@@ -9,7 +9,18 @@ AddressDetector landed).
 
 from __future__ import annotations
 
-from resecta_data.cli import INSTALL_ROUTES, SCHEMA_ROUTES
+import importlib
+import pkgutil
+from collections.abc import Iterator
+from pathlib import Path
+
+import click
+
+from resecta_data import commands
+from resecta_data.cli import main
+from resecta_data.routes import INSTALL_ROUTES, SCHEMA_ROUTES
+
+SCHEMAS_DIR = Path(__file__).resolve().parents[1] / "schemas"
 
 
 def test_every_install_route_is_schema_routed() -> None:
@@ -127,3 +138,58 @@ def test_s5_gazetteer_sidecars_route_to_resources() -> None:
         target, sub_path = INSTALL_ROUTES[rel]
         assert target == "resources", f"{rel}: expected resources, got {target}"
         assert sub_path == sub, f"{rel}: expected sub_path {sub!r}, got {sub_path!r}"
+
+
+# -----------------------------------------------------------------------------
+# Drift: the command modules and the routing tables stay whole
+# -----------------------------------------------------------------------------
+
+
+def _command_module_names() -> list[str]:
+    """Every module under ``commands/``, sorted (``pkgutil`` order is not a contract)."""
+    return sorted(module.name for module in pkgutil.iter_modules(commands.__path__))
+
+
+def _leaf_commands(
+    group: click.Group, path: tuple[str, ...] = ()
+) -> Iterator[tuple[str, click.Command]]:
+    ctx = click.Context(group, info_name=group.name)
+    for name in group.list_commands(ctx):
+        command = group.get_command(ctx, name)
+        assert command is not None, name
+        if isinstance(command, click.Group):
+            yield from _leaf_commands(command, (*path, name))
+        else:
+            yield " ".join((*path, name)), command
+
+
+def test_every_command_module_registers_at_least_one_command() -> None:
+    """A module under commands/ that registers nothing is dead weight or a typo."""
+    names = _command_module_names()
+    assert names, "no modules under commands/ — wrong package?"
+    for name in names:
+        module = importlib.import_module(f"resecta_data.commands.{name}")
+        register = getattr(module, "register", None)
+        assert callable(register), f"commands/{name}.py has no register(main, build, calibrate)"
+        root, build, calibrate = click.Group("main"), click.Group("build"), click.Group("calibrate")
+        register(root, build, calibrate)
+        registered = len(root.commands) + len(build.commands) + len(calibrate.commands)
+        assert registered >= 1, f"commands/{name}.py registers no command"
+
+
+def test_every_command_in_the_tree_comes_from_a_command_module() -> None:
+    """cli.py holds the groups only; every leaf command is defined under commands/."""
+    homes = {f"resecta_data.commands.{name}" for name in _command_module_names()}
+    leaves = list(_leaf_commands(main))
+    assert len(leaves) == 30
+    for path, command in leaves:
+        assert command.callback is not None, path
+        assert command.callback.__module__ in homes, (
+            f"{path!r} is defined in {command.callback.__module__}, not under commands/"
+        )
+
+
+def test_every_schema_route_names_a_schema_file() -> None:
+    """A schema route must point at a file under schemas/, or validate-schemas cannot run."""
+    for schema_name in sorted(set(SCHEMA_ROUTES.values())):
+        assert (SCHEMAS_DIR / f"{schema_name}.schema.json").is_file(), schema_name

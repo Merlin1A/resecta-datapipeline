@@ -97,7 +97,11 @@ family plus one per surfaced detection overlapping no span, offsets only:
 covered rows; `outcome` ∈ tp / fn / fp / tn. `spans.py::build_span_outcomes`
 aggregates them per cell, per context class and per furniture kind, and
 **cross-checks the per-cell tallies against file 1** — a sidecar that does not
-reproduce the trio's counters fails the derivation.
+reproduce the trio's counters fails the derivation. Every tally carries two
+recalls side by side: `recall` credits a true positive on any overlap with the
+ground-truth span (the trio's rule), `recall_all_tokens` only when every token
+of the span is covered by a detection (`one_token_tp` counts the TPs the strict
+rule excludes); both carry a Wilson 95 % interval.
 
 ## 3. The four compare clauses
 

@@ -75,8 +75,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.candidates import load_candidate_rows, ship_rows
 from resecta_data.common.exceptions import PipelineError
-from resecta_data.common.io import load_json
 
 _GENERATED_BY: Final[str] = "resecta-data/gazetteers/context_keywords"
 _SCHEMA_VERSION: Final[int] = 1
@@ -234,13 +234,8 @@ def _load_rows(path: Path, *, source: str) -> list[dict[str, Any]]:
     """Load + filter shipping rows from a candidates file."""
     if not path.exists():
         raise PipelineError(f"context_keywords: candidates file {path} ({source}) is missing.")
-    data = load_json(path)
-    if not isinstance(data, list):
-        raise PipelineError(
-            f"context_keywords: candidates file {path} ({source}) is malformed "
-            "(expected a top-level JSON array of row dicts)."
-        )
-    return [_to_wire(entry, source=source) for entry in data if _is_shipping(entry)]
+    rows, _ = load_candidate_rows(path, label="context_keywords", rows_key=None, tag=f" ({source})")
+    return [_to_wire(entry, source=source) for entry in rows if _is_shipping(entry)]
 
 
 def build(
@@ -288,18 +283,15 @@ def build(
     d12_path = d12_candidates_path if d12_candidates_path is not None else _D12_CANDIDATES_PATH
     d16_path = d16_candidates_path if d16_candidates_path is not None else _D16_CANDIDATES_PATH
 
-    shipping = (
+    shipping = ship_rows(
         _load_rows(d11_path, source="d11")
         + _load_rows(d12_path, source="d12")
-        + _load_rows(d16_path, source="d12")
+        + _load_rows(d16_path, source="d12"),
+        label="context_keywords",
+        sort_key=lambda row: (row["category"], row["term"]),
+        expected_count=_EXPECTED_TOTAL,
+        count_note=". See _EXPECTED_PER_CATEGORY.",
     )
-    shipping.sort(key=lambda row: (row["category"], row["term"]))
-
-    if len(shipping) != _EXPECTED_TOTAL:
-        raise PipelineError(
-            f"context_keywords: expected {_EXPECTED_TOTAL} shipping rows, "
-            f"got {len(shipping)}. See _EXPECTED_PER_CATEGORY."
-        )
 
     actual_per_category = Counter(row["category"] for row in shipping)
     if dict(actual_per_category) != _EXPECTED_PER_CATEGORY:

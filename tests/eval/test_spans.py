@@ -24,6 +24,7 @@ from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.corpus._spans import CONTEXT_CLASSES
 from resecta_data.eval import spans as eval_spans
+from resecta_data.eval.documents import wilson_ci
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -276,6 +277,9 @@ class TestJoin:
         }
         name = payload["per_family"]["name"]
         assert (name["tp"], name["fn"], name["one_token_tp"]) == (2, 0, 1)
+        # Any overlap credits both TPs; the all-tokens rule drops the partially covered one.
+        assert (name["recall"], name["recall_all_tokens"]) == (1.0, 0.5)
+        assert name["recall_all_tokens_wilson95"] == wilson_ci(1, 2)
         assert name["token_coverage"] == {"1/2": 1, "2/2": 1}
         assert name["detections_per_tp"] == {"1": 1, "2": 1}
         assert name["by_tier"] == {

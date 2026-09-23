@@ -95,6 +95,13 @@ def build_eval_baseline_cmd(
             f"one_token_tp={counts['one_token_tp']}; "
             f"cells crosscheck {outcomes['cells_crosscheck']['status']})"
         )
+        name = outcomes["per_family"].get("name")
+        if name is not None:
+            click.echo(
+                f"name recall: any-overlap={name['recall']:.4f} "
+                f"all-tokens={name['recall_all_tokens']:.4f} "
+                f"(tp={name['tp']}, partially covered={name['one_token_tp']})"
+            )
 
 
 @click.command("eval-documents")
