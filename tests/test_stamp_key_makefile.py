@@ -147,6 +147,17 @@ def test_builder_sources_stay_in_their_stamp_closure(make_db: str) -> None:
     }
     assert vectors_py and vectors_py <= set(vectors_prereqs)
 
+    negctx_prereqs, _ = _rule(make_db, "build/.stamps/gaz-negctx")
+    negctx_dir = REPO_ROOT / "src/resecta_data/gazetteers/negative_context"
+    negctx_inputs = {
+        p.relative_to(REPO_ROOT).as_posix()
+        for pattern in ("*.py", "sources/*.json")
+        for p in negctx_dir.glob(pattern)
+    }
+    data_file = "src/resecta_data/gazetteers/negative_context/sources/scope_rules_v1.json"
+    assert data_file in negctx_inputs
+    assert negctx_inputs <= set(negctx_prereqs)
+
     bloom_prereqs, _ = _rule(make_db, "build/.stamps/bloom")
     bloom_set = set(bloom_prereqs)
     paranames = "src/resecta_data/gazetteers/sources/paranames"
