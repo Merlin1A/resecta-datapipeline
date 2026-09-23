@@ -64,6 +64,8 @@ _KEYWORDS: dict[str, tuple[list[str], list[str]]] = {
             "ext",
             "extension",
             "number",
+            "telephone",
+            "calling",
         ],
         [
             "case no",
@@ -174,6 +176,41 @@ def _is_swift_whitespace(ch: str) -> bool:
     return ch == "\t" or unicodedata.category(ch) == "Zs"
 
 
+def _is_alphanumeric(ch: str) -> bool:
+    # Swift `CharacterSet.alphanumerics` = Unicode general categories L*, M*, N*.
+    return unicodedata.category(ch)[0] in ("L", "M", "N")
+
+
+def _token_occurrences(hay: str, kw: str) -> list[int]:
+    # Port of Swift `KeywordMatch.rangesOfToken`: a keyword matches only where each
+    # ALPHANUMERIC edge of the keyword meets a non-alphanumeric unit or the text
+    # edge; a punctuation edge is free. `hay` is UTF-16-unit indexed (a surrogate
+    # half is not alphanumeric, matching the Swift decode of an unpaired half; a
+    # paired supplementary letter is decoded on the Swift side, and the parity
+    # cases keep such letters away from keyword edges).
+    out: list[int] = []
+    if not kw:
+        return out
+    left_alnum = _is_alphanumeric(kw[0])
+    right_alnum = _is_alphanumeric(kw[-1])
+    i = 0
+    while True:
+        idx = hay.find(kw, i)
+        if idx == -1:
+            return out
+        end = idx + len(kw)
+        left_ok = (not left_alnum) or idx == 0 or not _is_alphanumeric(hay[idx - 1])
+        right_ok = (not right_alnum) or end >= len(hay) or not _is_alphanumeric(hay[end])
+        if left_ok and right_ok:
+            out.append(idx)
+        i = idx + 1
+
+
+def _contains_token(hay: str, kw: str) -> bool:
+    # Port of Swift `KeywordMatch.containsToken`.
+    return bool(_token_occurrences(hay, kw))
+
+
 def _window(u16: str, loc: int, length: int, radius: int = 5) -> str:
     # u16 is the UTF-16-unit-indexed text (see _u16); loc/length are UTF-16 offsets.
     before = u16[max(0, loc - 200) : loc]
@@ -192,11 +229,7 @@ def _nearest(nbhd_lower: str, match_start: int, match_end: int, keywords: list[s
     for kw in keywords:
         if not kw:
             continue
-        i = 0
-        while i < len(nbhd_lower):
-            idx = nbhd_lower.find(kw, i)
-            if idx == -1:
-                break
+        for idx in _token_occurrences(nbhd_lower, kw):
             kw_start, kw_end = idx, idx + len(kw)
             if kw_end <= match_start:
                 gap = match_start - kw_end
@@ -206,7 +239,6 @@ def _nearest(nbhd_lower: str, match_start: int, match_end: int, keywords: list[s
                 gap = 0
             if best is None or gap < best:
                 best = gap
-            i = kw_end if kw_end > i else i + 1
     if best is None:
         return 0.0
     return 1.0 / (1.0 + best / 10.0)
@@ -225,8 +257,8 @@ def context_features(
     u16 = "".join(_u16(text))
     positives, negatives = _KEYWORDS.get(family, ([], []))
     window = _window(u16, loc, length).lower()
-    kw_pos = 1.0 if any(p in window for p in positives) else 0.0
-    kw_neg = 1.0 if any(n in window for n in negatives) else 0.0
+    kw_pos = 1.0 if any(_contains_token(window, p) for p in positives) else 0.0
+    kw_neg = 1.0 if any(_contains_token(window, n) for n in negatives) else 0.0
     nb_start = max(0, loc - 200)
     nb_end = min(len(u16), loc + length + 200)
     nbhd = u16[nb_start:nb_end].lower()
@@ -352,6 +384,28 @@ CASES = [
         "account",
         "financial",
         [1.0, 0.0, _R, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+    ),
+    # A keyword inside another word is not a keyword occurrence: `tel` inside
+    # "Patel" reads kw_positive_window 0 and nearest_positive 0; the whole token
+    # "Tel" one place earlier reads 1 and 1/(1 + 1/10). Shared byte-for-byte with
+    # the iOS suite (the token boundary is KeywordMatch on the Swift side).
+    (
+        "phone/keyword-inside-word",
+        "Patel 5551234567",
+        6,
+        10,
+        "phone",
+        "generic",
+        [0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    ),
+    (
+        "phone/whole-token-keyword",
+        "Tel 5551234567",
+        4,
+        10,
+        "phone",
+        "generic",
+        [1.0, 0.0, _Q, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
     ),
 ]
 
