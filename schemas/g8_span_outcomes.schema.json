@@ -234,6 +234,8 @@
         "one_token_tp",
         "recall",
         "recall_wilson95",
+        "recall_all_tokens",
+        "recall_all_tokens_wilson95",
         "by_tier",
         "token_coverage",
         "detections_per_tp"
@@ -247,6 +249,14 @@
         "one_token_tp": { "type": "integer", "minimum": 0, "description": "tp rows whose detection overlaps fewer whitespace-separated tokens than the ground-truth span holds." },
         "recall": { "type": "number", "minimum": 0, "maximum": 1, "description": "tp / (tp + fn); 0.0 when the denominator is zero." },
         "recall_wilson95": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 }
+          ],
+          "description": "Wilson 95% interval on recall_all_tokens; null when tp + fn is zero."
+        },
+        "recall_all_tokens": { "type": "number", "minimum": 0, "maximum": 1, "description": "(tp - one_token_tp) / (tp + fn): recall credited only when every token of the ground-truth span is covered by a detection; 0.0 when the denominator is zero." },
+        "recall_all_tokens_wilson95": {
           "oneOf": [
             { "type": "null" },
             { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 }

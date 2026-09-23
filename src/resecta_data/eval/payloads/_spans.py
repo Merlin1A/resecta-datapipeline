@@ -86,6 +86,8 @@ class TallyView(TypedDict):
     one_token_tp: int
     recall: float
     recall_wilson95: Interval
+    recall_all_tokens: float
+    recall_all_tokens_wilson95: Interval
     by_tier: dict[str, TierTally]
     token_coverage: dict[str, int]
     detections_per_tp: dict[str, int]
