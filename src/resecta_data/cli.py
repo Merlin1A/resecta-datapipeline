@@ -18,7 +18,6 @@ from typing import Any
 
 import click
 
-from .adversarial import build as build_adversarial_patterns
 from .bloom import (
     NAME_FILTERS_CUTOVER,
     BloomFilter,
@@ -57,7 +56,7 @@ from .classifier import (
     build_sweep_thresholds,
     finalize_sweep_thresholds,
 )
-from .commands import install, verify
+from .commands import install, vectors, verify
 from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band, _run_rebuild_streaming
 from .common.cutover import build_cutover_diff
 from .common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
@@ -79,8 +78,6 @@ from .eval import documents as eval_documents
 from .eval import run as eval_run
 from .eval.compare_documents import build_compare_documents
 from .eval.sitegap import build_site_gap
-from .fuzz import DEFAULT_MUTATION_COUNT, MUTATIONS_DIRNAME, build_pdf_mutations
-from .fuzz import build as build_fuzz_redos
 from .gazetteers.address_components import ADDRESS_COMPONENTS_CUTOVER
 from .gazetteers.address_components import build as build_address_components
 from .gazetteers.context_keywords import build as build_context_keywords
@@ -101,7 +98,6 @@ from .instrumentation.bundle_size import build as build_bundle_size
 from .instrumentation.bundle_size import build_meta as build_bundle_size_meta
 from .routes import INSTALL_ROUTES, SCHEMA_ROUTES, SHRINK_GUARDED_ROUTES
 from .rules import build as build_rule_catalog
-from .vectors import VECTOR_FAMILIES, VectorBuilder
 
 # The names importers read on this module besides ``main``: the routing tables (their
 # historical home) and the private helpers the tests pin, each defined in the module that
@@ -150,41 +146,6 @@ def build_group() -> None:
     """Generate Phase 1+ artifacts into build/."""
 
 
-# Views over the one vector-family config (``vectors/__init__.py``): the CLI
-# ``kind`` names, their builders and their output filenames come from one tuple.
-_VECTOR_BUILDERS: dict[str, VectorBuilder] = {f.kind: f.builder for f in VECTOR_FAMILIES}
-_VECTOR_OUTPUT_FILENAMES: dict[str, str] = {f.kind: f.output_filename for f in VECTOR_FAMILIES}
-_VECTOR_KINDS: tuple[str, ...] = tuple(f.kind for f in VECTOR_FAMILIES)
-
-
-@build_group.command("vectors")
-@click.argument(
-    "kind",
-    type=click.Choice([*_VECTOR_KINDS, "all"]),
-)
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-    help="PRNG seed. Default is the canonical seed; vary only for ablation.",
-)
-def build_vectors_cmd(kind: str, build_dir: Path, seed: int) -> None:
-    """Build Phase 1 test vectors (checksummed + structural PII detectors)."""
-    assert_hash_seed_pinned()
-    selected = list(_VECTOR_KINDS) if kind == "all" else [kind]
-    for name in selected:
-        payload = _VECTOR_BUILDERS[name](seed)
-        dest = build_dir / "vectors" / _VECTOR_OUTPUT_FILENAMES[name]
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['vectors'])} vectors)")
-
-
 @build_group.command("zip-scf")
 @click.option(
     "--source",
@@ -223,92 +184,6 @@ def build_zip_scf_cmd(
         f"Wrote {dest} ({len(payload['scf_table'])} SCF rows, "
         f"{len(payload['overrides'])} overrides)"
     )
-
-
-@build_group.command("fuzz")
-@click.argument("kind", type=click.Choice(["redos", "pdf-mutations"]))
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-)
-@click.option(
-    "--packet",
-    "packet_path",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    default=None,
-    help=(
-        "Source PDF the pdf-mutations kind damages (a sample-doc checkout's "
-        "packet.pdf). Required for that kind; ignored otherwise. Nothing binary "
-        "is committed here -- the base is read at build time and its sha256 is "
-        "recorded in the manifest."
-    ),
-)
-@click.option(
-    "--count",
-    type=int,
-    default=DEFAULT_MUTATION_COUNT,
-    show_default=True,
-    help="How many pdf-mutations fixtures to emit, split evenly across the four families.",
-)
-def build_fuzz_cmd(
-    kind: str,
-    build_dir: Path,
-    seed: int,
-    packet_path: Path | None,
-    count: int,
-) -> None:
-    """Build fuzz payload catalogs."""
-    assert_hash_seed_pinned()
-    if kind == "redos":
-        payload = build_fuzz_redos(seed)
-        dest = build_dir / "fuzz" / "redos_payloads.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['payloads'])} payloads)")
-        return
-
-    if packet_path is None:
-        raise click.UsageError("--packet is required for `build fuzz pdf-mutations`.")
-    mutation_set = build_pdf_mutations(seed, source=packet_path.read_bytes(), count=count)
-    fuzz_dir = build_dir / "fuzz"
-    for rel, data in mutation_set.files:
-        atomic_write_bytes(fuzz_dir / rel, data)
-    dest = fuzz_dir / "pdf_mutations.json"
-    dump_canonical_json(mutation_set.manifest, dest)
-    click.echo(
-        f"Wrote {dest} ({len(mutation_set.files)} fixtures under "
-        f"{fuzz_dir / MUTATIONS_DIRNAME}/; base sha256 "
-        f"{mutation_set.manifest['base_sha256'][:12]}...)"
-    )
-
-
-@build_group.command("adversarial")
-@click.argument("kind", type=click.Choice(["patterns"]))
-@click.option(
-    "--build-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--seed",
-    type=int,
-    default=CANONICAL_SEED,
-    show_default=True,
-)
-def build_adversarial_cmd(kind: str, build_dir: Path, seed: int) -> None:
-    """Build adversarial pattern fixtures."""
-    assert_hash_seed_pinned()
-    if kind == "patterns":
-        payload = build_adversarial_patterns(seed)
-        dest = build_dir / "adversarial" / "adversarial_patterns.json"
-        dump_canonical_json(payload, dest)
-        click.echo(f"Wrote {dest} ({len(payload['patterns'])} patterns)")
 
 
 # -----------------------------------------------------------------------------
@@ -1592,6 +1467,7 @@ def build_calibrate_group() -> None:
 
 verify.register(main, build_group, build_calibrate_group)
 install.register(main, build_group, build_calibrate_group)
+vectors.register(main, build_group, build_calibrate_group)
 
 
 @build_calibrate_group.command("temperature")
