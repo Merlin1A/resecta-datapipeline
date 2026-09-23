@@ -30,10 +30,11 @@ def runner() -> CliRunner:
 # Structure: cli.py holds registration only (CONTRIBUTING.md, "Structure")
 # -----------------------------------------------------------------------------
 
-# cli.py's line count when this pin landed. Lowered when the file is split,
-# never raised: a new subcommand or eval stage lands as a module and adds only
-# its click registration here.
-_CLI_LINE_CEILING = 2843
+# cli.py's line count when the split landed: the three groups, one register
+# call per command module, the re-exports and the exception handler. Never
+# raised: a new subcommand lands in its family's module under commands/ and
+# reaches the tree through that module's register call.
+_CLI_LINE_CEILING = 127
 
 
 def test_cli_line_count_does_not_grow() -> None:

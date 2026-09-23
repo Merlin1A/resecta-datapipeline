@@ -1,8 +1,10 @@
-"""CLI entry points for the data pipeline.
+"""The CLI: the three click groups and the registration of every command.
 
-At Phase 0 the CLI provides verification commands only: schema validation,
-determinism check, hash-lockfile check, and asset installation. Build
-subcommands land in Phase 1+.
+``main`` (the root), ``build`` and ``build calibrate`` are defined here; the
+commands live in ``commands/``, one module per builder family, and each module
+attaches its commands through the ``register`` call below. A new subcommand
+lands in its family's module and reaches the tree only through that call
+(CONTRIBUTING.md, "Structure").
 """
 
 from __future__ import annotations

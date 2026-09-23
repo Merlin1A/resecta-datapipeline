@@ -80,16 +80,20 @@ These are non-negotiable; the test suite enforces them.
 
 ## Structure
 
-`src/resecta_data/cli.py` holds the click registration only. A new subcommand
-or eval stage lands as a module under `src/resecta_data/<package>/` — a
-builder beside its siblings, an eval stage under `eval/` — and `cli.py` gains
+`src/resecta_data/cli.py` holds the three click groups and one `register`
+call per command module. The commands live in `src/resecta_data/commands/`,
+one module per builder family (`verify`, `install`, `vectors`, `bloom`,
+`gazetteers`, `corpus`, `eval`, `classifier`, `instrumentation`); the routing
+tables live in `src/resecta_data/routes.py`. A new subcommand or eval stage
+lands as a module under `src/resecta_data/<package>/` — a builder beside its
+siblings, an eval stage under `eval/` — and its family's command module gains
 the command that parses the options and calls it, not the stage's logic. The
-three eval commands whose loading, wiring and reporting still sit inline in
-`cli.py` (`build eval-documents`, `build eval-compare-documents`,
-`build eval-sitegap`) are the counter-example, kept until the file is split.
-`tests/test_cli.py::test_cli_line_count_does_not_grow` pins the file's line
-count at the value it had when this rule landed; the pin is lowered when the
-file is split, never raised.
+three eval commands whose loading, wiring and reporting still sit inline
+(`build eval-documents`, `build eval-compare-documents`, `build eval-sitegap`)
+are the counter-example, kept in `commands/eval.py`.
+`tests/test_cli.py::test_cli_line_count_does_not_grow` pins `cli.py`'s line
+count at the value it had when the split landed and is never raised;
+`tests/test_cli_help_golden.py` pins every command's `--help` text.
 
 ## Commit format and sign-off
 
