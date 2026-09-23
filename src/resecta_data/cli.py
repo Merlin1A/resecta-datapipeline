@@ -24,8 +24,6 @@ from .bloom import (
     BloomFilter,
     FilterBuildResult,
     build_manifest,
-    build_shipped_manifest,
-    collect_asset_entries,
     optimal_bits,
 )
 from .bloom.corpus_ingest import (
@@ -49,7 +47,6 @@ from .bloom.spec import (
     GIVEN_NAME_FILTER_FILE,
     K_HASHES,
     MANIFEST_FILE,
-    SHIPPED_MANIFEST_FILE,
     SURNAME_FILTER_FILE,
 )
 from .classifier import (
@@ -60,7 +57,7 @@ from .classifier import (
     build_sweep_thresholds,
     finalize_sweep_thresholds,
 )
-from .commands import verify
+from .commands import install, verify
 from .commands.verify import _OUT_OF_BAND_PREFIXES, _is_out_of_band, _run_rebuild_streaming
 from .common.cutover import build_cutover_diff
 from .common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
@@ -70,14 +67,7 @@ from .common.exceptions import (
     PipelineError,
     SchemaValidationError,
 )
-from .common.io import (
-    atomic_write_bytes,
-    dump_canonical_json,
-    iter_build_artifacts,
-    load_json,
-    read_hash_lockfile,
-    sha256_file,
-)
+from .common.io import atomic_write_bytes, dump_canonical_json, load_json, sha256_file
 from .common.schema import validate_file
 from .corpus import build_g8_corpus, build_negative_corpus
 from .corpus._profiles import PROFILE_G8
@@ -103,22 +93,12 @@ from .gazetteers.institutions import (
 from .gazetteers.institutions import build as build_institutions
 from .gazetteers.name_common_words import build as build_name_common_words
 from .gazetteers.negative_context import build as build_negative_context
-from .gazetteers.negative_context.stage_reviewed import (
-    stage_reviewed as stage_reviewed_negative_context,
-)
 from .gazetteers.nicknames import build as build_nicknames
 from .gazetteers.passport_patterns import build as build_passport_patterns
 from .gazetteers.zip_scf import build as build_zip_scf
 from .instrumentation.bundle_size import DEFAULT_SUB_DIRS as BUNDLE_SIZE_DEFAULT_SUB_DIRS
 from .instrumentation.bundle_size import build as build_bundle_size
 from .instrumentation.bundle_size import build_meta as build_bundle_size_meta
-from .manifest_signing import (
-    DEFAULT_PRIVATE_KEY_PATH,
-    export_public_key,
-    generate_private_key,
-    load_private_key,
-    sign_manifest_file,
-)
 from .routes import INSTALL_ROUTES, SCHEMA_ROUTES, SHRINK_GUARDED_ROUTES
 from .rules import build as build_rule_catalog
 from .vectors import VECTOR_FAMILIES, VectorBuilder
@@ -137,20 +117,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def _entries_count(path: Path) -> int | None:
-    """Return ``len(payload["entries"])`` for an ``entries``-list gazetteer, else None.
-
-    Returns None on any read / parse problem or a non-``entries`` shape, so the
-    shrink guard fails open (skips) rather than blocking an unrelated artifact.
-    """
-    try:
-        payload = load_json(path)
-    except PipelineError:
-        return None
-    entries = payload.get("entries") if isinstance(payload, dict) else None
-    return len(entries) if isinstance(entries, list) else None
 
 
 DEBUG_VERBOSITY = 2
@@ -172,293 +138,6 @@ def main(ctx: click.Context, verbose: int) -> None:
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
     )
     ctx.ensure_object(dict)
-
-
-# -----------------------------------------------------------------------------
-# Stage reviewed negative-context (D6)
-# -----------------------------------------------------------------------------
-
-
-@main.command("stage-reviewed-negctx")
-@click.option(
-    "--build-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--reviewed-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    default=None,
-    help=(
-        "Directory holding the committed reviewed files. Defaults to "
-        "src/resecta_data/gazetteers/negative_context/reviewed/."
-    ),
-)
-def stage_reviewed_negctx_cmd(build_dir: Path, reviewed_dir: Path | None) -> None:
-    """Stage the committed reviewed negative_context.json into build/.
-
-    Verifies the meta sidecar's ``reviewed_version`` against the live
-    candidates hash before copying — a mismatch means the candidates
-    changed without the sidecar being re-stamped under an approved change
-    plan, and staging refuses.
-    """
-    if reviewed_dir is None:
-        staged = stage_reviewed_negative_context(build_dir)
-    else:
-        staged = stage_reviewed_negative_context(build_dir, reviewed_dir)
-    for dest in staged:
-        click.echo(f"Staged {dest}")
-    click.echo("Reviewed negative_context.json staged into build/ (survives make clean).")
-
-
-# -----------------------------------------------------------------------------
-# Install assets
-# -----------------------------------------------------------------------------
-
-
-@main.command("install-assets")
-@click.option(
-    "--build-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--resources-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-    help="Target: Packages/RedactionEngine/Sources/RedactionEngine/Resources/",
-)
-@click.option(
-    "--fixtures-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-    help="Target: Packages/RedactionEngine/Tests/RedactionEngineTests/Fixtures/",
-)
-@click.option(
-    "--allow-shrink",
-    is_flag=True,
-    default=False,
-    help=(
-        "Permit a shrink-guarded gazetteer (e.g. institutions.json) to be "
-        "overwritten by a smaller build/ artifact. Required only after the "
-        "institutions fetches make build/ a verified superset. Off by default "
-        "so a bare refresh cannot regress a committed corpus."
-    ),
-)
-def install_assets_cmd(
-    build_dir: Path,
-    resources_dir: Path,
-    fixtures_dir: Path,
-    allow_shrink: bool,
-) -> None:
-    """Copy artifacts from build/ into the Swift tree.
-
-    Routing is defined in ``INSTALL_ROUTES``. Each route names a target
-    ("resources" or "fixtures") and a path within that target directory.
-    Artifacts without an install route remain in build/ and are not copied.
-    """
-    artifacts = iter_build_artifacts(build_dir)
-    if not artifacts:
-        click.echo("Nothing to install.")
-        return
-
-    targets = {"resources": resources_dir, "fixtures": fixtures_dir}
-    copied = 0
-    skipped_no_route: list[str] = []
-
-    for path in artifacts:
-        rel = path.relative_to(build_dir).as_posix()
-        route = INSTALL_ROUTES.get(rel)
-        if route is None:
-            skipped_no_route.append(rel)
-            continue
-        target_name, sub_path = route
-        if target_name not in targets:
-            raise PipelineError(
-                f"{rel}: unknown install target {target_name!r}; expected one of {sorted(targets)}"
-            )
-        dest = targets[target_name] / sub_path
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        # D11-config-golive-F1 shrink-guard — fail loud before overwriting a
-        # larger committed file. Acts only when the route is shrink-guarded, the
-        # dest already exists, both parse as `entries`-list gazetteers, and the
-        # source has strictly fewer entries. Growth / equal / non-gazetteer /
-        # unparseable paths fall through to the copy unchanged.
-        if rel in SHRINK_GUARDED_ROUTES and dest.exists() and not allow_shrink:
-            src_n = _entries_count(path)
-            dst_n = _entries_count(dest)
-            if src_n is not None and dst_n is not None and src_n < dst_n:
-                raise PipelineError(
-                    f"{rel}: refusing to shrink shipped gazetteer "
-                    f"{dst_n} -> {src_n} entries. The committed file is a "
-                    f"superset; complete the institutions fetches + "
-                    f"`gmake gazetteers` so build/ is >= shipped, or pass "
-                    f"--allow-shrink to override. See cutover-diff "
-                    f"build/gazetteers/institutions.cutover-diff.json "
-                    f"(legacy_only entries are the names that would be dropped)."
-                )
-        shutil.copy2(path, dest)
-        if sha256_file(dest) != sha256_file(path):
-            raise PipelineError(f"Install verify failed: {dest} differs from {path}")
-        copied += 1
-
-    click.echo(f"Installed: {copied}")
-    if skipped_no_route:
-        click.echo(f"Held in build/ (no install route): {len(skipped_no_route)}")
-        for r in skipped_no_route:
-            click.echo(f"  - {r}")
-
-
-# -----------------------------------------------------------------------------
-# Shipped manifest: the bloom manifest + every installed asset's digest
-# -----------------------------------------------------------------------------
-
-
-@main.command("manifest-assets")
-@click.option(
-    "--build-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    required=True,
-)
-@click.option(
-    "--resources-dir",
-    type=click.Path(file_okay=False, path_type=Path),
-    default=None,
-    help=(
-        "The iOS Resources/ tree install-assets targets. A routed asset this "
-        "host did not build is digested from its installed copy here (install "
-        "leaves it alone, so that is what ships). Absent or missing: only built "
-        "artifacts are listed."
-    ),
-)
-@click.option(
-    "--lockfile",
-    type=click.Path(dir_okay=False, path_type=Path),
-    default=Path("asset_hashes.lock"),
-    show_default=True,
-    help=(
-        "Cross-check source: each entry is reported as matching, differing from, "
-        "or absent from the lock."
-    ),
-)
-def manifest_assets_cmd(build_dir: Path, resources_dir: Path | None, lockfile: Path) -> None:
-    """Derive the shipped manifest from the bloom builder's manifest.
-
-    Reads ``build/gazetteers/gazetteer_manifest.json`` (a locked ``make build``
-    product) and writes ``gazetteer_manifest.shipped.json`` beside it: the
-    same ``filters[]``, ``version`` raised to the shipped version, and an
-    ``assets[]`` section with ``{path, sha256, bytes}`` for every asset
-    ``install-assets`` routes into the engine bundle except the manifest
-    triple. The digests are of the bytes install ships — the built artifact
-    when present, else the installed file — so the engine's first-load
-    verification never refuses the bundle the pipeline itself installed.
-    ``sign-manifest`` signs this file; it is out-of-band relative to the lock.
-    """
-    base_path = build_dir / "gazetteers" / MANIFEST_FILE
-    if not base_path.is_file():
-        raise click.ClickException(f"Manifest not found at {base_path}. Run `make bloom` first.")
-    base = load_json(base_path)
-    if not isinstance(base, dict):
-        raise click.ClickException(f"{base_path}: manifest root must be an object")
-    lock = read_hash_lockfile(lockfile) if lockfile.is_file() else {}
-    resources = resources_dir if resources_dir is not None and resources_dir.is_dir() else None
-    entries, skipped = collect_asset_entries(
-        build_dir=build_dir, resources_dir=resources, routes=INSTALL_ROUTES, lock=lock
-    )
-    shipped = build_shipped_manifest(base, entries)
-    dest = build_dir / "gazetteers" / SHIPPED_MANIFEST_FILE
-    dump_canonical_json(shipped, dest)
-
-    for entry in entries:
-        lock_state = entry.lock if entry.lock is not None else "no lock row"
-        click.echo(
-            f"  {entry.path}  {entry.sha256[:12]}…  {entry.size} B  "
-            f"[{entry.source}; lock: {lock_state}]"
-        )
-    click.echo(
-        f"Shipped manifest: {dest.relative_to(build_dir)} "
-        f"({len(entries)} assets; version {shipped['version']})"
-    )
-    for rel in skipped:
-        click.echo(f"  - not listed (neither built nor installed): {rel}")
-
-
-# -----------------------------------------------------------------------------
-# Sign manifest (verified by the iOS engine)
-# -----------------------------------------------------------------------------
-
-
-@main.command("sign-manifest")
-@click.option(
-    "--build-dir",
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-    required=True,
-    help="Directory containing build/gazetteers/gazetteer_manifest.json.",
-)
-@click.option(
-    "--private-key",
-    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
-    default=None,
-    help=(
-        "Path to the Ed25519 private key PEM. Defaults to "
-        "~/.resecta-data/manifest-private-key.pem (gitignored — outside "
-        "both repos so the key never enters git history)."
-    ),
-)
-@click.option(
-    "--generate-key",
-    is_flag=True,
-    default=False,
-    help=(
-        "Generate a new Ed25519 private key at --private-key if it does "
-        "not already exist. Rotation cadence is per major release; this "
-        "flag exists for the initial keypair only."
-    ),
-)
-def sign_manifest_cmd(
-    build_dir: Path,
-    private_key: Path | None,
-    generate_key: bool,
-) -> None:
-    """Sign the shipped manifest (``gazetteer_manifest.shipped.json``) with Ed25519.
-
-    Writes ``gazetteer_manifest.sig`` and ``manifest_public_key.pem`` next
-    to the manifest. Both files are picked up by ``install-assets`` via the
-    routing entries above and copied into the iOS Resources/Gazetteers/
-    tree. The iOS engine verifies the signature at detector init
-    (see GazetteerLoader.swift).
-
-    Cross-boundary wire-format changes need a paired Swift PR
-    (Ed25519; the signing key rotates per major release).
-    """
-    key_path = private_key if private_key is not None else DEFAULT_PRIVATE_KEY_PATH
-
-    if generate_key:
-        if key_path.exists():
-            click.echo(f"Key already exists at {key_path}; refusing to overwrite.")
-        else:
-            generate_private_key(key_path)
-            click.echo(f"Generated new Ed25519 private key at {key_path}")
-
-    pk = load_private_key(key_path)
-
-    manifest_path = build_dir / "gazetteers" / SHIPPED_MANIFEST_FILE
-    if not manifest_path.is_file():
-        raise click.ClickException(
-            f"Shipped manifest not found at {manifest_path}. Run `make manifest-assets` first."
-        )
-
-    # The signature file keeps its name (`gazetteer_manifest.sig`): the iOS
-    # verifier reads the manifest as `gazetteer-manifest.json` and the
-    # signature as `gazetteer_manifest.sig` regardless of the build-side stem.
-    signature_path = sign_manifest_file(
-        manifest_path, pk, signature_path=build_dir / "gazetteers" / "gazetteer_manifest.sig"
-    )
-    public_key_path = build_dir / "gazetteers" / "manifest_public_key.pem"
-    export_public_key(pk, public_key_path)
-
-    click.echo(f"Signed: {signature_path.relative_to(build_dir)}")
-    click.echo(f"Public key: {public_key_path.relative_to(build_dir)}")
 
 
 # -----------------------------------------------------------------------------
@@ -1912,6 +1591,7 @@ def build_calibrate_group() -> None:
 
 
 verify.register(main, build_group, build_calibrate_group)
+install.register(main, build_group, build_calibrate_group)
 
 
 @build_calibrate_group.command("temperature")
