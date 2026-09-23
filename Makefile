@@ -108,6 +108,7 @@ BLOOM_PY              := $(shell find src/resecta_data/bloom -name '*.py' 2>/dev
 BLOOM_NAME_CORPORA    := $(shell find src/resecta_data/gazetteers/sources/ssa_given_names src/resecta_data/gazetteers/sources/census_surnames src/resecta_data/gazetteers/sources/census_spanish src/resecta_data/gazetteers/sources/paranames src/resecta_data/gazetteers/sources/popnames -type f 2>/dev/null)
 GAZ_NEGCTX_PY         := $(shell find src/resecta_data/gazetteers/negative_context -name '*.py' 2>/dev/null)
 GAZ_NEGCTX_SOURCES    := $(wildcard src/resecta_data/gazetteers/sources/negative_context/*.txt)
+GAZ_NEGCTX_DATA       := $(wildcard src/resecta_data/gazetteers/negative_context/sources/*.json)
 GAZ_INSTITUTIONS_PY   := $(shell find src/resecta_data/gazetteers/institutions -name '*.py' 2>/dev/null)
 GAZ_INSTITUTIONS_SOURCES := $(wildcard src/resecta_data/gazetteers/institutions/sources/gsa_federal_agencies_*.csv) src/resecta_data/gazetteers/institutions/sources/federalregister_agencies.json $(wildcard src/resecta_data/gazetteers/institutions/sources/fdic_institutions_*.csv) $(wildcard src/resecta_data/gazetteers/institutions/sources/edgar_company_tickers_*.json)
 GAZ_ADDRESS_PY        := $(shell find src/resecta_data/gazetteers/address_components -name '*.py' 2>/dev/null)
@@ -579,7 +580,7 @@ gazetteers:  ## [Phase 2] Build the non-Bloom gazetteers in parallel
 	             $(STAMP_DIR)/gaz-address $(STAMP_DIR)/passport-patterns \
 	             $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(GAZ_NICKNAMES_STAMP)
 
-$(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) | $(VENV_DIR)/pyvenv.cfg
+$(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(GAZ_NEGCTX_DATA) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,gaz-negctx,$(RESECTA_DATA) build gazetteers negative-context --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: gazetteers-negative-context

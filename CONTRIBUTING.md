@@ -115,7 +115,7 @@ re-stamps.
 
 The same posture covers every change in this list:
 
-- the negative-context candidates (`gazetteers/negative_context/_scope_rules.py`)
+- the negative-context candidates (`gazetteers/negative_context/sources/scope_rules_v1.json`)
   and the reviewed `negative_context.json` with its sidecar;
 - the context-keyword candidates (`context/sources/d12_candidates.json`,
   `context/sources/d16_bates_anchors.json`,

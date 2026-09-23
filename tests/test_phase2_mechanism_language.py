@@ -32,7 +32,9 @@ def test_schema_is_mechanism_safe(name: str) -> None:
 
 
 def test_phase2_modules_are_mechanism_safe() -> None:
+    """Builder modules and the data files whose strings reach an asset (the
+    negative-context rationales) pass the same scanner."""
     for module_dir in _MODULE_DIRS:
-        for py in module_dir.rglob("*.py"):
-            hits = scan_text(py.read_text(encoding="utf-8"))
-            assert hits == [], f"{py}: banned phrases {hits!r}"
+        for path in (*module_dir.rglob("*.py"), *module_dir.glob("sources/*.json")):
+            hits = scan_text(path.read_text(encoding="utf-8"))
+            assert hits == [], f"{path}: banned phrases {hits!r}"
