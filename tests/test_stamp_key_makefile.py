@@ -121,16 +121,17 @@ def _rule(db: str, target: str) -> tuple[list[str], str]:
 
 
 def test_every_stamp_covers_common_deps(make_db: str) -> None:
-    """cli.py and every common/*.py module must stay in every stamp's
-    closure — they are the irreducible shared writer set."""
+    """cli.py, routes.py and every common/*.py module must stay in every
+    stamp's closure — they are the irreducible shared writer set."""
     common_files = {
         p.relative_to(REPO_ROOT).as_posix()
         for p in (REPO_ROOT / "src/resecta_data/common").glob("*.py")
     }
     assert common_files, "no common/*.py found — wrong repo root?"
+    shared = {"src/resecta_data/cli.py", "src/resecta_data/routes.py"} | common_files
     for stamp in STAMPS:
         prereqs, _ = _rule(make_db, f"build/.stamps/{stamp}")
-        missing = ({"src/resecta_data/cli.py"} | common_files) - set(prereqs)
+        missing = shared - set(prereqs)
         assert not missing, f"stamp {stamp} lost closure coverage of: {sorted(missing)}"
 
 
