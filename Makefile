@@ -1006,9 +1006,12 @@ eval: bootstrap corpus ## corpus (EVAL_CORPUS_PROFILE) -> both G8 emitters (host
 # flow into Resources/Gazetteers/ via `install-assets` so the iOS engine
 # can verify the manifest at detector init.
 #
-# Private key lives at ~/.resecta-data/manifest-private-key.pem (gitignored
-# — outside both repos so it never enters git history). Rotation cadence
-# is per major release.
+# Private key lives under ~/.resecta-data/ (gitignored — outside both repos
+# so it never enters git history): manifest-private-key.pem.age (age-encrypted,
+# preferred; decrypted in memory through the age identity at
+# ~/.resecta-data/age-identity.txt) or the transitional plaintext
+# manifest-private-key.pem. The key is rotated on the maintainer's documented
+# schedule and on any suspicion of compromise — see KEY-MANAGEMENT.md.
 #
 # install-assets depends on sign-manifest so the .sig / .pem files are
 # always in build/ for the asset install + hash-check.
@@ -1141,8 +1144,18 @@ doctor: ## Print environment health summary (read-only)
 	  else echo "  – $$d absent (make calibrate fails with a pointer)"; fi; done
 	@echo ""
 	@echo "=== Signing key ==="
-	@k="$$HOME/.resecta-data/manifest-private-key.pem"; \
-	  if [ -f "$$k" ]; then echo "  ✓ $$k present"; else echo "  ⚠️  $$k missing — sign-manifest needs it (or --generate-key for a new pair)"; fi
+	@d="$$HOME/.resecta-data"; k="$$d/manifest-private-key.pem"; e="$$k.age"; i="$$d/age-identity.txt"; \
+	  if [ -f "$$e" ]; then echo "  ✓ $$e present (age-encrypted working copy)"; \
+	    if [ -f "$$i" ]; then echo "  ✓ $$i present"; \
+	      p="$$(sed -nE '/^AGE-PLUGIN-/{s/^AGE-PLUGIN-([A-Z0-9-]+)-1.*/\1/p;q;}' "$$i" 2>/dev/null | tr 'A-Z' 'a-z' || true)"; \
+	      if [ -n "$$p" ]; then if command -v "age-plugin-$$p" >/dev/null 2>&1; then echo "  ✓ age-plugin-$$p on PATH"; \
+	        else echo "  ⚠️  age-plugin-$$p not on PATH — the identity needs it to decrypt"; fi; fi; \
+	    else echo "  ⚠️  $$i missing — sign-manifest cannot decrypt the key (pass --age-identity)"; fi; \
+	    if [ -f "$$k" ]; then echo "  ⚠️  $$k also present in plaintext — retire it (KEY-MANAGEMENT.md)"; fi; \
+	  elif [ -f "$$k" ]; then echo "  ⚠️  $$k present in PLAINTEXT (transitional) — move it into the encrypted form (KEY-MANAGEMENT.md)"; \
+	  else echo "  ⚠️  no signing key under $$d — sign-manifest needs one (--generate-key --encrypt-to RECIPIENT)"; fi; \
+	  if command -v age >/dev/null 2>&1; then echo "  ✓ age on PATH ($$(age --version 2>/dev/null))"; \
+	  else echo "  ⚠️  age not on PATH — required to read an encrypted key"; fi
 	@echo ""
 	@echo "=== Ingest cache ==="
 	@if [ -d $(BUILD_DIR)/gazetteers/_ingest_cache ]; then printf "  size: "; du -sh $(BUILD_DIR)/gazetteers/_ingest_cache 2>/dev/null | cut -f1; \

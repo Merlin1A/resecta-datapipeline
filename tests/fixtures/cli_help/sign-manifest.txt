@@ -7,15 +7,23 @@ Usage: resecta-data sign-manifest [OPTIONS]
   Resources/Gazetteers/ tree. The iOS engine verifies the signature at detector init (see
   GazetteerLoader.swift).
 
-  Cross-boundary wire-format changes need a paired Swift PR (Ed25519; the signing key rotates per
-  major release).
+  Cross-boundary wire-format changes need a paired Swift PR (Ed25519; the signing key is rotated on
+  the maintainer's documented schedule and on any suspicion of compromise — see KEY-MANAGEMENT.md).
 
 Options:
-  --build-dir DIRECTORY  Directory containing build/gazetteers/gazetteer_manifest.json.  [required]
-  --private-key FILE     Path to the Ed25519 private key PEM. Defaults to ~/.resecta-data/manifest-
-                         private-key.pem (gitignored — outside both repos so the key never enters
-                         git history).
-  --generate-key         Generate a new Ed25519 private key at --private-key if it does not already
-                         exist. Rotation cadence is per major release; this flag exists for the
-                         initial keypair only.
-  --help                 Show this message and exit.
+  --build-dir DIRECTORY   Directory containing build/gazetteers/gazetteer_manifest.json.  [required]
+  --private-key FILE      Path to the Ed25519 private key: an age-encrypted file (*.age, decrypted
+                          in memory through --age-identity) or a plaintext PEM. Defaults to
+                          ~/.resecta-data/manifest-private-key.pem.age when it exists, else
+                          ~/.resecta-data/manifest-private-key.pem (gitignored — outside both repos
+                          so the key never enters git history).
+  --age-identity FILE     age identity file used to decrypt an encrypted --private-key. Defaults to
+                          ~/.resecta-data/age-identity.txt.
+  --generate-key          Generate a new Ed25519 private key at --private-key if it does not already
+                          exist. With --encrypt-to the key is born straight into its age-encrypted
+                          form and no plaintext is written. The key is rotated on the maintainer's
+                          documented schedule and on any suspicion of compromise — see KEY-
+                          MANAGEMENT.md.
+  --encrypt-to RECIPIENT  age recipient for --generate-key. Required when the key path ends in .age;
+                          when --private-key is omitted the encrypted default path is used.
+  --help                  Show this message and exit.
