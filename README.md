@@ -280,6 +280,8 @@ The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed
 
 Every pull request runs a hermetic gate on a hosted runner (`ci.yml`): `ruff check`, `ruff format --check`, `mypy`, `pytest`, the pure-code builders, schema validation, and a hash check of everything built. A weekly `verify.yml` run hydrates the large fetched sources (SHA-256-validated, cached) and runs the full verify sequence, and `security.yml` audits the locked dependency set. Locally, `make verify` (use `gmake` on macOS) remains the gate: it runs `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, hash-lock verification, and a determinism rebuild; `scripts/ci_verify.sh` runs the same sequence as a local smoke check.
 
+The shipped manifest is signed with an Ed25519 key that lives outside the repository, held age-encrypted on the maintainer's machine and decrypted in memory only while `make sign-manifest` runs; `make doctor` reports the key's state. What the signature proves, the current public-key fingerprint, and the rotation and exposure procedures are in [`KEY-MANAGEMENT.md`](KEY-MANAGEMENT.md).
+
 ---
 
 ## Property-based testing
