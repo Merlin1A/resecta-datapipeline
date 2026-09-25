@@ -340,6 +340,11 @@ def sign_manifest_cmd(
 
     if generate_key:
         if key_path.exists():
+            if encrypt_to is not None:
+                raise click.UsageError(
+                    f"Key already exists at {key_path}; --encrypt-to applies to a new key only. "
+                    "To rotate, retire the existing key first (KEY-MANAGEMENT.md)."
+                )
             click.echo(f"Key already exists at {key_path}; refusing to overwrite.")
         else:
             if is_encrypted_key_path(key_path) and encrypt_to is None:

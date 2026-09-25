@@ -257,3 +257,23 @@ def test_is_encrypted_key_path() -> None:
     assert is_encrypted_key_path(Path("k.pem.age"))
     assert not is_encrypted_key_path(Path("k.pem"))
     assert not is_encrypted_key_path(Path("k.age.pem"))
+
+
+def test_generate_at_the_encrypted_default_refuses_while_plaintext_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plaintext = tmp_path / "manifest-private-key.pem"
+    encrypted = tmp_path / "manifest-private-key.pem.age"
+    monkeypatch.setattr(manifest_signing, "DEFAULT_PRIVATE_KEY_PATH", plaintext)
+    monkeypatch.setattr(manifest_signing, "DEFAULT_ENCRYPTED_KEY_PATH", encrypted)
+    plaintext.write_bytes(b"pem")
+    fake_age = _write_script(tmp_path / "fake-age", "cat\n")
+
+    with pytest.raises(PipelineError, match="would replace it"):
+        generate_private_key(encrypted, encrypt_to="age1fakerecipient", age_bin=fake_age)
+    assert not encrypted.exists()
+
+    # An explicit non-default path is not subject to the guard.
+    elsewhere = tmp_path / "other.pem.age"
+    generate_private_key(elsewhere, encrypt_to="age1fakerecipient", age_bin=fake_age)
+    assert elsewhere.is_file()

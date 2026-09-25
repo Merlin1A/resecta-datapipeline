@@ -47,9 +47,6 @@ openssl pkey -pubin \
   -outform DER | openssl dgst -sha256
 ```
 
-The app's test suite pins the same fingerprint, so a change to the bundled key
-is a deliberate, reviewed change.
-
 ## How the private key is held
 
 The private key does not enter either repository and is not published.
@@ -61,19 +58,38 @@ The private key does not enter either repository and is not published.
 - An offline recovery copy of the same key, encrypted to a passphrase that
   exists only on paper, is kept apart from the machine. Loss of the machine
   is a restore from that copy, not a forced rotation.
-- The location of either copy is not published.
+- The paper copy's location is not published.
 
 `make doctor` reports which form of the key is present and whether the tools
 needed to read it are on the path.
 
+### Moving an existing key into the encrypted form
+
+Encrypting a key that already exists is not a generation step: encrypt the
+PEM in place with `age -r RECIPIENT -o manifest-private-key.pem.age
+manifest-private-key.pem`, check that the encrypted file decrypts to the
+bundled public key without writing private bytes anywhere —
+
+```sh
+age -d -i age-identity.txt manifest-private-key.pem.age \
+  | openssl pkey -pubout | diff - manifest_public_key.pem
+```
+
+— and only then delete the plaintext file. `sign-manifest` refuses to
+generate a new key at the encrypted default path while a plaintext key is
+still present, because the encrypted file would take precedence and every
+later signing run would use the new key.
+
 ## Rotation
 
 The key is rotated on the maintainer's documented schedule and on any
-suspicion of compromise. A rotation generates a new key straight into its
-encrypted form (`sign-manifest --generate-key --encrypt-to RECIPIENT`; no
-plaintext is written), re-signs the manifest, and ships the new public key
-inside the next app update. The app pins the public key it bundles, so a given
-app version verifies against exactly one key.
+suspicion of compromise. A rotation retires the existing key (an encrypted
+copy is kept until the release that carries the new key is out), generates a
+new key straight into its encrypted form (`sign-manifest --generate-key
+--encrypt-to RECIPIENT`; no plaintext is written, and the same run signs
+through the identity, which proves the new file decrypts), re-signs the
+manifest, and ships the new public key inside the next app update. The app
+verifies against the one public key it bundles.
 
 There is no revocation list, by design: replacing the key means shipping a new
 app version, and older versions keep verifying against the key they shipped

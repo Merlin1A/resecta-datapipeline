@@ -1147,7 +1147,7 @@ doctor: ## Print environment health summary (read-only)
 	@d="$$HOME/.resecta-data"; k="$$d/manifest-private-key.pem"; e="$$k.age"; i="$$d/age-identity.txt"; \
 	  if [ -f "$$e" ]; then echo "  ✓ $$e present (age-encrypted working copy)"; \
 	    if [ -f "$$i" ]; then echo "  ✓ $$i present"; \
-	      p="$$(sed -nE 's/^AGE-PLUGIN-([A-Z0-9]+)-1.*/\1/p' "$$i" | head -1 | tr 'A-Z' 'a-z')"; \
+	      p="$$(sed -nE '/^AGE-PLUGIN-/{s/^AGE-PLUGIN-([A-Z0-9-]+)-1.*/\1/p;q;}' "$$i" 2>/dev/null | tr 'A-Z' 'a-z' || true)"; \
 	      if [ -n "$$p" ]; then if command -v "age-plugin-$$p" >/dev/null 2>&1; then echo "  ✓ age-plugin-$$p on PATH"; \
 	        else echo "  ⚠️  age-plugin-$$p not on PATH — the identity needs it to decrypt"; fi; fi; \
 	    else echo "  ⚠️  $$i missing — sign-manifest cannot decrypt the key (pass --age-identity)"; fi; \

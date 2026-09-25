@@ -42,7 +42,7 @@ import subprocess
 from pathlib import Path
 from typing import Final
 
-from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -92,7 +92,7 @@ def resolve_default_key_path() -> Path:
     file exists it wins, so retiring the plaintext copy is a separate,
     deliberate operator step.
     """
-    if DEFAULT_ENCRYPTED_KEY_PATH.exists():
+    if DEFAULT_ENCRYPTED_KEY_PATH.is_file():
         return DEFAULT_ENCRYPTED_KEY_PATH
     return DEFAULT_PRIVATE_KEY_PATH
 
@@ -179,6 +179,17 @@ def generate_private_key(
         raise PipelineError(
             f"--encrypt-to was given but {path} does not end in {ENCRYPTED_KEY_SUFFIX}."
         )
+    if path == DEFAULT_ENCRYPTED_KEY_PATH and DEFAULT_PRIVATE_KEY_PATH.exists():
+        # The encrypted default wins over the plaintext default once it exists,
+        # so generating here would silently rotate the signing key. Moving an
+        # existing key into the encrypted form is an `age -r` step, not a
+        # generation; a rotation retires the plaintext first (KEY-MANAGEMENT.md).
+        raise PipelineError(
+            f"A signing key exists in plaintext at {DEFAULT_PRIVATE_KEY_PATH}; generating a new "
+            f"key at {path} would replace it for every later signing run. To keep the current "
+            "key, encrypt it in place with `age -r RECIPIENT`; to rotate, retire the plaintext "
+            "key first. See KEY-MANAGEMENT.md."
+        )
     private_key = Ed25519PrivateKey.generate()
     pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -245,7 +256,7 @@ def load_private_key(
             raise PipelineError(f"Failed to read private key at {path}: {exc}") from exc
     try:
         key = serialization.load_pem_private_key(pem, password=None)
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, UnsupportedAlgorithm) as exc:
         raise PipelineError(f"Failed to load private key at {path}: {exc}") from exc
     if not isinstance(key, Ed25519PrivateKey):
         raise PipelineError(
