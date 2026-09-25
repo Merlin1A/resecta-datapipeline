@@ -1,11 +1,14 @@
 """Ed25519 signing for the gazetteer manifest.
 
 This module signs ``build/gazetteers/gazetteer_manifest.json`` with an
-Ed25519 private key held at ``~/.resecta-data/manifest-private-key.pem``
-(gitignored — it never enters either repo's tree). The detached signature
-is written next to the manifest as ``gazetteer_manifest.sig``; the public
-key is exported to ``manifest_public_key.pem`` so the iOS engine can bundle
-it under ``Resources/Gazetteers/`` and verify at detector init.
+Ed25519 private key held under ``~/.resecta-data/`` (gitignored — it never
+enters either repo's tree). The key source is either the age-encrypted
+``manifest-private-key.pem.age`` (preferred; decrypted in memory through an
+age identity for the duration of the signing run) or the plaintext
+``manifest-private-key.pem`` (transitional). The detached signature is
+written next to the manifest as ``gazetteer_manifest.sig``; the public key
+is exported to ``manifest_public_key.pem`` so the iOS engine can bundle it
+under ``Resources/Gazetteers/`` and verify at detector init.
 
 Wire contract (paired with iOS CryptoKit ``Curve25519.Signing``):
 
@@ -22,9 +25,10 @@ Wire contract (paired with iOS CryptoKit ``Curve25519.Signing``):
   the same private key + same canonical manifest. This matches the
   pipeline's reproducibility invariants.
 
-Rotation cadence: per major release. This module does not
-implement automatic rotation; it provides the
-primitives that a release-prep step will call.
+Rotation cadence: the key is rotated on the maintainer's documented
+schedule and on any suspicion of compromise — see KEY-MANAGEMENT.md. This
+module does not implement automatic rotation; it provides the primitives
+that a release-prep step will call.
 
 Cross-boundary wire-format changes need a paired Swift PR and must
 preserve the canonical-form JSON invariant.
@@ -33,6 +37,8 @@ preserve the canonical-form JSON invariant.
 from __future__ import annotations
 
 import base64
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Final
 
@@ -52,30 +58,126 @@ from .common.io import atomic_write_bytes
 SIGNATURE_PEM_HEADER: Final[bytes] = b"-----BEGIN ED25519 SIGNATURE-----\n"
 SIGNATURE_PEM_FOOTER: Final[bytes] = b"-----END ED25519 SIGNATURE-----\n"
 
-# Default key path. Outside both repos so the private key never enters
-# git history. The release process supplies its own path via
-# ``--private-key`` when rotating.
-DEFAULT_PRIVATE_KEY_PATH: Final[Path] = Path.home() / ".resecta-data" / "manifest-private-key.pem"
+# Key locations. Outside both repos so the private key never enters git
+# history. The release process supplies its own path via ``--private-key``
+# when rotating.
+#
+# ``DEFAULT_PRIVATE_KEY_PATH`` is the plaintext PEM (transitional form);
+# ``DEFAULT_ENCRYPTED_KEY_PATH`` is the same PEM encrypted with ``age`` to a
+# recipient whose identity lives at ``DEFAULT_IDENTITY_PATH``. When the
+# encrypted file exists it is preferred (see ``resolve_default_key_path``).
+KEY_DIR: Final[Path] = Path.home() / ".resecta-data"
+DEFAULT_PRIVATE_KEY_PATH: Final[Path] = KEY_DIR / "manifest-private-key.pem"
+ENCRYPTED_KEY_SUFFIX: Final[str] = ".age"
+DEFAULT_ENCRYPTED_KEY_PATH: Final[Path] = KEY_DIR / (
+    DEFAULT_PRIVATE_KEY_PATH.name + ENCRYPTED_KEY_SUFFIX
+)
+DEFAULT_IDENTITY_PATH: Final[Path] = KEY_DIR / "age-identity.txt"
+
+# The ``age`` binary is a host tool (never a Python dependency); the
+# ``age_bin`` parameters below exist so tests can substitute a stand-in.
+AGE_BINARY_NAME: Final[str] = "age"
 
 
-def generate_private_key(path: Path = DEFAULT_PRIVATE_KEY_PATH) -> Ed25519PrivateKey:
+def is_encrypted_key_path(path: Path) -> bool:
+    """Return True iff ``path`` names an age-encrypted key (``*.age``)."""
+    return path.suffix == ENCRYPTED_KEY_SUFFIX
+
+
+def resolve_default_key_path() -> Path:
+    """Pick the default signing-key path: the encrypted file when present.
+
+    Transition-safe: a host that has not yet moved its key into the
+    encrypted form keeps signing from the plaintext PEM; once the ``.age``
+    file exists it wins, so retiring the plaintext copy is a separate,
+    deliberate operator step.
+    """
+    if DEFAULT_ENCRYPTED_KEY_PATH.exists():
+        return DEFAULT_ENCRYPTED_KEY_PATH
+    return DEFAULT_PRIVATE_KEY_PATH
+
+
+def _resolve_age_binary(age_bin: Path | str | None) -> str:
+    """Return the absolute ``age`` executable, or raise a ``PipelineError``."""
+    if age_bin is not None:
+        return str(age_bin)
+    found = shutil.which(AGE_BINARY_NAME)
+    if found is None:
+        raise PipelineError(
+            f"`{AGE_BINARY_NAME}` is not on PATH; it is required to read or write an "
+            "encrypted signing key. Install it (https://age-encryption.org) or pass "
+            "--private-key with a plaintext PEM."
+        )
+    return found
+
+
+def _run_age(
+    argv: list[str],
+    *,
+    stdin: bytes | None,
+    what: str,
+) -> bytes:
+    """Run ``age`` with a fixed argv and return its stdout bytes.
+
+    stderr is inherited so an age plugin's interactive lines (a hardware
+    prompt, a passphrase request) reach the operator's terminal. A non-zero
+    exit raises a ``PipelineError`` that names the mechanism only — never
+    the bytes on either side of the pipe.
+    """
+    try:
+        result = subprocess.run(  # noqa: S603 -- fixed argv, no shell
+            argv,
+            input=stdin,
+            stdout=subprocess.PIPE,
+            stderr=None,
+            check=False,
+        )
+    except OSError as exc:
+        raise PipelineError(f"Failed to run `{argv[0]}` to {what}: {exc}") from exc
+    if result.returncode != 0:
+        raise PipelineError(
+            f"`{argv[0]}` exited {result.returncode} while trying to {what}; "
+            "see its messages above."
+        )
+    return result.stdout
+
+
+def generate_private_key(
+    path: Path = DEFAULT_PRIVATE_KEY_PATH,
+    *,
+    encrypt_to: str | None = None,
+    age_bin: Path | str | None = None,
+) -> Ed25519PrivateKey:
     """Generate a new Ed25519 private key and write it to ``path``.
 
-    The key is PEM-encoded, unencrypted (the host filesystem is the trust
-    boundary; encrypting with a passphrase only adds friction for the
-    release operator).
+    With ``encrypt_to`` (an age recipient string) the key is generated in
+    memory and only its age-encrypted form is written; no plaintext key
+    bytes touch the disk. ``path`` must then end in ``.age``. Without it the
+    key is written as an unencrypted PKCS#8 PEM (the transitional form).
 
     The parent directory is created with mode 0o700 if it does not exist.
     The key file is written with mode 0o600.
 
     Raises:
-        PipelineError: If the key file already exists. Rotation is an
-            explicit operator step; this function refuses to clobber.
+        PipelineError: If the key file already exists (rotation is an
+            explicit operator step; this function refuses to clobber), if
+            the path form does not match the requested encryption, or if
+            ``age`` is unavailable or fails.
     """
     if path.exists():
         raise PipelineError(
             f"Refusing to overwrite existing private key at {path}. "
             "Delete it manually if you intend to rotate."
+        )
+    encrypted = is_encrypted_key_path(path)
+    if encrypted and encrypt_to is None:
+        raise PipelineError(
+            f"{path} names an encrypted key but no recipient was given; "
+            "pass --encrypt-to RECIPIENT."
+        )
+    if encrypt_to is not None and not encrypted:
+        raise PipelineError(
+            f"--encrypt-to was given but {path} does not end in {ENCRYPTED_KEY_SUFFIX}."
         )
     private_key = Ed25519PrivateKey.generate()
     pem = private_key.private_bytes(
@@ -84,27 +186,66 @@ def generate_private_key(path: Path = DEFAULT_PRIVATE_KEY_PATH) -> Ed25519Privat
         encryption_algorithm=serialization.NoEncryption(),
     )
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    atomic_write_bytes(path, pem)
+    if encrypt_to is not None:
+        age = _resolve_age_binary(age_bin)
+        ciphertext = _run_age(
+            [age, "-r", encrypt_to],
+            stdin=pem,
+            what=f"encrypt the new signing key to {encrypt_to}",
+        )
+        if not ciphertext:
+            raise PipelineError("`age` produced no output while encrypting the new signing key.")
+        atomic_write_bytes(path, ciphertext)
+    else:
+        atomic_write_bytes(path, pem)
     path.chmod(0o600)
     return private_key
 
 
-def load_private_key(path: Path = DEFAULT_PRIVATE_KEY_PATH) -> Ed25519PrivateKey:
-    """Load the Ed25519 private key from ``path``.
+def load_private_key(
+    path: Path | None = None,
+    *,
+    identity: Path = DEFAULT_IDENTITY_PATH,
+    age_bin: Path | str | None = None,
+) -> Ed25519PrivateKey:
+    """Load the Ed25519 private key from ``path`` (default: the resolved key).
+
+    A ``.age`` path is decrypted through ``age -d -i IDENTITY`` with the
+    plaintext held only in this process's memory; any other path is read
+    as an unencrypted PEM.
 
     Raises:
-        PipelineError: If the file is missing, unreadable, or not a valid
-            unencrypted PEM-encoded Ed25519 private key.
+        PipelineError: If the file or the identity is missing, ``age``
+            fails, or the bytes are not a valid unencrypted PEM-encoded
+            Ed25519 private key. Messages never include key bytes.
     """
+    if path is None:
+        path = resolve_default_key_path()
     if not path.is_file():
         raise PipelineError(
             f"Private key not found at {path}. "
             "Run `resecta-data sign-manifest --generate-key` to create one."
         )
+    if is_encrypted_key_path(path):
+        if not identity.is_file():
+            raise PipelineError(
+                f"age identity not found at {identity}; it is required to decrypt {path} "
+                "(pass --age-identity)."
+            )
+        age = _resolve_age_binary(age_bin)
+        pem = _run_age(
+            [age, "-d", "-i", str(identity), str(path)],
+            stdin=None,
+            what=f"decrypt the signing key at {path}",
+        )
+    else:
+        try:
+            pem = path.read_bytes()
+        except OSError as exc:
+            raise PipelineError(f"Failed to read private key at {path}: {exc}") from exc
     try:
-        pem = path.read_bytes()
         key = serialization.load_pem_private_key(pem, password=None)
-    except (ValueError, OSError) as exc:
+    except (ValueError, TypeError) as exc:
         raise PipelineError(f"Failed to load private key at {path}: {exc}") from exc
     if not isinstance(key, Ed25519PrivateKey):
         raise PipelineError(

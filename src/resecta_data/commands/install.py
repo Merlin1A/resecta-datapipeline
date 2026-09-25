@@ -21,10 +21,13 @@ from resecta_data.gazetteers.negative_context.stage_reviewed import (
     stage_reviewed as stage_reviewed_negative_context,
 )
 from resecta_data.manifest_signing import (
-    DEFAULT_PRIVATE_KEY_PATH,
+    DEFAULT_ENCRYPTED_KEY_PATH,
+    DEFAULT_IDENTITY_PATH,
     export_public_key,
     generate_private_key,
+    is_encrypted_key_path,
     load_private_key,
+    resolve_default_key_path,
     sign_manifest_file,
 )
 from resecta_data.routes import INSTALL_ROUTES, SHRINK_GUARDED_ROUTES
@@ -270,9 +273,20 @@ def manifest_assets_cmd(build_dir: Path, resources_dir: Path | None, lockfile: P
     type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
     default=None,
     help=(
-        "Path to the Ed25519 private key PEM. Defaults to "
-        "~/.resecta-data/manifest-private-key.pem (gitignored — outside "
-        "both repos so the key never enters git history)."
+        "Path to the Ed25519 private key: an age-encrypted file (*.age, decrypted "
+        "in memory through --age-identity) or a plaintext PEM. Defaults to "
+        "~/.resecta-data/manifest-private-key.pem.age when it exists, else "
+        "~/.resecta-data/manifest-private-key.pem (gitignored — outside both "
+        "repos so the key never enters git history)."
+    ),
+)
+@click.option(
+    "--age-identity",
+    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    default=DEFAULT_IDENTITY_PATH,
+    help=(
+        "age identity file used to decrypt an encrypted --private-key. "
+        "Defaults to ~/.resecta-data/age-identity.txt."
     ),
 )
 @click.option(
@@ -281,14 +295,29 @@ def manifest_assets_cmd(build_dir: Path, resources_dir: Path | None, lockfile: P
     default=False,
     help=(
         "Generate a new Ed25519 private key at --private-key if it does "
-        "not already exist. Rotation cadence is per major release; this "
-        "flag exists for the initial keypair only."
+        "not already exist. With --encrypt-to the key is born straight into "
+        "its age-encrypted form and no plaintext is written. The key is "
+        "rotated on the maintainer's documented schedule and on any "
+        "suspicion of compromise — see KEY-MANAGEMENT.md."
+    ),
+)
+@click.option(
+    "--encrypt-to",
+    "encrypt_to",
+    metavar="RECIPIENT",
+    default=None,
+    help=(
+        "age recipient for --generate-key. Required when the key path ends "
+        "in .age; when --private-key is omitted the encrypted default path "
+        "is used."
     ),
 )
 def sign_manifest_cmd(
     build_dir: Path,
     private_key: Path | None,
+    age_identity: Path,
     generate_key: bool,
+    encrypt_to: str | None,
 ) -> None:
     """Sign the shipped manifest (``gazetteer_manifest.shipped.json``) with Ed25519.
 
@@ -298,19 +327,32 @@ def sign_manifest_cmd(
     tree. The iOS engine verifies the signature at detector init
     (see GazetteerLoader.swift).
 
-    Cross-boundary wire-format changes need a paired Swift PR
-    (Ed25519; the signing key rotates per major release).
+    Cross-boundary wire-format changes need a paired Swift PR (Ed25519;
+    the signing key is rotated on the maintainer's documented schedule and
+    on any suspicion of compromise — see KEY-MANAGEMENT.md).
     """
-    key_path = private_key if private_key is not None else DEFAULT_PRIVATE_KEY_PATH
+    if private_key is not None:
+        key_path = private_key
+    elif generate_key and encrypt_to is not None:
+        key_path = DEFAULT_ENCRYPTED_KEY_PATH
+    else:
+        key_path = resolve_default_key_path()
 
     if generate_key:
         if key_path.exists():
             click.echo(f"Key already exists at {key_path}; refusing to overwrite.")
         else:
-            generate_private_key(key_path)
-            click.echo(f"Generated new Ed25519 private key at {key_path}")
+            if is_encrypted_key_path(key_path) and encrypt_to is None:
+                raise click.UsageError(
+                    f"{key_path} is an encrypted key path; --generate-key needs --encrypt-to."
+                )
+            generate_private_key(key_path, encrypt_to=encrypt_to)
+            form = "age-encrypted" if encrypt_to is not None else "plaintext"
+            click.echo(f"Generated new Ed25519 private key at {key_path} ({form})")
+    elif encrypt_to is not None:
+        raise click.UsageError("--encrypt-to only applies with --generate-key.")
 
-    pk = load_private_key(key_path)
+    pk = load_private_key(key_path, identity=age_identity)
 
     manifest_path = build_dir / "gazetteers" / SHIPPED_MANIFEST_FILE
     if not manifest_path.is_file():

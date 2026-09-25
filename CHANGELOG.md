@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- `sign-manifest`: the signing key can be held age-encrypted (`~/.resecta-data/manifest-private-key.pem.age`,
+  preferred over the plaintext PEM when present) and is decrypted in memory through the age identity
+  named by `--age-identity`; `--generate-key --encrypt-to RECIPIENT` births a key straight into its
+  encrypted form with no plaintext written. `make doctor` reports the key's form and the tools it
+  needs. `KEY-MANAGEMENT.md` documents what the signature proves, the current public-key
+  fingerprint, and the rotation and exposure procedures.
 - `context`: six title labels — `counsel of record` (court), `bill to` and `ap contact`
   (financial), `employee's name` (financial, generic), `from` and `to` (every doctype) —
   ship as GLOBAL positive name anchors in the context-keyword gazetteer (no doctype scope: the
