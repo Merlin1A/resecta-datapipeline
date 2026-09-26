@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Added
 
+- `sign-manifest`: the signing key can be held age-encrypted (`~/.resecta-data/manifest-private-key.pem.age`,
+  preferred over the plaintext PEM when present) and is decrypted in memory through the age identity
+  named by `--age-identity`; `--generate-key --encrypt-to RECIPIENT` births a key straight into its
+  encrypted form with no plaintext written. `make doctor` reports the key's form and the tools it
+  needs. `KEY-MANAGEMENT.md` documents what the signature proves, the current public-key
+  fingerprint, and the rotation and exposure procedures.
+- `context`: six title labels — `counsel of record` (court), `bill to` and `ap contact`
+  (financial), `employee's name` (financial, generic), `from` and `to` (every doctype) —
+  ship as GLOBAL positive name anchors in the context-keyword gazetteer (no doctype scope: the
+  label word is its own context and the search leg detects without a doctype; name 35 → 41; 223 rows;
+  the schema pin and the lock row move). Consumer: the engine's label-anchor route, which
+  reads the name positives case-folded and token-bounded with a colon and takes only the
+  capitalised run after it on the same line.
+- `manifest-assets`: the shipped gazetteer manifest (`gazetteers/gazetteer_manifest.shipped.json`,
+  version 1.1.0) carries an `assets[]` section — the SHA-256 and byte count of
+  every asset `install-assets` routes into the engine bundle, except the
+  manifest, its signature and the public key. Derived at install time from the
+  bloom builder's manifest (unchanged, still locked) and the bytes install
+  ships; `sign-manifest` signs the shipped file; `install-assets` runs
+  `verify → stage-reviewed-negctx → manifest-assets → sign-manifest` before
+  copying. The engine verifies each entry at first load.
+- `build gazetteers name-common-words`: a common-word curation sidecar
+  (`gazetteers/name_common_words.json`, installed as
+  `Gazetteers/name-common-words.json`) built from the in-estate non-name word
+  list; the Swift name gazetteer withholds surname credit for exact members.
+  The Bloom filters are unchanged.
+- Context keywords: the four court role nouns (`plaintiff`, `defendant`,
+  `petitioner`, `respondent`) ship again as court-scoped positive name
+  anchors (`name` 31 → 35; 217 rows); the candidates rows record why.
 - GitHub Actions: a hermetic pull-request gate (lint, types, tests, pure-code
   builders, schema and hash checks), a weekly full-verify workflow with cached
   sources, and a supply-chain job (pip-audit, OSV-Scanner, SBOM); the dev tools

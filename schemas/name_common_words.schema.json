@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/name_common_words.schema.json",
+  "title": "Common-word curation list for the surname Bloom filter",
+  "description": "Ordinary English words that the multilingual surname Bloom filter may also contain as genuine inventory rows. The Swift NameGazetteer reads this sidecar on top of the filter: a surname candidate that is an exact (NFKC-lowercased) member receives no surname credit and no fuzzy fallback, and the first tagger pass does not count its membership as inventory support. The Bloom filters are never edited by this artifact (demote, never strip). Source: the in-estate `BloomFilterFPRTests.nonNames` list (549 authored entries, 546 unique); no external frequency table. This is a standalone sidecar -- not part of the signed Bloom manifest.",
+  "type": "object",
+  "required": ["version", "generated_by", "seed", "source", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version. Bump when the shape changes in a way the Swift decoder must observe."
+    },
+    "generated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "PRNG seed recorded for reproducibility. Unused by this builder (deterministic normalize-dedupe-sort), preserved for uniformity across artifacts."
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "sha256", "authored_count"],
+      "additionalProperties": false,
+      "description": "Provenance of the authored list this artifact was built from.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier of the authored source (the in-estate list's provenance id)."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the committed authored source file."
+        },
+        "authored_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of entries in the authored list before de-duplication (549 for v1)."
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 546,
+      "maxItems": 546,
+      "uniqueItems": true,
+      "description": "The curation list: NFKC-normalized, lowercased, unique, ascending. Pinned at the v1 count.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z'\\-]*$",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  }
+}

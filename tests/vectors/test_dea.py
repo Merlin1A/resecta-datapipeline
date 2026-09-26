@@ -12,6 +12,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Final
 
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from resecta_data.common.determinism import CANONICAL_SEED
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
@@ -61,3 +64,26 @@ def test_expected_check_digit_matches_for_valid_rows() -> None:
             first_six = vec["dea"][2:8]
             assert vec["expected_check_digit"] == dea_check_digit(first_six)
             assert vec["expected_check_digit"] == int(vec["dea"][8])
+
+
+@settings(deadline=None, max_examples=25)
+@given(seed=st.integers(min_value=0, max_value=2**32 - 1))
+def test_any_seed_yields_a_consistent_catalog(seed: int) -> None:
+    """For every seed the catalog is a pure function of the seed, every valid row's trailing
+    digit closes the checksum, every invalid_checksum row's breaks it, and every row of those
+    two categories is two letters + seven digits with ``expected_check_digit`` = the reference."""
+    payload = build_dea_vectors(seed)
+    assert payload == build_dea_vectors(seed)
+    for vec in payload["vectors"]:
+        if vec["category"] not in ("valid", "invalid_checksum"):
+            continue
+        dea = vec["dea"]
+        assert len(dea) == _DEA_LENGTH
+        assert dea[:2].isalpha() and dea[:2].isupper()
+        assert dea[2:].isdigit()
+        reference = dea_check_digit(dea[2:8])
+        assert vec["expected_check_digit"] == reference
+        if vec["category"] == "valid":
+            assert int(dea[8]) == reference
+        else:
+            assert int(dea[8]) != reference

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://resecta.app/schemas/gazetteer_manifest.schema.json",
   "title": "Gazetteer manifest",
-  "description": "Manifest describing the bundled surname and given-name Bloom filter assets. Decoded by GazetteerManifest.swift. Field names must match the Codable case names on the Swift side exactly.",
+  "description": "Manifest describing the bundled surname and given-name Bloom filter assets, and — in the shipped form written by `resecta-data manifest-assets` — every installed engine asset's SHA-256 and size. Decoded by GazetteerManifest.swift. Field names must match the Codable case names on the Swift side exactly.",
   "type": "object",
   "required": ["version", "hashAlgorithm", "seed", "filters"],
   "additionalProperties": false,
@@ -21,6 +21,32 @@
       "type": "integer",
       "minimum": 0,
       "description": "Hash seed shared by both filters. Only the lower 32 bits are consumed by MurmurHash3."
+    },
+    "assets": {
+      "type": "array",
+      "description": "Shipped form only (version 1.1.0): one entry per asset install-assets routes into the engine bundle, except the manifest, its signature and the public key. Sorted by path. The engine verifies each file's SHA-256 and size against its entry at first load.",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "bytes"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(Gazetteers|Classifier|Audit)/[A-Za-z0-9._-]+$",
+            "description": "Bundle-relative path under the engine resource bundle."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Lowercase hex SHA-256 of the installed bytes."
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Byte count of the installed file."
+          }
+        }
+      }
     },
     "filters": {
       "type": "array",

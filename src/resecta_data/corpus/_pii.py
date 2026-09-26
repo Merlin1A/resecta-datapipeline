@@ -31,6 +31,12 @@ from resecta_data.vectors.routing_number import (
 )
 
 _LOCALE_EN_US: Final[str] = "en_US"
+_LOCALE_ES_MX: Final[str] = "es_MX"
+# A Mexican codigo postal is five digits (01000-99999). Faker 25.9.2's es_MX
+# ``postcode()`` returns a ZIP+4-shaped ``#####-####`` about half the time;
+# the Spec-G generator profile replaces it with this draw.
+_MX_CP_MIN: Final[int] = 1000
+_MX_CP_MAX: Final[int] = 99999
 
 _SSN_FORBIDDEN_AREAS: Final[frozenset[int]] = frozenset(
     {0, 666, *range(900, 1000)},
@@ -267,7 +273,9 @@ def generate_address(rng: random.Random) -> str:
     return f"{number} {street} {kind}, {city}, {state} {zip_code:05d}"
 
 
-def generate_localized_address(rng: random.Random, locale: str) -> str:
+def generate_localized_address(
+    rng: random.Random, locale: str, *, es_mx_five_digit_cp: bool = False
+) -> str:
     """Return a single-line address rendered in the given Faker locale.
 
     ``en_US`` delegates to :func:`generate_address` so the pre-locale rng
@@ -275,6 +283,11 @@ def generate_localized_address(rng: random.Random, locale: str) -> str:
     other locales a fresh :class:`faker.Faker` is instantiated and seeded
     via ``rng.getrandbits(63)``; multi-line street outputs are collapsed
     to a single line to keep G8 span bookkeeping simple.
+
+    ``es_mx_five_digit_cp`` (off by default, so the corpus as furnished is
+    byte-preserved) replaces Faker's es_MX ``postcode()`` -- ZIP+4-shaped
+    about half the time -- with a five-digit codigo postal drawn from
+    ``rng`` after the Faker seed (the Spec-G profile's draw).
     """
     if locale == _LOCALE_EN_US:
         return generate_address(rng)
@@ -282,7 +295,10 @@ def generate_localized_address(rng: random.Random, locale: str) -> str:
     fake.seed_instance(rng.getrandbits(63))
     street = fake.street_address().replace("\n", ", ")
     city = fake.city()
-    postcode = fake.postcode()
+    if es_mx_five_digit_cp and locale == _LOCALE_ES_MX:
+        postcode = f"{rng.randint(_MX_CP_MIN, _MX_CP_MAX):05d}"
+    else:
+        postcode = fake.postcode()
     return f"{street}, {city} {postcode}"
 
 
@@ -298,7 +314,7 @@ def generate_case_number(rng: random.Random) -> str:
 
 
 def generate_invoice_number(rng: random.Random) -> str:
-    """Return an invoice number like 'INV-2024-001234'."""
+    """Return an invoice number: an ``INV-`` prefix, a year, a six-digit sequence."""
     year = rng.randint(2022, 2025)
     seq = rng.randint(1, 999999)
     return f"INV-{year}-{seq:06d}"
@@ -312,7 +328,7 @@ def generate_request_id(rng: random.Random) -> str:
 
 
 # ---------------------------------------------------------------------------
-# The five categories added for the 17/17 corpus (1.2 T1.1 / C12-25):
+# The five categories that took the corpus from 12 to 17 families:
 # itin, creditCard, driversLicense, passport, licensePlate.
 #
 # Validity rules are imported from the matching ``vectors/`` module (one

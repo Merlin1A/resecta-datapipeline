@@ -1,0 +1,12 @@
+Usage: resecta-data regenerate-lockfile [OPTIONS]
+
+  Write a fresh asset_hashes.lock matching the current build.
+
+  Use this only when you've verified that the artifact changes are intentional. Blind regeneration
+  defeats the purpose of the lockfile.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --lockfile FILE        [required]
+  --yes                  Skip confirmation prompt. Use only when you understand the diff.
+  --help                 Show this message and exit.

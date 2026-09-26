@@ -19,6 +19,7 @@ import pytest
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import (
     atomic_write_bytes,
+    canonical_bytes,
     dump_canonical_json,
     iter_build_artifacts,
     load_json,
@@ -97,6 +98,24 @@ def test_canonical_json_indent_is_two_spaces(tmp_path: Path) -> None:
 # -----------------------------------------------------------------------------
 # load_json
 # -----------------------------------------------------------------------------
+
+
+def test_canonical_bytes_are_what_dump_canonical_json_writes(tmp_path: Path) -> None:
+    payload = {"z": [1, 2.5, None, True], "a": {"é": "ü", "b": ""}, "m": "line\nbreak"}
+    out = tmp_path / "out.json"
+    dump_canonical_json(payload, out)
+    assert canonical_bytes(payload) == out.read_bytes()
+
+
+def test_canonical_bytes_pinned_encoding() -> None:
+    assert canonical_bytes({"b": [1, 2.5, None], "a": "é"}) == (
+        b'{\n  "a": "\xc3\xa9",\n  "b": [\n    1,\n    2.5,\n    null\n  ]\n}\n'
+    )
+
+
+def test_canonical_bytes_raises_on_non_serializable() -> None:
+    with pytest.raises(PipelineError, match="not JSON-serializable"):
+        canonical_bytes({"bad": {1, 2, 3}})
 
 
 def test_load_json_round_trip(tmp_path: Path) -> None:

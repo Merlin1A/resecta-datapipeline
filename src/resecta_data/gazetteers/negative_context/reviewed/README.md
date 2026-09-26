@@ -13,7 +13,8 @@ the maintainer before the edit — the asset, the rows or fields, the reason,
 and the regeneration and verification steps. No row-by-row review afterwards.
 
 A change to this gazetteer therefore lands as one commit that carries the
-edited builder inputs (`_scope_rules.py`), the rebuilt candidates, the updated
+edited builder inputs (`sources/scope_rules_v1.json`; the loader in
+`_scope_rules.py` pins its counts), the rebuilt candidates, the updated
 reviewed file, the re-stamped sidecar and the moved `asset_hashes.lock` row.
 
 ## Sidecar format

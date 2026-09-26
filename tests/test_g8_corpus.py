@@ -539,21 +539,64 @@ def test_name_context_classes_pinned_on_the_canonical_corpus() -> None:
 # documents with the name slots re-rendered and / or furniture planted.
 # ---------------------------------------------------------------------------
 
+from resecta_data.corpus._names import (  # noqa: E402
+    BUCKETS,
+    FORM_ALL_CAPS,
+    FORM_FULL,
+    FORM_INITIAL,
+    FORM_LAST_FIRST,
+    FORM_PARTICLED,
+    FORM_SUFFIX,
+    NAME_FORMS,
+    PARTICLES,
+    SUFFIXES,
+)
 from resecta_data.corpus._profiles import (  # noqa: E402
     COURT_ROLE_NOUNS,
     COURT_ROLE_NOUNS_PER_DOC,
     FURNITURE_KINDS,
     LABELS_PER_DOC,
+    LOCALE_ES_MX,
+    LOCALES,
     MEDICAL_ROLE_NOUNS,
     MEDICAL_ROLE_NOUNS_PER_DOC,
     PROFILE_G8,
+    PROFILE_SPEC_A,
+    PROFILE_SPEC_AGH,
     PROFILE_SPEC_C,
     PROFILE_SPEC_CD,
     PROFILE_SPEC_D,
+    PROFILE_SPEC_G,
+    PROFILE_SPEC_H,
     PROFILES,
+    ROLE_WORDS,
 )
+from resecta_data.corpus.generate import _sub_seed_and_locale  # noqa: E402
 
+# Spec-C / Spec-D (the context and furniture profiles) and the Spec-A / G / H
+# profiles that ride the same axis; every profile-generic test runs on all seven.
 _SPEC_PROFILES = (PROFILE_SPEC_C, PROFILE_SPEC_D, PROFILE_SPEC_CD)
+_AGH_PROFILES = (PROFILE_SPEC_A, PROFILE_SPEC_G, PROFILE_SPEC_H, PROFILE_SPEC_AGH)
+_ALL_SPEC_PROFILES = _SPEC_PROFILES + _AGH_PROFILES
+# The categories whose VALUE a profile moves by design: Spec-A the name (its
+# form is the experiment), Spec-G the address of a document whose locale
+# moved. Every other value is identical to g8 under every profile.
+_MOVABLE_CATEGORIES: dict[str, frozenset[str]] = {
+    PROFILE_SPEC_C: frozenset(),
+    PROFILE_SPEC_D: frozenset(),
+    PROFILE_SPEC_CD: frozenset(),
+    PROFILE_SPEC_A: frozenset({"name"}),
+    PROFILE_SPEC_G: frozenset({"address"}),
+    PROFILE_SPEC_H: frozenset(),
+    PROFILE_SPEC_AGH: frozenset({"name", "address"}),
+}
+# What a sparse slot renders: the literal placeholder, or under Spec-H a role
+# phrase (capitalised when it opens a line).
+_SPARSE_MARKERS = (
+    REDACTED_NAME_PLACEHOLDER,
+    *ROLE_WORDS,
+    *(w[0].upper() + w[1:] for w in ROLE_WORDS),
+)
 _NEW_CONTEXT_CLASSES = frozenset({"table_cell", "body_prose", "header"})
 _ROLE_NOUN_RE = re.compile(
     r"(?<![A-Za-z])(?:"
@@ -562,14 +605,21 @@ _ROLE_NOUN_RE = re.compile(
 )
 
 
-def _span_signature(span: dict[str, Any]) -> tuple[Any, ...]:
+def _span_signature(span: dict[str, Any], movable: frozenset[str] = frozenset()) -> tuple[Any, ...]:
+    """The PAIR identity of a span: its category, value (unless the profile
+    moves that category's value by design), tier, adversarial flag and
+    outcome. ``form`` / ``locale`` are annotations beside the identity."""
     return (
         span["category"],
-        span["value"],
+        None if span["category"] in movable else span["value"],
         span["tier"],
         span.get("adversarial", False),
         span.get("expected_outcome"),
     )
+
+
+def _sparse_slot_in(segment: str) -> bool:
+    return any(marker in segment for marker in _SPARSE_MARKERS)
 
 
 def _neighbour_tokens(doc: dict[str, Any], span: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -586,10 +636,10 @@ def _neighbour_tokens(doc: dict[str, Any], span: dict[str, Any]) -> tuple[str | 
     # A name slot on this side of the line: a name span, or the sparse
     # placeholder the slot renders instead of one.
     name_before = any(ne <= span["start"] and ns >= line_start for ns, ne in names) or (
-        REDACTED_NAME_PLACEHOLDER in text[line_start : span["start"]]
+        _sparse_slot_in(text[line_start : span["start"]])
     )
     name_after = any(ns >= span["end"] and ne <= line_end for ns, ne in names) or (
-        REDACTED_NAME_PLACEHOLDER in text[span["end"] : line_end]
+        _sparse_slot_in(text[span["end"] : line_end])
     )
     tokens = [(m.start(), m.end(), m.group()) for m in re.finditer(r"\S+", text)]
     before = [t for t in tokens if t[1] <= span["start"]][-1:]
@@ -600,7 +650,16 @@ def _neighbour_tokens(doc: dict[str, Any], span: dict[str, Any]) -> tuple[str | 
 
 
 def test_profiles_are_named_and_g8_is_the_default() -> None:
-    assert PROFILES == ("g8", "g8-specC", "g8-specD", "g8-specCD")
+    assert PROFILES == (
+        "g8",
+        "g8-specC",
+        "g8-specD",
+        "g8-specCD",
+        "g8-specA",
+        "g8-specG",
+        "g8-specH",
+        "g8-specAGH",
+    )
     default = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS)
     explicit = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=PROFILE_G8)
     assert default == explicit
@@ -609,7 +668,7 @@ def test_profiles_are_named_and_g8_is_the_default() -> None:
         build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile="g8-specZ")
 
 
-@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+@pytest.mark.parametrize("profile", _ALL_SPEC_PROFILES)
 def test_profile_builds_are_deterministic_named_and_distinct(profile: str) -> None:
     a = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
     b = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
@@ -622,7 +681,7 @@ def test_profile_builds_are_deterministic_named_and_distinct(profile: str) -> No
     assert a["counts_by_doctype"] == g8["counts_by_doctype"]
 
 
-@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+@pytest.mark.parametrize("profile", _ALL_SPEC_PROFILES)
 def test_profile_schema_validates(profile: str, tmp_build_dir: Path) -> None:
     payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=profile)
     dest = tmp_build_dir / f"g8_corpus_{profile}.json"
@@ -630,19 +689,21 @@ def test_profile_schema_validates(profile: str, tmp_build_dir: Path) -> None:
     validate_file(dest, _SCHEMAS, "g8_corpus")
 
 
-@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+@pytest.mark.parametrize("profile", _ALL_SPEC_PROFILES)
 def test_profiles_keep_every_ground_truth_value_and_every_non_name_slot(profile: str) -> None:
     """The PAIR invariant: a profile document is the g8 document with its name
     slots re-rendered and furniture planted -- every span keeps its category,
-    value, tier and outcome IN ORDER, every span's offsets still return its
-    value, and every NON-name span keeps the tokens on both sides of it (the
-    structured-family guard; name tokens masked)."""
+    value (except the categories the profile moves by design: Spec-A the
+    name, Spec-G the address), tier and outcome IN ORDER, every span's
+    offsets still return its value, and every NON-name span keeps the tokens
+    on both sides of it (the structured-family guard; name tokens masked)."""
+    movable = _MOVABLE_CATEGORIES[profile]
     g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)["documents"]}
     payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
     for doc in payload["documents"]:
         twin = g8[doc["id"]]
-        assert [_span_signature(s) for s in doc["pii_spans"]] == [
-            _span_signature(s) for s in twin["pii_spans"]
+        assert [_span_signature(s, movable) for s in doc["pii_spans"]] == [
+            _span_signature(s, movable) for s in twin["pii_spans"]
         ], doc["id"]
         for span in doc["pii_spans"]:
             assert doc["text"][span["start"] : span["end"]] == span["value"], doc["id"]
@@ -657,7 +718,7 @@ def test_profiles_keep_every_ground_truth_value_and_every_non_name_slot(profile:
         # Name-sparse documents stay name-free under every profile.
         if not any(s["category"] == "name" for s in twin["pii_spans"]):
             assert not any(s["category"] == "name" for s in doc["pii_spans"])
-            assert REDACTED_NAME_PLACEHOLDER in doc["text"]
+            assert _sparse_slot_in(doc["text"])
 
 
 def test_spec_c_renders_the_classes_the_shipped_corpus_lacks() -> None:
@@ -731,12 +792,12 @@ def test_spec_d_plants_furniture_at_the_pre_registered_rates(profile: str) -> No
 
 
 def test_spec_c_alone_and_g8_plant_no_furniture() -> None:
-    for profile in (PROFILE_G8, PROFILE_SPEC_C):
+    for profile in (PROFILE_G8, PROFILE_SPEC_C, *_AGH_PROFILES):
         payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=profile)
         assert all(doc["furniture"] == [] for doc in payload["documents"]), profile
 
 
-@pytest.mark.parametrize("profile", _SPEC_PROFILES)
+@pytest.mark.parametrize("profile", _ALL_SPEC_PROFILES)
 def test_should_tier_surfaces_stay_keyword_starved_under_every_profile(profile: str) -> None:
     """The keyword-starved plate / ITIN spans keep their starved windows: a
     planted label line or a re-rendered name slot never feeds them."""
@@ -819,3 +880,214 @@ def test_profile_censuses_pinned_on_the_canonical_corpus(profile: str) -> None:
         region["kind"] for doc in payload["documents"] for region in doc["furniture"]
     )
     assert dict(kinds) == _PINNED_PROFILE_FURNITURE_COUNTS[profile]
+
+
+# ---------------------------------------------------------------------------
+# Spec-A (name forms) / Spec-G (the locale axis) / Spec-H (the sparse
+# placeholder) -- 1.2 C12-95, the same profile axis; C and D stay off.
+# ---------------------------------------------------------------------------
+
+_CAPTION_CLASSES = frozenset({"caption_left", "caption_right"})
+_FORM_SHAPES: dict[str, re.Pattern[str]] = {
+    FORM_FULL: re.compile(r"^[A-Z][a-z]+ [A-Z][a-z]+$"),
+    FORM_INITIAL: re.compile(r"^[A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+$"),
+    FORM_LAST_FIRST: re.compile(r"^[A-Z][a-z]+, [A-Z][a-z]+$"),
+    FORM_ALL_CAPS: re.compile(r"^[A-Z]+ [A-Z]+$"),
+    FORM_SUFFIX: re.compile(
+        r"^[A-Z][a-z]+ [A-Z][a-z]+ (?:" + "|".join(map(re.escape, SUFFIXES)) + r")$"
+    ),
+    FORM_PARTICLED: re.compile(
+        r"^[A-Z][a-z]+ (?:[A-Z][a-z]+-[A-Z][a-z]+|(?:"
+        + "|".join(map(re.escape, PARTICLES))
+        + r")[A-Z][a-z]+)$"
+    ),
+}
+# The pre-registered per-slot rates ([R09] Section 5): the fraction of the
+# NON-caption name spans; the tolerance is three binomial standard deviations
+# at the full count (2,407 slots), so a template change shows, noise does not.
+_FORM_RATES: dict[str, float] = {
+    FORM_INITIAL: 0.20,
+    FORM_LAST_FIRST: 0.10,
+    FORM_ALL_CAPS: 0.10,
+    FORM_SUFFIX: 0.05,
+    FORM_PARTICLED: 0.05,
+    FORM_FULL: 0.50,
+}
+_MX_CP_RE = re.compile(r" \d{5}$")
+_ZIP_PLUS_FOUR_RE = re.compile(r"\d{5}-\d{4}$")
+
+
+def _base_locale(doc: dict[str, Any]) -> str:
+    index = int(doc["id"].rsplit("_", 1)[1])
+    return _sub_seed_and_locale(CANONICAL_SEED, doc["doctype"], index, doc["demographic_bucket"])[1]
+
+
+@pytest.mark.parametrize("profile", (PROFILE_SPEC_A, PROFILE_SPEC_AGH))
+def test_spec_a_records_a_form_on_every_name_span_that_matches_its_value(profile: str) -> None:
+    g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)["documents"]}
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    forms: Counter[str] = Counter()
+    for doc, span in _all_spans(payload):
+        if span["category"] != "name":
+            assert "form" not in span, doc["id"]
+            continue
+        form = span["form"]
+        assert form in NAME_FORMS, doc["id"]
+        assert _FORM_SHAPES[form].match(span["value"]), (doc["id"], form, span["value"])
+        if span["context_class"] in _CAPTION_CLASSES:
+            # Not a Spec-A slot: the caption keeps its shipped rendering and
+            # records the surface it carries; ALL-CAPS is its adversarial class.
+            twin = next(
+                s for s in g8[doc["id"]]["pii_spans"] if s["context_class"] == span["context_class"]
+            )
+            assert span["value"] == twin["value"], doc["id"]
+            assert form == (FORM_ALL_CAPS if span.get("adversarial") else FORM_FULL), doc["id"]
+        else:
+            assert not span.get("adversarial", False), doc["id"]
+            forms[form] += 1
+    assert set(forms) == set(NAME_FORMS)
+
+
+@pytest.mark.parametrize(
+    "profile", (PROFILE_SPEC_C, PROFILE_SPEC_D, PROFILE_SPEC_CD, PROFILE_SPEC_G, PROFILE_SPEC_H)
+)
+def test_form_and_locale_keys_exist_only_on_their_profiles(profile: str) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS, profile=profile)
+    for _, span in _all_spans(payload):
+        assert "form" not in span
+        assert ("locale" in span) == (profile == PROFILE_SPEC_G)
+    g8 = build_g8_corpus(CANONICAL_SEED, counts=_MIN_COUNTS)
+    assert not any("form" in s or "locale" in s for _, s in _all_spans(g8))
+
+
+@pytest.mark.parametrize("profile", (PROFILE_SPEC_G, PROFILE_SPEC_AGH))
+def test_spec_g_draws_the_locale_axis_and_moves_only_the_addresses_it_says(profile: str) -> None:
+    """Every span carries the document's drawn locale; the address value is
+    g8's exactly when the drawn locale equals the base locale and is not
+    es_MX, and is re-drawn otherwise; an es_MX address ends in a five-digit
+    codigo postal, never a ZIP+4 shape."""
+    g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)["documents"]}
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    seen: set[tuple[str, str]] = set()
+    kept = redrawn = 0
+    for doc in payload["documents"]:
+        locales = {s["locale"] for s in doc["pii_spans"]}
+        assert len(locales) == 1, doc["id"]
+        drawn = locales.pop()
+        assert drawn in LOCALES, doc["id"]
+        seen.add((doc["demographic_bucket"], drawn))
+        keep = drawn == _base_locale(doc) and drawn != LOCALE_ES_MX
+        for span, twin in zip(doc["pii_spans"], g8[doc["id"]]["pii_spans"], strict=True):
+            if span["category"] != "address":
+                continue
+            assert (span["value"] == twin["value"]) == keep, (doc["id"], drawn)
+            kept += keep
+            redrawn += not keep
+            if drawn == LOCALE_ES_MX:
+                assert _MX_CP_RE.search(span["value"]), span["value"]
+                assert not _ZIP_PLUS_FOUR_RE.search(span["value"]), span["value"]
+    assert kept and redrawn
+    # The axis is crossed with the bucket: every bucket draws every locale.
+    assert seen == {(b, loc) for b in BUCKETS for loc in LOCALES}
+
+
+@pytest.mark.parametrize("profile", (PROFILE_SPEC_H, PROFILE_SPEC_AGH))
+def test_spec_h_replaces_every_placeholder_with_a_role_phrase(profile: str) -> None:
+    g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS)["documents"]}
+    payload = build_g8_corpus(CANONICAL_SEED, counts=_COVERAGE_COUNTS, profile=profile)
+    sparse = 0
+    for doc in payload["documents"]:
+        assert REDACTED_NAME_PLACEHOLDER not in doc["text"], doc["id"]
+        twin = g8[doc["id"]]
+        if any(s["category"] == "name" for s in twin["pii_spans"]):
+            if profile == PROFILE_SPEC_H:
+                # Spec-H alone touches nothing but the sparse slots.
+                assert doc["text"] == twin["text"], doc["id"]
+                assert doc["pii_spans"] == twin["pii_spans"], doc["id"]
+            continue
+        sparse += 1
+        assert twin["text"].count(REDACTED_NAME_PLACEHOLDER) == sum(
+            doc["text"].count(w) + doc["text"].count(w[0].upper() + w[1:]) for w in ROLE_WORDS
+        ), doc["id"]
+    assert sparse
+
+
+# The canonical (full-count, seed 20260416) Spec-A / G / H builds, pinned:
+# the name-class census of every one of them equals g8's (no slot moves
+# class), the form census (Spec-A; the caption's 344 full + 86 all_caps are
+# the shipped caption, not draws), the per-document locale census (Spec-G)
+# and the placeholder census (1,032 sparse slots as furnished; 0 literal
+# placeholders under Spec-H). A change here is a template or profile change.
+_PINNED_FORM_COUNTS: dict[str, dict[str, int]] = {
+    PROFILE_SPEC_A: {
+        "full": 1506,
+        "initial": 490,
+        "last_first": 263,
+        "all_caps": 331,
+        "suffix": 128,
+        "particled": 119,
+    },
+    PROFILE_SPEC_AGH: {
+        "full": 1522,
+        "initial": 480,
+        "last_first": 250,
+        "all_caps": 332,
+        "suffix": 117,
+        "particled": 136,
+    },
+}
+_PINNED_CAPTION_FORM_COUNTS: dict[str, int] = {"full": 344, "all_caps": 86}
+_PINNED_LOCALE_DOC_COUNTS: dict[str, dict[str, int]] = {
+    PROFILE_SPEC_G: {"en_US": 962, "es_MX": 57, "es_ES": 81},
+    PROFILE_SPEC_AGH: {"en_US": 955, "es_MX": 75, "es_ES": 70},
+}
+_PINNED_MOVED_ADDRESSES: dict[str, int] = {PROFILE_SPEC_G: 297, PROFILE_SPEC_AGH: 317}
+_PINNED_SPARSE_SLOTS = 1032
+
+
+@pytest.mark.parametrize("profile", _AGH_PROFILES)
+def test_spec_agh_censuses_pinned_on_the_canonical_corpus(profile: str) -> None:
+    payload = build_g8_corpus(CANONICAL_SEED, profile=profile)
+    g8 = {d["id"]: d for d in build_g8_corpus(CANONICAL_SEED)["documents"]}
+    assert payload["version"] == 2
+    assert payload["profile"] == profile
+    docs = payload["documents"]
+    by_class: Counter[str] = Counter(
+        span["context_class"] for _, span in _all_spans(payload) if span["category"] == "name"
+    )
+    assert dict(by_class) == _PINNED_NAME_CLASS_COUNTS
+    assert all(doc["furniture"] == [] for doc in docs)
+    names = [span for _, span in _all_spans(payload) if span["category"] == "name"]
+    if profile in _PINNED_FORM_COUNTS:
+        assert dict(Counter(s["form"] for s in names)) == _PINNED_FORM_COUNTS[profile]
+        assert (
+            dict(Counter(s["form"] for s in names if s["context_class"] in _CAPTION_CLASSES))
+            == _PINNED_CAPTION_FORM_COUNTS
+        )
+        slots = [s for s in names if s["context_class"] not in _CAPTION_CLASSES]
+        for form, rate in _FORM_RATES.items():
+            share = sum(s["form"] == form for s in slots) / len(slots)
+            tolerance = 3 * (rate * (1 - rate) / len(slots)) ** 0.5
+            assert abs(share - rate) <= tolerance, (form, share, rate)
+    else:
+        assert not any("form" in s for _, s in _all_spans(payload))
+    if profile in _PINNED_LOCALE_DOC_COUNTS:
+        locales = Counter(d["pii_spans"][0]["locale"] for d in docs)
+        assert dict(locales) == _PINNED_LOCALE_DOC_COUNTS[profile]
+        moved = sum(
+            s["value"] != t["value"]
+            for d in docs
+            for s, t in zip(d["pii_spans"], g8[d["id"]]["pii_spans"], strict=True)
+            if s["category"] == "address"
+        )
+        assert moved == _PINNED_MOVED_ADDRESSES[profile]
+    else:
+        assert not any("locale" in s for _, s in _all_spans(payload))
+    placeholders = sum(d["text"].count(REDACTED_NAME_PLACEHOLDER) for d in docs)
+    role_phrases = sum(
+        d["text"].count(w) + d["text"].count(w[0].upper() + w[1:]) for d in docs for w in ROLE_WORDS
+    )
+    if profile in (PROFILE_SPEC_H, PROFILE_SPEC_AGH):
+        assert (placeholders, role_phrases) == (0, _PINNED_SPARSE_SLOTS)
+    else:
+        assert (placeholders, role_phrases) == (_PINNED_SPARSE_SLOTS, 0)

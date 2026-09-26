@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from resecta_data.cli import _run_rebuild_streaming
+from resecta_data.commands.verify import _run_rebuild_streaming
 
 
 def test_rebuild_streaming_returns_exit_code_and_tail() -> None:
@@ -102,7 +102,7 @@ def test_rebuild_streaming_reaps_subtree_on_sigterm() -> None:
     helper_script = textwrap.dedent(
         """
         import os, sys
-        from resecta_data.cli import _run_rebuild_streaming
+        from resecta_data.commands.verify import _run_rebuild_streaming
         # Print our PID so the test driver knows whom to signal.
         print(os.getpid(), flush=True)
         # Inside the child shell, spawn a long-lived sleep and print its

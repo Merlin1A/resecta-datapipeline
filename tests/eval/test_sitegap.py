@@ -11,6 +11,7 @@ family that exists on one side only.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from resecta_data.cli import main as cli_main
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.eval.baseline import build_baseline
+from resecta_data.eval.payloads import BaselinePayload
 from resecta_data.eval.sitegap import build_site_gap
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
@@ -39,7 +41,7 @@ def _cell(tp: int, fn: int, fp: int, **tiers: int) -> dict[str, int]:
     return cell
 
 
-def _detector() -> dict[str, Any]:
+def _detector() -> BaselinePayload:
     return build_baseline(
         {
             "cells": {
@@ -61,7 +63,7 @@ def _detector() -> dict[str, Any]:
     )
 
 
-def _siteb() -> dict[str, Any]:
+def _siteb() -> BaselinePayload:
     return build_baseline(
         {
             "cells": {
@@ -86,7 +88,7 @@ def _siteb() -> dict[str, Any]:
     )
 
 
-def _gap() -> dict[str, Any]:
+def _gap() -> Mapping[str, Any]:
     return build_site_gap(_detector(), _siteb())
 
 

@@ -1,0 +1,15 @@
+Usage: resecta-data build corpus [OPTIONS] {g8}
+
+  Build the G8 synthetic document corpus (one file per profile).
+
+Options:
+  --build-dir DIRECTORY           [required]
+  --seed INTEGER                  [default: 20260416]
+  --profile [g8|g8-specC|g8-specD|g8-specCD|g8-specA|g8-specG|g8-specH|g8-specAGH]
+                                  Generator profile(s) to build (repeatable). g8 = the corpus as
+                                  furnished (corpus/g8_corpus.json); g8-specC / g8-specD / g8-specCD
+                                  = the same documents with name-context variety, furniture density,
+                                  or both; g8-specA / g8-specG / g8-specH / g8-specAGH = name forms,
+                                  the locale axis, the sparse placeholder, or all three
+                                  (corpus/g8_corpus_<profile>.json; never installed).  [default: g8]
+  --help                          Show this message and exit.

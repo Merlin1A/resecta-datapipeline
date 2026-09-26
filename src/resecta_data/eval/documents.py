@@ -67,13 +67,45 @@ import math
 import random
 import re
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from statistics import NormalDist
-from typing import Any, Final
+from typing import Final
 
 from resecta_data.common.determinism import CANONICAL_SEED
 from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json, load_json
+
+from .payloads import (
+    CaptionMerge,
+    DocumentBlock,
+    DocumentsEvalPayload,
+    HarnessRun,
+    Hit,
+    LegAttribution,
+    LegKind,
+    MergeCounts,
+    MergeLeg,
+    MergeRow,
+    MetricView,
+    MissAttribution,
+    Occurrence,
+    OccurrenceJoin,
+    OccurrenceMeta,
+    OccurrenceSpan,
+    Pool,
+    RunBlock,
+    StrataCounts,
+    StrataViews,
+    StratumCounts,
+    StratumView,
+    TierCounts,
+    Verdict,
+    as_ground_truth,
+    as_harness_run,
+    as_manifest,
+    as_ocr_line_dump,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -189,7 +221,7 @@ def _check_rule(rule: str) -> None:
 
 
 def _best_cover(
-    gt: tuple[float, float, float, float], dets: list[dict[str, Any]], rule: str
+    gt: tuple[float, float, float, float], dets: list[Hit], rule: str
 ) -> tuple[float, str | None, str | None, int]:
     """The coverage credit for one box: (fraction, category, text, hits credited).
 
@@ -226,8 +258,8 @@ def _best_cover(
 
 
 def join_occurrence(
-    occ: dict[str, Any], dets: list[dict[str, Any]], rule: str = DEFAULT_JOIN_RULE
-) -> dict[str, Any]:
+    occ: Occurrence, dets: list[Hit], rule: str = DEFAULT_JOIN_RULE
+) -> OccurrenceJoin:
     """Option-C verdict for one occurrence against one page's detections.
 
     ``dets`` rows carry ``rect`` as [x, y, w, h] and ``category``/``text``.
@@ -259,11 +291,11 @@ def join_occurrence(
     spans = occ.get("spans") or []
     if len(spans) > 1:
         merge = _merge_credit(spans, dets, rule)
-        if merge["all_covered"]:
+        if merge.all_covered:
             best_cover = max(best_cover, 1.0)
-            best_cat = best_cat or merge["category"]
-            best_text = best_text or merge["text"]
-        if merge["all_iou"]:
+            best_cat = best_cat or merge.category
+            best_text = best_text or merge.text
+        if merge.all_iou:
             best_iou = max(best_iou, _IOU_HEADLINE)
 
     return {
@@ -277,9 +309,19 @@ def join_occurrence(
     }
 
 
+@dataclass(frozen=True)
+class _MergeCredit:
+    """The DetEval merge credit of a multi-span occurrence (internal; never serialized)."""
+
+    all_covered: bool
+    all_iou: bool
+    category: str | None
+    text: str | None
+
+
 def _merge_credit(
-    spans: list[dict[str, Any]], dets: list[dict[str, Any]], rule: str = DEFAULT_JOIN_RULE
-) -> dict[str, Any]:
+    spans: list[OccurrenceSpan], dets: list[Hit], rule: str = DEFAULT_JOIN_RULE
+) -> _MergeCredit:
     """Per-span coverage/IoU over a multi-span occurrence (DetEval credit)."""
     all_cov, all_iou = True, True
     merge_cat: str | None = None
@@ -287,7 +329,7 @@ def _merge_credit(
     for s in spans:
         sb = s.get("bbox")
         if not sb:
-            return {"all_covered": False, "all_iou": False, "category": None, "text": None}
+            return _MergeCredit(all_covered=False, all_iou=False, category=None, text=None)
         sr = _corner_to_xywh(sb)
         sc, scat, stext, _ = _best_cover(sr, dets, rule)
         sv = 0.0
@@ -301,7 +343,7 @@ def _merge_credit(
             all_cov = False
         if sv < _IOU_HEADLINE:
             all_iou = False
-    return {"all_covered": all_cov, "all_iou": all_iou, "category": merge_cat, "text": merge_text}
+    return _MergeCredit(all_covered=all_cov, all_iou=all_iou, category=merge_cat, text=merge_text)
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +368,7 @@ def _fbeta(precision: float, recall: float, beta: float) -> float:
     return (1 + b2) * precision * recall / denom if denom > 0 else 0.0
 
 
-def _micro_f(counts: Sequence[dict[str, int]], beta: float) -> float:
+def _micro_f(counts: Sequence[TierCounts], beta: float) -> float:
     mf = sum(c["mf_total"] for c in counts)
     mf_strict = sum(c["mf_strict"] for c in counts)
     mnf_fire = sum(c["mnf_fire_strict"] for c in counts)
@@ -335,9 +377,9 @@ def _micro_f(counts: Sequence[dict[str, int]], beta: float) -> float:
     return _fbeta(precision, recall, beta)
 
 
-def bca_bootstrap(
-    doc_counts: Sequence[dict[str, int]],
-    stat: Callable[[Sequence[dict[str, int]]], float],
+def bca_bootstrap[C](
+    doc_counts: Sequence[C],
+    stat: Callable[[Sequence[C]], float],
     b: int = _BOOTSTRAP_B,
     seed: int = CANONICAL_SEED,
 ) -> list[float] | None:
@@ -407,7 +449,7 @@ def digit_stratum(value: str) -> tuple[str, int, int]:
     return "none_ambiguous", 0, len(groups)
 
 
-def _stratum_view(t: dict[str, int]) -> dict[str, Any]:
+def _stratum_view(t: StratumCounts) -> StratumView:
     return {
         "support": t["mf_total"],
         "region_recall": round(t["mf_region"] / t["mf_total"], 6) if t["mf_total"] else 0.0,
@@ -416,8 +458,8 @@ def _stratum_view(t: dict[str, int]) -> dict[str, Any]:
     }
 
 
-def _strata_views(counts: dict[str, dict[str, dict[str, int]]]) -> dict[str, dict[str, Any]]:
-    out: dict[str, dict[str, Any]] = {}
+def _strata_views(counts: StrataCounts) -> StrataViews:
+    out: StrataViews = {}
     for kind in _STRATA_KINDS:
         rows = counts.get(kind, {})
         keys: tuple[str, ...] | list[str] = (
@@ -427,18 +469,17 @@ def _strata_views(counts: dict[str, dict[str, dict[str, int]]]) -> dict[str, dic
     return out
 
 
-def _zero_counts() -> dict[str, int]:
+def _zero_counts() -> StratumCounts:
     return {"mf_total": 0, "mf_region": 0, "mf_strict": 0}
 
 
-def _add_counts(
-    into: dict[str, dict[str, dict[str, int]]], add: dict[str, dict[str, dict[str, int]]]
-) -> None:
+def _add_counts(into: StrataCounts, add: StrataCounts) -> None:
     for kind, rows in add.items():
         for key, t in rows.items():
             dst = into.setdefault(kind, {}).setdefault(key, _zero_counts())
-            for field in dst:
-                dst[field] += t[field]
+            dst["mf_total"] += t["mf_total"]
+            dst["mf_region"] += t["mf_region"]
+            dst["mf_strict"] += t["mf_strict"]
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +487,7 @@ def _add_counts(
 # ---------------------------------------------------------------------------
 
 
-def _gt_leg_for(occ: dict[str, Any], run: dict[str, Any]) -> str | None:
+def _gt_leg_for(occ: Occurrence, run: HarnessRun) -> str | None:
     """Which measurement leg this occurrence belongs to under this run.
 
     ``ocr-forced`` runs measure the OCR leg on every page. ``natural`` runs
@@ -466,27 +507,8 @@ def _gt_leg_for(occ: dict[str, Any], run: dict[str, Any]) -> str | None:
     return leg if leg in occ.get("leg_applicability", []) else None
 
 
-def evaluate_run(
-    occs: list[dict[str, Any]],
-    run: dict[str, Any],
-    carried: list[dict[str, Any]] | None = None,
-    rule: str = DEFAULT_JOIN_RULE,
-) -> dict[str, Any]:
-    """Join one harness run against the occurrence list -> the metric block.
-
-    ``carried`` rows (the packet's carried_stmt block) join no denominator --
-    they are count-declared, not per-instance-drawn -- but their boxes DO
-    count as ground truth for the surplus-fire census, so legitimate hits on
-    the carried statement pages are not misread as surplus. ``rule`` selects
-    the coverage credit (``union`` / ``single``).
-    """
-    _check_rule(rule)
-    hits_by_page: dict[int, list[dict[str, Any]]] = {}
-    for h in run["hits"]:
-        hits_by_page.setdefault(h["page"], []).append(h)
-
-    per_cat: dict[str, dict[str, int]] = {}
-    totals = {
+def _zero_tier_counts() -> TierCounts:
+    return {
         "mf_total": 0,
         "mf_region": 0,
         "mf_strict": 0,
@@ -502,15 +524,38 @@ def evaluate_run(
         "text_relaxed": 0,
         "text_denom": 0,
     }
+
+
+def evaluate_run(
+    occs: list[Occurrence],
+    run: HarnessRun,
+    carried: list[Occurrence] | None = None,
+    rule: str = DEFAULT_JOIN_RULE,
+) -> RunBlock:
+    """Join one harness run against the occurrence list -> the metric block.
+
+    ``carried`` rows (the packet's carried_stmt block) join no denominator --
+    they are count-declared, not per-instance-drawn -- but their boxes DO
+    count as ground truth for the surplus-fire census, so legitimate hits on
+    the carried statement pages are not misread as surplus. ``rule`` selects
+    the coverage credit (``union`` / ``single``).
+    """
+    _check_rule(rule)
+    hits_by_page: dict[int, list[Hit]] = {}
+    for h in run["hits"]:
+        hits_by_page.setdefault(h["page"], []).append(h)
+
+    per_cat: dict[str, TierCounts] = {}
+    totals = _zero_tier_counts()
     confusion: dict[str, int] = {}
-    verdicts: dict[str, dict[str, Any]] = {}
-    strata_counts: dict[str, dict[str, dict[str, int]]] = {}
+    verdicts: dict[str, Verdict] = {}
+    strata_counts: StrataCounts = {}
 
     for occ in occs:
         leg = _gt_leg_for(occ, run)
-        if leg is None:
+        page = occ.get("page")
+        if leg is None or page is None:  # a leg is only ever found for a paged occurrence
             continue
-        page = occ["page"]
         v = join_occurrence(occ, hits_by_page.get(page, []), rule)
         want = _canon(occ["category"])
         strict = bool(v["covered"] and v["cover_category"] == want)
@@ -518,7 +563,7 @@ def evaluate_run(
             confusion[f"{want}->{v['cover_category']}"] = (
                 confusion.get(f"{want}->{v['cover_category']}", 0) + 1
             )
-        cat = per_cat.setdefault(want, dict.fromkeys(totals, 0))
+        cat = per_cat.setdefault(want, _zero_tier_counts())
         _tally_occurrence(occ, v, strict, (totals, cat))
         stratum, ambiguous, digit_groups = digit_stratum(str(occ.get("value", "")))
         context_class = str(occ.get("context_class") or "none")
@@ -566,10 +611,10 @@ def evaluate_run(
 
 
 def _tally_occurrence(
-    occ: dict[str, Any],
-    v: dict[str, Any],
+    occ: Occurrence,
+    v: OccurrenceJoin,
     strict: bool,
-    tallies: tuple[dict[str, int], ...],
+    tallies: tuple[TierCounts, ...],
 ) -> None:
     """Tier -> denominator mapping (Option C) for one joined occurrence."""
     expectation = occ["expectation"]
@@ -599,9 +644,7 @@ def _tally_occurrence(
             t["sf_region"] += 1 if v["covered"] else 0
 
 
-def _surplus_fires(
-    occs: list[dict[str, Any]], hits_by_page: dict[int, list[dict[str, Any]]]
-) -> dict[int, int]:
+def _surplus_fires(occs: list[Occurrence], hits_by_page: dict[int, list[Hit]]) -> dict[int, int]:
     """Detections covering no ground-truth box (any tier) on their page.
 
     Reported per page, off-headline -- the Option-C precision denominator
@@ -609,11 +652,13 @@ def _surplus_fires(
     """
     gt_boxes_by_page: dict[int, list[tuple[float, float, float, float]]] = {}
     for occ in occs:
-        if occ.get("bbox") and occ.get("page") is not None:
-            gt_boxes_by_page.setdefault(occ["page"], []).append(_corner_to_xywh(occ["bbox"]))
+        bbox, page = occ.get("bbox"), occ.get("page")
+        if bbox and page is not None:
+            gt_boxes_by_page.setdefault(page, []).append(_corner_to_xywh(bbox))
             for s in occ.get("spans") or []:
-                if s.get("bbox"):
-                    gt_boxes_by_page.setdefault(occ["page"], []).append(_corner_to_xywh(s["bbox"]))
+                span_bbox = s.get("bbox")
+                if span_bbox:
+                    gt_boxes_by_page.setdefault(page, []).append(_corner_to_xywh(span_bbox))
     surplus: dict[int, int] = {}
     for page, dets in hits_by_page.items():
         for d in dets:
@@ -626,14 +671,14 @@ def _surplus_fires(
     return surplus
 
 
-def _metric_view(t: dict[str, int]) -> dict[str, Any]:
+def _metric_view(t: TierCounts) -> MetricView:
     region_recall = t["mf_region"] / t["mf_total"] if t["mf_total"] else 0.0
     strict_recall = t["mf_strict"] / t["mf_total"] if t["mf_total"] else 0.0
     rp_den = t["mf_region"] + t["mnf_fire_region"]
     sp_den = t["mf_strict"] + t["mnf_fire_strict"]
     region_precision = t["mf_region"] / rp_den if rp_den else 1.0
     strict_precision = t["mf_strict"] / sp_den if sp_den else 1.0
-    view: dict[str, Any] = {
+    view: MetricView = {
         "support": t["mf_total"],
         "low_support": t["mf_total"] < _LOW_SUPPORT,
         "region": {
@@ -675,13 +720,13 @@ def _metric_view(t: dict[str, int]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _median_run(blocks: list[dict[str, Any]]) -> dict[str, Any]:
+def _median_run(blocks: list[RunBlock]) -> RunBlock:
     """The median run by strict headline recall (ties by run_index)."""
     ordered = sorted(blocks, key=lambda r: (r["headline"]["strict"]["recall"], r["run_index"]))
     return ordered[len(ordered) // 2]
 
 
-def _leg_kind(run: dict[str, Any]) -> str:
+def _leg_kind(run: HarnessRun) -> LegKind:
     if run["leg"] == "ocr-forced":
         return "ocr-forced"
     statuses = set(run.get("text_layer_status") or [])
@@ -694,15 +739,15 @@ def _leg_kind(run: dict[str, Any]) -> str:
 
 def evaluate(
     manifest_path: Path, gt_root: Path, hits_dir: Path, rule: str = DEFAULT_JOIN_RULE
-) -> dict[str, Any]:
+) -> DocumentsEvalPayload:
     """Full document eval over every manifest row with hits present."""
     _check_rule(rule)
-    manifest = load_json(manifest_path)
-    per_document: dict[str, Any] = {}
-    doc_leg_counts: dict[str, list[tuple[str, dict[str, int]]]] = {}
-    doc_leg_strata: dict[str, dict[str, dict[str, dict[str, int]]]] = {}
+    manifest = as_manifest(load_json(manifest_path))
+    per_document: dict[str, DocumentBlock] = {}
+    doc_leg_counts: dict[LegKind, list[tuple[str, TierCounts]]] = {}
+    doc_leg_strata: dict[LegKind, StrataCounts] = {}
     values_by_doc: dict[str, dict[str, tuple[str, int | None]]] = {}
-    occ_index: dict[str, dict[str, dict[str, Any]]] = {}
+    occ_index: dict[str, dict[str, OccurrenceMeta]] = {}
     site: str | None = None
 
     for row in manifest:
@@ -714,7 +759,7 @@ def evaluate(
         if not run_files:
             logger.info("no hits for %s; skipped", row["id"])
             continue
-        gt = load_json(gt_root / gt_rel)
+        gt = as_ground_truth(load_json(gt_root / gt_rel))
         occs = gt["occurrences"]
         carried = gt.get("carried_stmt") or []
         values_by_doc[row["id"]] = {o["id"]: (str(o.get("value", "")), o.get("page")) for o in occs}
@@ -728,11 +773,11 @@ def evaluate(
             }
             for o in occs
         }
-        legs: dict[str, list[dict[str, Any]]] = {}
+        legs: dict[LegKind, list[RunBlock]] = {}
         for rf in run_files:
             if rf.name.startswith("ocr-lines-run-"):
                 continue  # the OCR line dump sits beside the hits; not a run
-            run = load_json(rf)
+            run = as_harness_run(load_json(rf))
             if site is None:
                 site = run.get("site")
             elif run.get("site") != site:
@@ -740,7 +785,8 @@ def evaluate(
             block = evaluate_run(occs, run, carried, rule)
             legs.setdefault(_leg_kind(run), []).append(block)
 
-        doc_block: dict[str, Any] = {"variant": (gt.get("variant") or {}).get("kind")}
+        variant = gt.get("variant")
+        doc_block: DocumentBlock = {"variant": variant.get("kind") if variant else None}
         for kind, blocks in sorted(legs.items()):
             med = _median_run(blocks)
             recalls = sorted(b["headline"]["strict"]["recall"] for b in blocks)
@@ -749,17 +795,14 @@ def evaluate(
                 "n_runs": len(blocks),
                 "median_run_index": med["run_index"],
                 "median": {
-                    k: med[k]
-                    for k in (
-                        "headline",
-                        "per_category",
-                        "confusion",
-                        "surplus_fires",
-                        "surplus_fires_per_page",
-                        "surplus_fires_by_page",
-                        "strata",
-                        "verdicts",
-                    )
+                    "headline": med["headline"],
+                    "per_category": med["per_category"],
+                    "confusion": med["confusion"],
+                    "surplus_fires": med["surplus_fires"],
+                    "surplus_fires_per_page": med["surplus_fires_per_page"],
+                    "surplus_fires_by_page": med["surplus_fires_by_page"],
+                    "strata": med["strata"],
+                    "verdicts": med["verdicts"],
                 },
                 "strict_recall_min_median_max": [
                     recalls[0],
@@ -777,7 +820,7 @@ def evaluate(
         per_document[row["id"]] = doc_block
 
     # Pools: micro + macro + document-level BCa where n_docs >= 2.
-    pools: dict[str, Any] = {}
+    pools: dict[str, Pool] = {}
     for kind, entries in sorted(doc_leg_counts.items()):
         counts = [c for _, c in entries]
         micro_f1 = _micro_f(counts, 1.0)
@@ -821,11 +864,15 @@ def evaluate(
     }
 
 
+# The OCR leg kinds whose misses are attributed and whose caption merges are flagged.
+_OCR_LEG_KINDS: Final[tuple[LegKind, ...]] = ("ocr", "ocr-forced")
+
+
 def _load_ocr_lines(path: Path) -> dict[int, list[tuple[str, str]]] | None:
     """The harness's OCR line dump as {page: [(raw, normalized), ...]}; None when absent."""
     if not path.is_file():
         return None
-    dump = load_json(path)
+    dump = as_ocr_line_dump(load_json(path))
     return {
         int(p["page"]): [(str(line["text"]), str(line["normalized"])) for line in p["lines"]]
         for p in dump.get("pages", [])
@@ -855,19 +902,20 @@ def _normalizer_destroyed(
     )
 
 
-def _text_twins(per_document: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def _text_twins(per_document: dict[str, DocumentBlock]) -> dict[str, dict[str, Verdict]]:
     """Every document's text-leg median verdicts, keyed by document id."""
-    twins: dict[str, dict[str, Any]] = {}
+    twins: dict[str, dict[str, Verdict]] = {}
     for doc_id, doc_block in sorted(per_document.items()):
-        verdicts = (doc_block.get("text") or {}).get("median", {}).get("verdicts", {})
+        text_leg = doc_block.get("text")
+        verdicts = text_leg["median"]["verdicts"] if text_leg else {}
         if verdicts:
             twins[doc_id] = verdicts
     return twins
 
 
 def _twin_for(
-    occ_id: str, doc_id: str, twins: dict[str, dict[str, Any]]
-) -> tuple[str, dict[str, Any]] | None:
+    occ_id: str, doc_id: str, twins: dict[str, dict[str, Verdict]]
+) -> tuple[str, Verdict] | None:
     """The clean twin verdict for one occurrence: the document's own text leg
     first, else the first other text leg (by document id) carrying the id."""
     own = twins.get(doc_id)
@@ -881,11 +929,11 @@ def _twin_for(
 
 def _attribute_leg(
     doc_id: str,
-    verdicts: dict[str, Any],
-    twins: dict[str, dict[str, Any]],
+    verdicts: dict[str, Verdict],
+    twins: dict[str, dict[str, Verdict]],
     values: dict[str, tuple[str, int | None]],
     lines: dict[int, list[tuple[str, str]]] | None,
-) -> dict[str, Any]:
+) -> LegAttribution:
     """Attribute one OCR leg's strict must-fire misses."""
     classes: dict[str, list[str]] = {
         "ocr_induced": [],
@@ -909,7 +957,7 @@ def _attribute_leg(
             classes["normalizer_destroyed"].append(occ_id)
         else:
             classes["ocr_induced"].append(occ_id)
-    block: dict[str, Any] = {
+    block: LegAttribution = {
         "clean_twins": {k: twins_used[k] for k in sorted(twins_used)},
         "ocr_induced": sorted(classes["ocr_induced"]),
         "normalizer_destroyed": (
@@ -930,10 +978,10 @@ def _attribute_leg(
 
 
 def _attribute_misses(
-    per_document: dict[str, Any],
+    per_document: dict[str, DocumentBlock],
     values_by_doc: dict[str, dict[str, tuple[str, int | None]]],
     hits_dir: Path,
-) -> dict[str, Any]:
+) -> MissAttribution:
     """Clean-twin attribution of every OCR leg's strict must-fire misses.
 
     The twin of a miss is the document's own text-leg median run when it ran
@@ -943,7 +991,7 @@ def _attribute_misses(
     reported as unavailable). The four classes partition the strict misses.
     """
     twins = _text_twins(per_document)
-    out: dict[str, Any] = {
+    out: MissAttribution = {
         "clean_twin_rule": "the document's own text-leg median run when present, else the "
         "first other document (by id) whose text leg carries the occurrence id",
         "text_legs_present": sorted(twins),
@@ -953,7 +1001,7 @@ def _attribute_misses(
     if not twins:
         out["note"] = "no text-leg run present; every miss stays unattributed"
     for doc_id, doc_block in sorted(per_document.items()):
-        for kind in ("ocr", "ocr-forced"):
+        for kind in _OCR_LEG_KINDS:
             leg = doc_block.get(kind)
             if not leg:
                 continue
@@ -1040,24 +1088,27 @@ def caption_merged(
 
 
 def _merge_leg(
-    verdicts: dict[str, Any],
-    index: dict[str, dict[str, Any]],
+    verdicts: dict[str, Verdict],
+    index: dict[str, OccurrenceMeta],
     lines: dict[int, list[tuple[str, str]]] | None,
-) -> dict[str, Any]:
-    rows: dict[str, dict[str, Any]] = {}
-    buckets: dict[str, dict[str, int]] = {
+) -> MergeLeg:
+    rows: dict[str, MergeRow] = {}
+    buckets: dict[str, MergeCounts] = {
         name: {"rows": 0, "decided": 0, "merged": 0} for name, _, _ in CLEARANCE_BUCKETS
     }
     for occ_id, v in verdicts.items():
         meta = index.get(occ_id)
-        if not meta or meta.get("caption_clearance_pt") is None or not meta.get("caption_text"):
+        if not meta:
             continue
-        clearance = float(meta["caption_clearance_pt"])
+        clearance_pt, caption_text = meta.get("caption_clearance_pt"), meta.get("caption_text")
+        if clearance_pt is None or not caption_text:
+            continue
+        clearance = float(clearance_pt)
         bucket = clearance_bucket(clearance)
         merged = (
             caption_merged(
                 meta["value"],
-                str(meta["caption_text"]),
+                str(caption_text),
                 meta.get("page"),
                 lines,
                 multiline=bool(meta.get("multiline")),
@@ -1089,13 +1140,13 @@ def _merge_leg(
 
 
 def _caption_merge(
-    per_document: dict[str, Any],
-    occ_index: dict[str, dict[str, dict[str, Any]]],
+    per_document: dict[str, DocumentBlock],
+    occ_index: dict[str, dict[str, OccurrenceMeta]],
     hits_dir: Path,
-) -> dict[str, Any]:
+) -> CaptionMerge:
     """Per document, per OCR leg kind (median run): the caption-merge flag on every ground-truth
     row that carries a caption above it, bucketed by clearance; pooled per leg kind."""
-    out: dict[str, Any] = {
+    out: CaptionMerge = {
         "rule": "a row is MERGED when the raw Vision line carrying its value also carries the "
         "caption the ground truth records above it (clearance measured from the draw geometry; "
         "negative = overprint); rows the dump never carries as a line are undecided",
@@ -1103,9 +1154,9 @@ def _caption_merge(
         "documents": {},
         "pools": {},
     }
-    pooled: dict[str, dict[str, dict[str, int]]] = {}
+    pooled: dict[str, dict[str, MergeCounts]] = {}
     for doc_id, doc_block in sorted(per_document.items()):
-        for kind in ("ocr", "ocr-forced"):
+        for kind in _OCR_LEG_KINDS:
             leg = doc_block.get(kind)
             if not leg:
                 continue
@@ -1120,10 +1171,11 @@ def _caption_merge(
                 kind, {n: {"rows": 0, "decided": 0, "merged": 0} for n, _, _ in CLEARANCE_BUCKETS}
             )
             for name, b in block["buckets"].items():
-                for field in ("rows", "decided", "merged"):
-                    pool[name][field] += b[field]
-    for kind, buckets in sorted(pooled.items()):
-        out["pools"][kind] = {
+                pool[name]["rows"] += b["rows"]
+                pool[name]["decided"] += b["decided"]
+                pool[name]["merged"] += b["merged"]
+    for pool_kind, buckets in sorted(pooled.items()):
+        out["pools"][pool_kind] = {
             name: {
                 **b,
                 "merged_rate": round(b["merged"] / b["decided"], 6) if b["decided"] else None,

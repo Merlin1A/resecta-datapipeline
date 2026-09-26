@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Final, Literal
 
+from ._names import NAME_FORMS
+
 ExpectedOutcome = Literal["redact", "suppress", "flag"]
 
 # Packet-tier vocabulary (the sample-doc ground truth's must_fire / should_fire
@@ -20,7 +22,7 @@ ExpectedOutcome = Literal["redact", "suppress", "flag"]
 # ``expected_outcome`` field.
 Tier = Literal["must", "should", "watch", "must_not"]
 
-# The context class of a span: the left-context slot it sits in (1.2 C12-29 (a)).
+# The context class of a span: the left-context slot it sits in.
 # Every span of every family carries one so a per-span join over the corpus is
 # total -- ``none`` where no label applies (every non-name span today). The
 # eight classes the shipped templates draw are the fixed literal preceding the
@@ -104,7 +106,7 @@ class SpanBuilder:
     _parts: list[str] = field(default_factory=list)
     _length: int = 0
     spans: list[dict[str, Any]] = field(default_factory=list)
-    # Non-PII page furniture a generator profile plants (1.2 C12-95 Spec-D):
+    # Non-PII page furniture a generator profile plants (the Spec-D axis):
     # [start, end) regions with a kind, recorded beside the spans and never
     # as a span. Empty under the ``g8`` profile.
     furniture: list[dict[str, Any]] = field(default_factory=list)
@@ -115,6 +117,11 @@ class SpanBuilder:
             return
         self._parts.append(text)
         self._length += len(text)
+
+    @property
+    def at_line_start(self) -> bool:
+        """True when nothing has been appended yet or the last piece ended a line."""
+        return not self._parts or self._parts[-1].endswith("\n")
 
     def append_furniture(self, text: str, kind: str) -> None:
         """Append non-PII furniture text and record its ``[start, end)`` region.
@@ -143,6 +150,7 @@ class SpanBuilder:
         expected_outcome: ExpectedOutcome = _DEFAULT_OUTCOME,
         tier: Tier | None = None,
         context_class: ContextClass = NO_CONTEXT,
+        form: str | None = None,
     ) -> None:
         """Append PII-tagged text and record its span.
 
@@ -155,11 +163,18 @@ class SpanBuilder:
         ``context_class`` names the left-context slot the span sits in
         (:data:`CONTEXT_CLASSES`); it defaults to ``none`` and every name
         call site passes its slot explicitly.
+
+        ``form`` (name spans only; the Spec-A axis) names the surface form
+        the value was rendered in (:data:`~resecta_data.corpus._names.NAME_FORMS`).
+        The key is written only when given, so a corpus that does not draw
+        forms carries no ``form`` key at all.
         """
         if not text:
             return
         if context_class not in CONTEXT_CLASSES:
             raise ValueError(f"unknown context_class {context_class!r} for a {category} span")
+        if form is not None and (category != "name" or form not in NAME_FORMS):
+            raise ValueError(f"form {form!r} is not a name form for a {category} span")
         resolved_tier = bridge_tier(expected_outcome) if tier is None else tier
         if expected_outcome != "redact" and resolved_tier != bridge_tier(expected_outcome):
             raise ValueError(
@@ -169,18 +184,19 @@ class SpanBuilder:
         start = self._length
         self._parts.append(text)
         self._length += len(text)
-        self.spans.append(
-            {
-                "category": category,
-                "start": start,
-                "end": self._length,
-                "value": text,
-                "adversarial": adversarial,
-                "expected_outcome": expected_outcome,
-                "tier": resolved_tier,
-                "context_class": context_class,
-            }
-        )
+        span: dict[str, Any] = {
+            "category": category,
+            "start": start,
+            "end": self._length,
+            "value": text,
+            "adversarial": adversarial,
+            "expected_outcome": expected_outcome,
+            "tier": resolved_tier,
+            "context_class": context_class,
+        }
+        if form is not None:
+            span["form"] = form
+        self.spans.append(span)
 
     def finalize(self) -> tuple[str, list[dict[str, Any]]]:
         """Return the assembled text and its spans (sorted by start offset)."""
@@ -194,14 +210,23 @@ class SpanBuilder:
 
 
 def append_name_or_placeholder(
-    sb: SpanBuilder, full_name: str, *, name_sparse: bool, context_class: ContextClass
+    sb: SpanBuilder,
+    full_name: str,
+    *,
+    name_sparse: bool,
+    context_class: ContextClass,
+    placeholder: str = REDACTED_NAME_PLACEHOLDER,
+    form: str | None = None,
 ) -> None:
     """Append a person-name span, or the plain placeholder when sparse.
 
     ``context_class`` is required: every name slot a template emits names the
     left-context class it sits in, so the corpus join is total by construction.
+    ``placeholder`` is the plain text a sparse slot renders (the literal
+    ``[REDACTED]`` as furnished; a generator profile may hand in a role
+    phrase); ``form`` is recorded on the span when given.
     """
     if name_sparse:
-        sb.append(REDACTED_NAME_PLACEHOLDER)
+        sb.append(placeholder)
     else:
-        sb.append_pii(full_name, "name", context_class=context_class)
+        sb.append_pii(full_name, "name", context_class=context_class, form=form)

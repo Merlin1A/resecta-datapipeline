@@ -20,7 +20,7 @@ from resecta_data.bloom.corpus_ingest import (
     parse_popnames_by_type,
     parse_ssa_given_names,
 )
-from resecta_data.cli import _ingest_surnames
+from resecta_data.commands.bloom import _ingest_surnames
 from resecta_data.common.determinism import CANONICAL_SEED
 
 _SOURCES = Path(__file__).parent.parent / "src" / "resecta_data" / "gazetteers" / "sources"

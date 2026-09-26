@@ -1,0 +1,8 @@
+Usage: resecta-data build adversarial [OPTIONS] {patterns}
+
+  Build adversarial pattern fixtures.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

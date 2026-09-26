@@ -4,7 +4,7 @@ Emits invoice/statement-style text with account numbers, routing, a tax
 ID (SSN), billing name/address, and no adversarial decoys by default.
 The W-2 shaped sibling lives in :mod:`financial_tax`.
 
-Generator profiles (1.2 C12-95): under Spec-C the ``Bill to:`` and ``AP
+Generator profiles: under Spec-C the ``Bill to:`` and ``AP
 Contact:`` slots render in their shipped context or one of four variants;
 Spec-D plants nothing here (an invoice is neither a pleading nor a letter).
 """
@@ -21,7 +21,6 @@ from resecta_data.corpus._pii import (
     generate_email_local,
     generate_invoice_number,
     generate_itin,
-    generate_localized_address,
     generate_luhn_failed_card,
     generate_phone,
     generate_routing_number,
@@ -31,6 +30,7 @@ from resecta_data.corpus._profiles import (
     NameContext,
     Profile,
     header_after,
+    render_address,
     render_name_slot,
 )
 from resecta_data.corpus._spans import SpanBuilder
@@ -69,7 +69,7 @@ def emit(
     invoice = generate_invoice_number(rng)
     account = generate_account_number(rng)
     routing = generate_routing_number(rng)
-    address = generate_localized_address(rng, locale)
+    address = render_address(rng, profile, locale)
     phone = generate_phone(rng)
     # Name-sparse docs must carry no person-name text anywhere (a
     # detector hit on an email local would count as an unmatched name
@@ -91,7 +91,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        customer.full_name,
+        customer,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "Bill to: "),
         variants=_CUSTOMER_VARIANTS,
@@ -118,7 +118,7 @@ def emit(
     render_name_slot(
         sb,
         profile,
-        ap_contact.full_name,
+        ap_contact,
         name_sparse=name_sparse,
         shipped=NameContext("role_label", "AP Contact: "),
         variants=_AP_CONTACT_VARIANTS,
@@ -137,7 +137,7 @@ def emit(
 
 
 def _append_itin_and_card(sb: SpanBuilder, rng: random.Random, tags: list[str]) -> None:
-    """1.2 T1.1 (C12-25): itin + creditCard + the Luhn-broken card decoy.
+    """The 17-family extension: itin + creditCard + the Luhn-broken card decoy.
 
     Append-only after the last pre-existing draw (see court.py for the
     byte-preservation rule); every draw is unconditional.

@@ -1,0 +1,11 @@
+Usage: resecta-data validate-schemas [OPTIONS]
+
+  Validate every build artifact against its routed schema.
+
+  Artifacts without a routing entry in SCHEMA_ROUTES are skipped with a warning. Binary artifacts
+  (e.g., .bloom) are always skipped.
+
+Options:
+  --build-dir DIRECTORY    Directory containing generated artifacts.  [required]
+  --schemas-dir DIRECTORY  Directory containing *.schema.json files.  [required]
+  --help                   Show this message and exit.

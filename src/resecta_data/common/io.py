@@ -43,11 +43,39 @@ EXCLUDED_ARTIFACT_DIRS: Final[frozenset[str]] = frozenset(
 )
 
 
+def canonical_bytes(payload: Any) -> bytes:
+    """Return the canonical-JSON bytes of ``payload``: what :func:`dump_canonical_json` writes.
+
+    Sorted keys, indent=2, the canonical separators, ``ensure_ascii=False``
+    and a trailing newline. The eval builders hash these bytes for their
+    provenance digests, so a digest moves only when the payload does, not
+    with upstream whitespace or key order.
+
+    Args:
+        payload: Any JSON-serializable value. Typically a dict.
+
+    Raises:
+        PipelineError: If ``payload`` is not JSON-serializable.
+    """
+    try:
+        encoded = json.dumps(
+            payload,
+            sort_keys=True,
+            indent=_JSON_INDENT,
+            separators=_JSON_SEPARATORS,
+            ensure_ascii=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise PipelineError(f"Payload is not JSON-serializable: {exc}") from exc
+    return encoded.encode("utf-8") + b"\n"
+
+
 def dump_canonical_json(payload: Any, path: Path) -> None:
     """Write ``payload`` to ``path`` as canonical JSON.
 
     Canonical form: sorted keys, indent=2, ensure_ascii=False, trailing newline,
-    LF line endings. Write is atomic via temp-file-then-replace.
+    LF line endings (:func:`canonical_bytes`). Write is atomic via
+    temp-file-then-replace.
 
     Args:
         payload: Any JSON-serializable value. Typically a dict.
@@ -58,17 +86,10 @@ def dump_canonical_json(payload: Any, path: Path) -> None:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        encoded = json.dumps(
-            payload,
-            sort_keys=True,
-            indent=_JSON_INDENT,
-            separators=_JSON_SEPARATORS,
-            ensure_ascii=False,
-        )
-    except (TypeError, ValueError) as exc:
+        data = canonical_bytes(payload)
+    except PipelineError as exc:
         raise PipelineError(f"Payload is not JSON-serializable for {path}: {exc}") from exc
-
-    atomic_write_bytes(path, encoded.encode("utf-8") + b"\n")
+    atomic_write_bytes(path, data)
 
 
 def load_json(path: Path) -> Any:

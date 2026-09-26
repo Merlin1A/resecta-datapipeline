@@ -38,8 +38,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.candidates import build_from_candidates
 from resecta_data.common.exceptions import PipelineError
-from resecta_data.common.io import load_json
 
 _GENERATED_BY: Final[str] = "resecta-data/gazetteers/dl_patterns"
 _SCHEMA_VERSION: Final[int] = 1
@@ -94,36 +94,23 @@ def build(seed: int, *, candidates_path: Path | None = None) -> dict[str, Any]:
             or if the shipping row count diverges from 51. Fail-loud.
     """
     path = candidates_path if candidates_path is not None else _CANDIDATES_PATH
-    data = load_json(path)
-    if not isinstance(data, dict) or "rows" not in data:
-        raise PipelineError(
-            f"dl_patterns: candidates file {path} is malformed (expected a dict with a 'rows' key)."
-        )
 
-    rows = data["rows"]
-    if not isinstance(rows, list):
-        raise PipelineError(f"dl_patterns: candidates file {path} 'rows' is not a list.")
-
-    shipping: list[dict[str, Any]] = []
-    for entry in rows:
-        if not isinstance(entry, dict):
-            raise PipelineError(
-                f"dl_patterns: candidates file {path} contains a non-object row entry."
-            )
+    def project(entry: dict[str, Any]) -> dict[str, Any]:
         cleaned = _strip_audit(entry)
         patterns = cleaned.get("patterns")
         if isinstance(patterns, list) and len(patterns) > 1:
             cleaned["patterns"] = sorted(patterns)
-        shipping.append(cleaned)
+        return cleaned
 
-    shipping.sort(key=lambda entry: entry["state_code"])
-
-    if len(shipping) != _EXPECTED_ROW_COUNT:
-        raise PipelineError(
-            f"dl_patterns: expected {_EXPECTED_ROW_COUNT} shipping rows, "
-            f"got {len(shipping)} (51 jurisdictions: "
-            "50 states + DC)."
-        )
+    shipping, data = build_from_candidates(
+        path,
+        label="dl_patterns",
+        rows_key="rows",
+        project=project,
+        sort_key=lambda entry: entry["state_code"],
+        expected_count=_EXPECTED_ROW_COUNT,
+        count_note=" (51 jurisdictions: 50 states + DC).",
+    )
 
     generated_date = data.get("generated_date")
     if not isinstance(generated_date, str):

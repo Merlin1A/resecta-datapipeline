@@ -1,0 +1,11 @@
+Usage: resecta-data build vectors [OPTIONS] {npi|dea|ssn|credit-
+                                  card|ein|itin|dob|phone|email|passport|drivers-
+                                  license|mrn|bates|license-plate|routing-number|all}
+
+  Build Phase 1 test vectors (checksummed + structural PII detectors).
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         PRNG seed. Default is the canonical seed; vary only for ablation.
+                         [default: 20260416]
+  --help                 Show this message and exit.

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import random
 import re
 from pathlib import Path
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from resecta_data.common.determinism import CANONICAL_SEED
 from resecta_data.common.io import dump_canonical_json
@@ -15,6 +18,7 @@ from resecta_data.vectors.routing_number import (
     _ABA_WEIGHTS,
     _aba_checksum,
     _compute_check_digit,
+    _generate_valid_routing_number,
     _is_valid_prefix,
     build,
 )
@@ -64,6 +68,40 @@ class TestChecksumMath:
             digits = [int(c) for c in routing_num]
             d9 = _compute_check_digit(digits[:8])
             assert d9 == digits[8], f"{routing_num}: expected d9={digits[8]}, got {d9}"
+
+
+class TestChecksumProperties:
+    """Hypothesis: the check-digit arithmetic over every eight-digit prefix."""
+
+    @settings(deadline=None)
+    @given(first_eight=st.lists(st.integers(min_value=0, max_value=9), min_size=8, max_size=8))
+    def test_check_digit_closes_checksum_for_any_prefix(self, first_eight: list[int]) -> None:
+        """For every eight-digit prefix the computed ninth digit zeroes the ABA checksum."""
+        d9 = _compute_check_digit(first_eight)
+        assert 0 <= d9 <= 9
+        assert _aba_checksum([*first_eight, d9]) == 0
+
+    @settings(deadline=None)
+    @given(
+        first_eight=st.lists(st.integers(min_value=0, max_value=9), min_size=8, max_size=8),
+        offset=st.integers(min_value=1, max_value=9),
+    )
+    def test_every_other_final_digit_breaks_checksum(
+        self, first_eight: list[int], offset: int
+    ) -> None:
+        """The check digit is unique: the ninth weight is 1, so any other digit fails."""
+        d9 = _compute_check_digit(first_eight)
+        assert _aba_checksum([*first_eight, (d9 + offset) % 10]) != 0
+
+    @settings(deadline=None)
+    @given(seed=st.integers(min_value=0, max_value=2**32 - 1))
+    def test_generator_draws_are_structurally_valid(self, seed: int) -> None:
+        """Every seeded draw of the generator is nine digits with a valid prefix and checksum."""
+        number = _generate_valid_routing_number(random.Random(seed))  # noqa: S311 — determinism
+        digits = [int(c) for c in number]
+        assert _NINE_DIGIT_PATTERN.match(number)
+        assert _is_valid_prefix(digits)
+        assert _aba_checksum(digits) == 0
 
 
 class TestPrefixValidation:

@@ -11,6 +11,7 @@ against its schema, and the ``build eval-baseline --spans`` wiring.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.corpus._spans import CONTEXT_CLASSES
 from resecta_data.eval import spans as eval_spans
+from resecta_data.eval.documents import wilson_ci
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -254,7 +256,7 @@ class TestValidation:
 
 class TestJoin:
     def test_hand_computed_aggregate(self) -> None:
-        payload = eval_spans.build_span_outcomes(
+        payload: Mapping[str, Any] = eval_spans.build_span_outcomes(
             _rows(),
             _corpus(),
             site="siteB",
@@ -275,6 +277,9 @@ class TestJoin:
         }
         name = payload["per_family"]["name"]
         assert (name["tp"], name["fn"], name["one_token_tp"]) == (2, 0, 1)
+        # Any overlap credits both TPs; the all-tokens rule drops the partially covered one.
+        assert (name["recall"], name["recall_all_tokens"]) == (1.0, 0.5)
+        assert name["recall_all_tokens_wilson95"] == wilson_ci(1, 2)
         assert name["token_coverage"] == {"1/2": 1, "2/2": 1}
         assert name["detections_per_tp"] == {"1": 1, "2": 1}
         assert name["by_tier"] == {
@@ -359,7 +364,7 @@ class TestJoin:
                 "outcome": "fp",
             },
         ]
-        payload = eval_spans.build_span_outcomes(
+        payload: Mapping[str, Any] = eval_spans.build_span_outcomes(
             rows, corpus, site="siteB", spans_sha256="0" * 64, corpus_sha256="1" * 64
         )
         descriptor = payload["furniture"]

@@ -42,3 +42,12 @@ MANIFEST_VERSION: Final[str] = "1.0.0"
 SURNAME_FILTER_FILE: Final[str] = "surnames.bloom"
 GIVEN_NAME_FILTER_FILE: Final[str] = "given-names.bloom"
 MANIFEST_FILE: Final[str] = "gazetteer_manifest.json"
+
+# The manifest as shipped: the bloom builder's manifest above plus an
+# `assets[]` section listing every installed engine asset's SHA-256 and size,
+# derived at install time by `resecta-data manifest-assets` (an out-of-band
+# product like the `.sig`/`.pem`, never a `make build` artifact — its digests
+# cover files the locked build does not produce). The Swift fence accepts
+# only this version; the bloom manifest keeps MANIFEST_VERSION.
+SHIPPED_MANIFEST_FILE: Final[str] = "gazetteer_manifest.shipped.json"
+SHIPPED_MANIFEST_VERSION: Final[str] = "1.1.0"
