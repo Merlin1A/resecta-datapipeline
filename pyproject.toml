@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 # Development dependencies. Installed by scripts/bootstrap.sh.
 dev = [
-    "pytest>=8.2,<9",
+    "pytest>=8.2,<10",
     "pytest-socket>=0.7,<1",
     "pytest-xdist>=3.6,<4",
     "hypothesis>=6.100,<7",
