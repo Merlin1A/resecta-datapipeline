@@ -2,9 +2,13 @@
 """Emit a provenance sidecar for the ParaNames shard set.
 
 Writes ``build/gazetteers/paranames_shards.meta.json`` recording the parent
-file SHA-256, the sharding script's git commit (when clean), each shard's
-SHA-256, and the UTC date of generation. The sidecar is a build-only
-artifact: not hash-locked, not shipped, never committed.
+file SHA-256, the git blob of ``scripts/shard_paranames.py`` at ``HEAD`` (the
+sharding script's provenance stamp), the shard count and each shard's
+decompressed SHA-256. The sidecar is a build-only artifact — never committed,
+not shipped — but it is hash-locked: ``asset_hashes.lock`` pins it, and
+``instrumentation/bundle_size.json`` inventories it in turn, so an edit to
+``scripts/shard_paranames.py`` moves both rows and lands together with them,
+re-pinned from a host that holds the corpus.
 
 The schema is stable enough for downstream tooling to rely on the top-level
 keys, but the file is regenerated every time the parent is re-sharded and is
@@ -91,10 +95,12 @@ def _sha256(path: Path) -> str:
 def _sha256_decompressed(path: Path) -> str:
     """SHA-256 of gzip-decompressed body.
 
-    Stable across runs; raw .tsv.gz bytes are not, due to the FNAME-header
-    tempfile-basename leak in scripts/shard_paranames.py. Bloom downstream
-    reads decompressed content via gzip.open(...), so this is the hash that
-    matters for determinism.
+    The Bloom ingest downstream reads decompressed content via gzip.open(...),
+    so this is the hash its determinism rests on. The raw .tsv.gz bytes are
+    reproducible as well (scripts/shard_paranames.py writes each member with
+    an empty FNAME field, mtime=0 and a pinned compresslevel), but the sidecar
+    records the content digest so a change in gzip framing alone can never
+    read as a change in what the filters were built from.
     """
     h = hashlib.sha256()
     with gzip.open(path, "rb") as fh:

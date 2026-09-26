@@ -79,6 +79,64 @@
     }
   },
   "$defs": {
+    "wilson95": {
+      "description": "Wilson 95 % score interval [lo, hi] on a proportion; null when the denominator is zero.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      ]
+    },
+    "scoredTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "covered", "recall", "recall_wilson95", "precision_option_c", "f1_option_c", "f2_option_c"],
+      "description": "A packet tier that carries recall and an Option-C precision: covered / (covered + must_not spans that fired), the document harness's precision rule (1.0 when nothing fired).",
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "covered": { "type": "integer", "minimum": 0 },
+        "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recall_wilson95": { "$ref": "#/$defs/wilson95" },
+        "precision_option_c": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f1_option_c": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f2_option_c": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "perTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["must", "should", "watch", "must_not"],
+      "description": "The packet-tier bridge (1.2 P1.10, C12-25 clause 2): the same ground truth split by the tier the dp generator writes on every span. must = designed to fire (headline); should = designed-marginal surface (off-headline); watch = routed to review (record-only); must_not = decoy the engine is designed to reject. All-zero for a cells file written before the extension.",
+      "properties": {
+        "must": { "$ref": "#/$defs/scoredTier" },
+        "should": { "$ref": "#/$defs/scoredTier" },
+        "watch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "covered", "covered_rate"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "covered": { "type": "integer", "minimum": 0 },
+            "covered_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "must_not": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total", "fired", "fire_rate", "fire_rate_wilson95"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "fired": { "type": "integer", "minimum": 0 },
+            "fire_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "fire_rate_wilson95": { "$ref": "#/$defs/wilson95" }
+          }
+        }
+      }
+    },
     "aggregateCell": {
       "type": "object",
       "additionalProperties": false,
@@ -92,12 +150,16 @@
         "support_n",
         "detections_n",
         "precision",
+        "precision_wilson95",
         "recall",
+        "recall_wilson95",
         "f1",
+        "f2",
         "adversarial_suppression_fp_rate",
         "family_false_positive_count",
         "precision_with_decoys",
-        "low_confidence"
+        "low_confidence",
+        "per_tier"
       ],
       "properties": {
         "true_positives": { "type": "integer", "minimum": 0 },
@@ -117,8 +179,17 @@
           "description": "Surfaced detections of this kind (TP + FP); the precision denominator."
         },
         "precision": { "type": "number", "minimum": 0, "maximum": 1 },
+        "precision_wilson95": { "$ref": "#/$defs/wilson95" },
         "recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recall_wilson95": { "$ref": "#/$defs/wilson95" },
         "f1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "f2": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "F-beta at beta = 2 (recall-weighted), the 1.2 measurement program's headline."
+        },
+        "per_tier": { "$ref": "#/$defs/perTier" },
         "adversarial_suppression_fp_rate": {
           "type": "number",
           "minimum": 0,

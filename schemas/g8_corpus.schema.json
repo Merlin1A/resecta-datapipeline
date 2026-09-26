@@ -50,6 +50,11 @@
         "unlabeled": { "type": "integer", "minimum": 0 }
       }
     },
+    "profile": {
+      "type": "string",
+      "enum": ["g8-specC", "g8-specD", "g8-specCD", "g8-specA", "g8-specG", "g8-specH", "g8-specAGH"],
+      "description": "The generator profile this corpus was built under (1.2 C12-95): g8-specC = name-context variety (every name slot in a drawn context, incl. the classes the shipped corpus lacks), g8-specD = furniture density (role nouns, labels, salutations, closings planted and recorded in furniture[]), g8-specCD = both; g8-specA = name forms (each rendered name slot draws a form at the pre-registered rates and records it as form), g8-specG = the locale axis (each document's locale drawn at the corpus-wide marginal and crossed with every bucket, recorded on every span as locale; es_MX addresses carry a five-digit codigo postal), g8-specH = the sparse placeholder ([REDACTED] becomes a neutral role phrase drawn per slot), g8-specAGH = A, G and H together. ABSENT on the g8 corpus as furnished, so its bytes never move. Every profile carries the same documents; C/D/H keep every ground-truth value identical, A moves the name value (its form) and G the address value of a document whose locale moved; every other slot is identical."
+    },
     "demographic_labels": {
       "type": "array",
       "minItems": 5,
@@ -70,7 +75,8 @@
           "doctype",
           "demographic_bucket",
           "text",
-          "pii_spans"
+          "pii_spans",
+          "furniture"
         ],
         "additionalProperties": false,
         "properties": {
@@ -104,7 +110,7 @@
             "description": "Ground-truth PII annotations. Half-open [start, end) char offsets into text.",
             "items": {
               "type": "object",
-              "required": ["category", "start", "end", "value"],
+              "required": ["category", "start", "end", "value", "tier", "context_class"],
               "additionalProperties": false,
               "properties": {
                 "category": {
@@ -121,8 +127,36 @@
                     "phone",
                     "email",
                     "routingNumber",
-                    "ein"
+                    "ein",
+                    "itin",
+                    "creditCard",
+                    "driversLicense",
+                    "passport",
+                    "licensePlate"
                   ]
+                },
+                "tier": {
+                  "type": "string",
+                  "enum": ["must", "should", "watch", "must_not"],
+                  "description": "Packet-tier bridge: must (designed to fire), should (designed-marginal surface, off-headline), watch (routed to review, record-only), must_not (decoy the engine is designed to reject). Derived from expected_outcome (redact->must, flag->watch, suppress->must_not) unless a template assigns should explicitly."
+                },
+                "context_class": {
+                  "type": "string",
+                  "enum": [
+                    "caption_left",
+                    "caption_right",
+                    "role_label",
+                    "title_label",
+                    "closing_line",
+                    "salutation",
+                    "subject_line",
+                    "document_initial",
+                    "body_prose",
+                    "table_cell",
+                    "header",
+                    "none"
+                  ],
+                  "description": "The left-context slot the span sits in: a court caption side (caption_left = the party before ' v. ', caption_right = the party after), a role/field label with its colon (PLAINTIFF:, Patient:, Bill to:, From:, ...), a title label (Dr.), a subject line (Re:), a closing line (the line after Sincerely,/Regards,), a salutation (Dear), the document's first line (document_initial), running text (body_prose), a table cell, a running header, or none where no label applies (every non-name span). Annotation only: adds no text and moves no offset."
                 },
                 "start": {
                   "type": "integer",
@@ -145,13 +179,37 @@
                   "type": "string",
                   "enum": ["redact", "suppress", "flag"],
                   "description": "How the engine is designed to act on this span. 'redact' for true PII; 'suppress' for adversarial decoys; 'flag' for uncertain cases routed to user review."
+                },
+                "form": {
+                  "type": "string",
+                  "enum": ["full", "initial", "last_first", "all_caps", "suffix", "particled"],
+                  "description": "Name spans under a Spec-A profile only (1.2 C12-95): the surface form the value was rendered in -- full (Given Surname), initial (Given L. Surname), last_first (Surname, Given), all_caps (GIVEN SURNAME), suffix (Given Surname Jr./Sr./II/III/IV), particled (a hyphenated double surname or a de la / van / O' particle). Drawn per rendered slot at the pre-registered rates (20 / 10 / 10 / 5 / 5 %, full otherwise); the court caption is not a Spec-A slot and records the surface it carries (all_caps when its adversarial ALL-CAPS class fires, else full). Absent on every other corpus."
+                },
+                "locale": {
+                  "type": "string",
+                  "enum": ["en_US", "es_MX", "es_ES"],
+                  "description": "Every span of a document under a Spec-G profile only (1.2 C12-95): the document's drawn Faker locale (the address family's shape). Absent on every other corpus, where the locale is a function of the seed and the hispanic bucket."
                 }
+              }
+            }
+          },
+          "furniture": {
+            "type": "array",
+            "description": "Non-PII page furniture planted in the text as half-open [start, end) char offsets with a kind. Present on every document; empty on the g8 corpus as furnished; the Spec-D profiles plant it with kinds role_noun (a whole sentence carrying one Plaintiff/Defendant/Patient/Provider/Dr. token), label (a Reg # / Registration line), plate_label (a Tag / Plate line), salutation and closing (the cue of a letter). Never overlaps a ground-truth span; not ground truth itself (a detection inside it is a false positive attributed to the kind).",
+            "items": {
+              "type": "object",
+              "required": ["start", "end", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "start": { "type": "integer", "minimum": 0 },
+                "end": { "type": "integer", "minimum": 1 },
+                "kind": { "type": "string", "minLength": 1 }
               }
             }
           },
           "adversarial_tags": {
             "type": "array",
-            "maxItems": 8,
+            "maxItems": 13,
             "items": {
               "type": "string",
               "enum": [
@@ -162,7 +220,12 @@
                 "keyword_stuffing",
                 "invisible_text",
                 "column_header_label",
-                "none"
+                "none",
+                "luhn_failed_card_number",
+                "itin_yy_out_of_range",
+                "dl_shape_no_jurisdiction",
+                "passport_shape_no_issuer",
+                "business_registration_plate_label"
               ]
             }
           }

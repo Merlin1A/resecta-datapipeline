@@ -11,12 +11,12 @@ Invariants asserted:
     ingest relies on this to preserve ``parse_paranames_full``'s
     sort-invariant check);
   * re-running the script against the same input yields the same
-    decompressed shard content across runs — which is the determinism
-    the bloom pipeline actually consumes. The raw gzip bytes are NOT
-    byte-identical because the current script passes a tempfile path
-    to ``gzip.GzipFile(filename=...)``, which leaks the tempfile's
-    random basename into the gzip FNAME header. Fixing that is a
-    separate follow-up against ``scripts/shard_paranames.py``.
+    decompressed shard content across runs — the determinism the bloom
+    pipeline actually consumes;
+  * the raw gzip bytes are byte-identical across runs as well, and every
+    member header carries a zero MTIME and no FNAME field: the script opens
+    each member on a file object with an empty ``filename``, so the
+    tempfile's random basename never reaches the header.
 """
 
 from __future__ import annotations
@@ -97,6 +97,18 @@ def _decompressed_bytes(path: Path) -> bytes:
         return fh.read()
 
 
+def _sha256_raw(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _gzip_header_fields(path: Path) -> tuple[int, int]:
+    """Return (FLG, MTIME) from the gzip member header at the start of ``path``."""
+    header = path.read_bytes()[:10]
+    assert header[:2] == b"\x1f\x8b", f"{path}: not a gzip member"
+    assert header[2] == 8, f"{path}: compression method {header[2]} is not deflate"
+    return header[3], int.from_bytes(header[4:8], "little")
+
+
 def _sha256_decompressed(path: Path) -> str:
     return hashlib.sha256(_decompressed_bytes(path)).hexdigest()
 
@@ -153,3 +165,27 @@ def test_shard_output_deterministic(tmp_path: Path) -> None:
             f"shard {name} decompressed content is not identical across runs; "
             "this would break the bloom pipeline's byte-identity guarantee (I1)."
         )
+
+
+def test_shard_raw_bytes_deterministic(tmp_path: Path) -> None:
+    fixture = tmp_path / "mini.tsv.gz"
+    _build_synthetic_fixture(fixture)
+    out_a = tmp_path / "shards_a"
+    out_b = tmp_path / "shards_b"
+    _run_shard_script(fixture, out_a, n_shards=3)
+    _run_shard_script(fixture, out_b, n_shards=3)
+    for idx in range(3):
+        name = f"paranames_full_shard_{idx:02d}.tsv.gz"
+        assert _sha256_raw(out_a / name) == _sha256_raw(out_b / name)
+
+
+def test_shard_gzip_header_is_deterministic(tmp_path: Path) -> None:
+    """Every shard's gzip header carries no FNAME field and a zero MTIME."""
+    fixture = tmp_path / "mini.tsv.gz"
+    _build_synthetic_fixture(fixture)
+    out = tmp_path / "shards"
+    _run_shard_script(fixture, out, n_shards=3)
+    for idx in range(3):
+        flg, mtime = _gzip_header_fields(out / f"paranames_full_shard_{idx:02d}.tsv.gz")
+        assert flg & 0x08 == 0, f"shard {idx}: FNAME field present (FLG={flg:#04x})"
+        assert mtime == 0, f"shard {idx}: MTIME={mtime}"

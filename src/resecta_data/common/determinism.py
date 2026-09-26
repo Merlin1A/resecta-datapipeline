@@ -56,6 +56,11 @@ OUT_OF_BAND_PREFIXES: Final[tuple[str, ...]] = (
     # is enforced by tests/test_signed_manifest.py and the iOS verifier.
     "gazetteers/gazetteer_manifest.sig",
     "gazetteers/manifest_public_key.pem",
+    # The shipped manifest (`make manifest-assets`): the bloom manifest plus
+    # every installed asset's digest. Its digests cover files the locked
+    # build does not produce (the reviewed and calibrated products, the
+    # installed supersets), so it cannot be a `make build` artifact.
+    "gazetteers/gazetteer_manifest.shipped.json",
     # Search-eval substrate — committed/reference eval fixtures that
     # `make build` does NOT regenerate: the G8 per-fire feature dump is emitted
     # by the iOS G8 harness and committed; the negative corpus is the baseline
@@ -66,6 +71,18 @@ OUT_OF_BAND_PREFIXES: Final[tuple[str, ...]] = (
     # ran schema-check-only, never full `gmake verify`.
     "corpus/g8_fire_features.json",
     "corpus/negative_corpus.json",
+    # T4.3 malformed-PDF fixtures — built on demand by
+    # `build fuzz pdf-mutations --packet <sample-doc>/packet.pdf`, never by
+    # `make build`: the base document lives in a sibling repo, so the build has
+    # nothing to damage. Same committed-not-rebuilt shape as the calibration
+    # dumps above — present under build/ but outside the rebuild scope, so they
+    # break the determinism rebuild-and-diff and the hash-lock bijection unless
+    # classified out-of-band. Their determinism is still verified, by
+    # tests/test_pdf_mutations_determinism.py double-building and comparing
+    # every fixture byte for byte. They are also development-only: excluding
+    # them keeps the bundle-size probe honest, since none of them ships.
+    "fuzz/pdf_mutations.json",
+    "fuzz/pdf_mutations/",
 )
 """Build-relative paths produced by stages other than ``make build``.
 

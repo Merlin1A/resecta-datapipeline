@@ -1,0 +1,12 @@
+Usage: resecta-data build g8-bucket-recall [OPTIONS]
+
+  Build the G8 bucket-stratified recall artifact.
+
+  Reads the G8 corpus and the surnames Bloom filter from ``build_dir`` and emits
+  ``demographics/g8_bucket_recall_v1.json``. A one-off measurement (point estimate + sample size
+  only).
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

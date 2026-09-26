@@ -1,0 +1,16 @@
+Usage: resecta-data build eval-sitegap [OPTIONS]
+
+  Join the detector-site and Site-B derived baselines into the site gap.
+
+  Reads the two derived ``g8_detection_baseline.json`` dicts and writes ``g8_site_gap.json`` (per
+  family + grand total: both sides' headline numbers, intervals and packet-tier block, and Site B
+  minus detector on every differenced field) to ``--out`` via the canonical JSON writer. Pure
+  arithmetic over the frozen baselines; dev/eval only.
+
+Options:
+  --detector FILE  Derived g8_detection_baseline.json of the detector-site trio (NOT _cells.json).
+                   [required]
+  --siteb FILE     Derived g8_detection_baseline.json of the Site-B trio (NOT _cells.json).
+                   [required]
+  --out FILE       Path for the g8_site_gap.json output.  [required]
+  --help           Show this message and exit.

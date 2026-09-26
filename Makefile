@@ -62,7 +62,7 @@ STAMP_DIR := $(BUILD_DIR)/.stamps
 # point invalidates every sentinel. The warm-build no-op case is what matters;
 # rebuilding all builders when common/io.py changes is acceptable since
 # common/ rarely changes. Computed at parse time via $(shell find ...).
-COMMON_DEPS := $(shell find src/resecta_data/common -name '*.py' 2>/dev/null) src/resecta_data/cli.py
+COMMON_DEPS := $(shell find src/resecta_data/common src/resecta_data/commands -name '*.py' 2>/dev/null) src/resecta_data/cli.py src/resecta_data/routes.py
 
 # ---- Content-keyed stamps ---------------------------------------------------
 # Stamps are no longer bare `touch` artifacts: each holds a content manifest
@@ -108,6 +108,7 @@ BLOOM_PY              := $(shell find src/resecta_data/bloom -name '*.py' 2>/dev
 BLOOM_NAME_CORPORA    := $(shell find src/resecta_data/gazetteers/sources/ssa_given_names src/resecta_data/gazetteers/sources/census_surnames src/resecta_data/gazetteers/sources/census_spanish src/resecta_data/gazetteers/sources/paranames src/resecta_data/gazetteers/sources/popnames -type f 2>/dev/null)
 GAZ_NEGCTX_PY         := $(shell find src/resecta_data/gazetteers/negative_context -name '*.py' 2>/dev/null)
 GAZ_NEGCTX_SOURCES    := $(wildcard src/resecta_data/gazetteers/sources/negative_context/*.txt)
+GAZ_NEGCTX_DATA       := $(wildcard src/resecta_data/gazetteers/negative_context/sources/*.json)
 GAZ_INSTITUTIONS_PY   := $(shell find src/resecta_data/gazetteers/institutions -name '*.py' 2>/dev/null)
 GAZ_INSTITUTIONS_SOURCES := $(wildcard src/resecta_data/gazetteers/institutions/sources/gsa_federal_agencies_*.csv) src/resecta_data/gazetteers/institutions/sources/federalregister_agencies.json $(wildcard src/resecta_data/gazetteers/institutions/sources/fdic_institutions_*.csv) $(wildcard src/resecta_data/gazetteers/institutions/sources/edgar_company_tickers_*.json)
 GAZ_ADDRESS_PY        := $(shell find src/resecta_data/gazetteers/address_components -name '*.py' 2>/dev/null)
@@ -123,6 +124,8 @@ GAZ_NICKNAMES_STAMP := $(STAMP_DIR)/gaz-nicknames
 else
 GAZ_NICKNAMES_STAMP :=
 endif
+GAZ_COMMON_WORDS_PY   := $(shell find src/resecta_data/gazetteers/name_common_words -name '*.py' 2>/dev/null)
+GAZ_COMMON_WORDS_SOURCES := $(wildcard src/resecta_data/gazetteers/name_common_words/sources/*.json)
 PASSPORT_PATTERNS_PY  := $(shell find src/resecta_data/gazetteers/passport_patterns -name '*.py' 2>/dev/null)
 PASSPORT_PATTERNS_SOURCES := $(wildcard src/resecta_data/gazetteers/passport_patterns/sources/*.json)
 DL_PATTERNS_PY        := $(shell find src/resecta_data/gazetteers/dl_patterns -name '*.py' 2>/dev/null)
@@ -213,6 +216,7 @@ PHASE2_ARTIFACTS := \
 	$(BUILD_DIR)/gazetteers/address_components.json \
 	$(BUILD_DIR)/gazetteers/passport_patterns.json \
 	$(BUILD_DIR)/gazetteers/dl_patterns.json \
+	$(BUILD_DIR)/gazetteers/name_common_words.json \
 	$(BUILD_DIR)/context/context_keywords.json \
 	$(BUILD_DIR)/rules/rule_catalog.json \
 	$(BUILD_DIR)/demographics/coverage_report.json
@@ -249,10 +253,10 @@ help: ## Print this help
 	@echo "Resecta DataPipeline — build targets"
 	@echo ""
 	@echo "Primary targets:"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Current phase: 1+2+3 (Phase 3 adds doctype keywords, preset-threshold candidates, G8 corpus)."
-	@echo "Phase 3b: `make calibrate` is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (see schemas/doctype_softmax_dump.schema.json and schemas/detector_score_dump.schema.json)."
+	@echo "Phase 3b: 'make calibrate' is out-of-band. It requires Swift-side softmax + detector-score dumps at $(CALIBRATION_DIR) (see schemas/doctype_softmax_dump.schema.json and schemas/detector_score_dump.schema.json)."
 
 # -----------------------------------------------------------------------------
 # Environment
@@ -292,7 +296,7 @@ bootstrap: $(VENV_DIR)/pyvenv.cfg ## Create venv and install pinned deps
 # hit a versioned error before a guarded recipe runs.
 .PHONY: check-make
 ifeq ($(filter 4.% 5.%,$(MAKE_VERSION)),)
-check-make:
+check-make: ## Fail with install advice when GNU make is older than 4.0 (the parse-time guard's twin)
 	@echo "ERROR: GNU Make $(MAKE_VERSION) is too old for this Makefile (>= 4.0 required)." >&2
 	@echo "       3.81 cannot run 'verify' (--output-sync is 4.0+) and silently drops" >&2
 	@echo "       .SHELLFLAGS, so recipes run without 'set -euo pipefail'." >&2
@@ -384,7 +388,7 @@ PARANAMES_SHARD_DIR      := src/resecta_data/gazetteers/sources/paranames/shards
 PARANAMES_SHARD_SENTINEL := $(PARANAMES_SHARD_DIR)/paranames_full_shard_00.tsv.gz
 PARANAMES_SHARD_META     := $(BUILD_DIR)/gazetteers/paranames_shards.meta.json
 
-# LFS-pointer files are ~130 B text; the real file is ~954 MB. `$(wildcard)`
+# A stale stub of the corpus is ~130 B text; the real file is ~954 MB. `$(wildcard)`
 # returns the path either way, so a presence check cannot distinguish a
 # hydrated checkout from an unhydrated one — `gzip.open` on a pointer file
 # raises BadGzipFile. Size threshold (>1 MB) cleanly separates the two.
@@ -411,11 +415,11 @@ paranames-shards: $(PARANAMES_SHARD_SENTINEL) $(PARANAMES_SHARD_META) ## Pre-sha
 $(PARANAMES_SHARD_SENTINEL): $(wildcard $(PARANAMES_FULL)) scripts/shard_paranames.py
 ifneq ($(PARANAMES_FULL_HYDRATED),yes)
 ifeq ($(RESECTA_REQUIRE_LFS),1)
-	@echo "ERROR: $(PARANAMES_FULL) appears to be an LFS pointer (size <1MB)." >&2
-	@echo "       Hydrate with: git lfs install && git lfs pull" >&2
+	@echo "ERROR: $(PARANAMES_FULL) is absent or a stub (size <1MB); the full corpus is fetch-on-demand." >&2
+	@echo "       Fetch it with: scripts/fetch_paranames.sh" >&2
 	@exit 1
 else
-	@echo "WARNING: $(PARANAMES_FULL) appears to be an LFS pointer (size <1MB); falling back to monolithic ingest." >&2
+	@echo "WARNING: $(PARANAMES_FULL) is absent or a stub (size <1MB); falling back to monolithic ingest (scripts/fetch_paranames.sh fetches the full corpus)." >&2
 	@mkdir -p $(PARANAMES_SHARD_DIR)
 endif
 else
@@ -429,8 +433,8 @@ $(PARANAMES_SHARD_META): $(PARANAMES_SHARD_SENTINEL) scripts/write_shard_meta.py
 	@mkdir -p $(dir $@)
 ifneq ($(PARANAMES_FULL_HYDRATED),yes)
 ifeq ($(RESECTA_REQUIRE_LFS),1)
-	@echo "ERROR: $(PARANAMES_FULL) appears to be an LFS pointer; meta sidecar requires hydrated source." >&2
-	@echo "       Hydrate with: git lfs install && git lfs pull" >&2
+	@echo "ERROR: $(PARANAMES_FULL) is absent or a stub; the meta sidecar needs the fetched corpus." >&2
+	@echo "       Fetch it with: scripts/fetch_paranames.sh" >&2
 	@exit 1
 else
 	@echo "WARNING: writing empty $(PARANAMES_SHARD_META) (paranames not hydrated)." >&2
@@ -443,12 +447,17 @@ else
 	    --output $@
 endif
 
-.PHONY: build
-build: bootstrap $(STAMP_DIR)/vectors $(STAMP_DIR)/fuzz $(STAMP_DIR)/zip-scf $(STAMP_DIR)/adversarial \
+# The stamps `build` gathers (one per builder; the nicknames stamp is
+# conditional on its fetched source). A variable so the target line below
+# carries its `## ` help text where `make help`'s extractor can see it.
+BUILD_STAMPS = $(STAMP_DIR)/vectors $(STAMP_DIR)/fuzz $(STAMP_DIR)/zip-scf $(STAMP_DIR)/adversarial \
        $(STAMP_DIR)/bloom $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions $(STAMP_DIR)/gaz-address \
-       $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/context $(STAMP_DIR)/rules \
+       $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(STAMP_DIR)/context $(STAMP_DIR)/rules \
        $(STAMP_DIR)/demographics $(STAMP_DIR)/classifier $(STAMP_DIR)/corpus \
-       $(STAMP_DIR)/g8-bucket-recall $(STAMP_DIR)/bundle-size $(GAZ_NICKNAMES_STAMP) ## Generate all artifacts into build/
+       $(STAMP_DIR)/g8-bucket-recall $(STAMP_DIR)/bundle-size $(GAZ_NICKNAMES_STAMP)
+
+.PHONY: build
+build: bootstrap $(BUILD_STAMPS) ## Generate all artifacts into build/
 	@echo "Build complete. Artifacts under $(BUILD_DIR)/."
 
 .PHONY: build-fast
@@ -567,11 +576,11 @@ bloom: $(STAMP_DIR)/bloom  ## [Phase 2] Build name Bloom filters + manifest
 # requiring callers to pass -j.
 .PHONY: gazetteers
 gazetteers:  ## [Phase 2] Build the non-Bloom gazetteers in parallel
-	@$(MAKE) -j6 $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions \
+	@$(MAKE) -j7 $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions \
 	             $(STAMP_DIR)/gaz-address $(STAMP_DIR)/passport-patterns \
-	             $(STAMP_DIR)/dl-patterns $(GAZ_NICKNAMES_STAMP)
+	             $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/gaz-common-words $(GAZ_NICKNAMES_STAMP)
 
-$(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) | $(VENV_DIR)/pyvenv.cfg
+$(STAMP_DIR)/gaz-negctx: $(GAZ_NEGCTX_PY) $(GAZ_NEGCTX_DATA) $(COMMON_DEPS) $(GAZ_NEGCTX_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,gaz-negctx,$(RESECTA_DATA) build gazetteers negative-context --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: gazetteers-negative-context
@@ -607,6 +616,12 @@ $(STAMP_DIR)/gaz-nicknames: $(GAZ_NICKNAMES_PY) $(COMMON_DEPS) $(GAZ_NICKNAMES_S
 
 .PHONY: gazetteers-nicknames
 gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [Phase 2] Build nickname/diminutive sidecar (needs fetched CC0 source)
+
+$(STAMP_DIR)/gaz-common-words: $(GAZ_COMMON_WORDS_PY) $(COMMON_DEPS) $(GAZ_COMMON_WORDS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
+	$(call keyed_stamp,gaz-common-words,$(RESECTA_DATA) build gazetteers name-common-words --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
+
+.PHONY: gazetteers-name-common-words
+gazetteers-name-common-words: $(STAMP_DIR)/gaz-common-words  ## [Phase 2] Build the common-word curation sidecar for the surname Bloom filter
 
 $(STAMP_DIR)/passport-patterns: $(PASSPORT_PATTERNS_PY) $(COMMON_DEPS) $(PASSPORT_PATTERNS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,passport-patterns,$(RESECTA_DATA) build gazetteers passport-patterns --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -655,11 +670,16 @@ $(STAMP_DIR)/classifier: $(CLASSIFIER_PY) $(COMMON_DEPS) $(STAMP_DIR)/corpus $(F
 .PHONY: classifier
 classifier: $(STAMP_DIR)/classifier  ## [Phase 3] Build doctype keywords, preset-threshold candidates, and the context scorer
 
+# One invocation writes the corpus as furnished (g8_corpus.json, the fixture)
+# AND the seven generator profiles beside it (g8_corpus_<profile>.json; 1.2
+# C12-95 Spec-C / Spec-D) — each ~3 s, each with its own lock row, so `make
+# build` regenerates every corpus artifact the lockfile names.
+CORPUS_PROFILES := g8 g8-specC g8-specD g8-specCD g8-specA g8-specG g8-specH g8-specAGH
 $(STAMP_DIR)/corpus: $(CORPUS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
-	$(call keyed_stamp,corpus,$(RESECTA_DATA) build corpus g8 --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
+	$(call keyed_stamp,corpus,$(RESECTA_DATA) build corpus g8 --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED) $(foreach p,$(CORPUS_PROFILES),--profile $(p)))
 
 .PHONY: corpus
-corpus: $(STAMP_DIR)/corpus  ## [Phase 3] Build the G8 synthetic corpus
+corpus: $(STAMP_DIR)/corpus  ## [Phase 3] Build the G8 synthetic corpus (+ the generator profiles)
 
 # G8 bucket-stratified recall (a one-off measurement for the transparency copy).
 # Depends on the surnames Bloom filter and the G8 corpus, both of which
@@ -777,14 +797,33 @@ sources: bootstrap ## Fetch raw inputs (the ONLY network target)
 # -----------------------------------------------------------------------------
 
 .PHONY: lint
-lint: bootstrap ## Run ruff check and format check
+lint: bootstrap ## Run ruff check + format check, the planning-id gate, and the README block currency checks
 	$(RUFF) check src tests scripts
 	$(RUFF) format --check src tests scripts
+	$(PYTHON_VENV) scripts/hygiene_gate.py
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --check
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --check
+
+.PHONY: security-check
+security-check: bootstrap ## Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
+	# The same invocation as the pip-audit job in .github/workflows/security.yml,
+	# so a maintainer's machine and CI read the same advisory set for the same
+	# locks. osv-scanner and the SBOM stay CI-only: both are GitHub Actions,
+	# not Python packages, and neither is pinned in this repo's dependency set.
+	$(PYTHON_VENV) -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes
 
 .PHONY: format
 format: bootstrap ## Apply ruff formatting
 	$(RUFF) format src tests scripts
 	$(RUFF) check --fix src tests scripts
+
+.PHONY: graph
+graph: bootstrap ## Regenerate the ETL stage map in README.md from the make database (Mermaid; stdlib)
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --write
+
+.PHONY: readme-targets
+readme-targets: bootstrap ## Regenerate the Makefile-targets block in README.md from the help output
+	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --write
 
 .PHONY: typecheck
 typecheck: bootstrap ## Run mypy --strict
@@ -804,7 +843,7 @@ test-fast: bootstrap ## Run pytest excluding slow tests
 # prereq for direct invocation (`make schema-check` should still work
 # standalone).
 .PHONY: schema-check-only
-schema-check-only: bootstrap
+schema-check-only: bootstrap ## Validate the existing build/ artifacts against their schemas (no rebuild)
 	$(PYTHON_VENV) -m resecta_data.cli validate-schemas --build-dir $(BUILD_DIR) --schemas-dir schemas
 
 .PHONY: schema-check
@@ -858,7 +897,7 @@ $(DETERMINISM_WITNESS): $(WITNESS_KEY_INPUTS) | $(VENV_DIR)/pyvenv.cfg
 determinism-check: bootstrap $(if $(RESECTA_FORCE_DETERMINISM),determinism-check-force,$(DETERMINISM_WITNESS)) ## Rebuild artifacts and diff (cached via .stamps/.determinism-witness; RESECTA_FORCE_DETERMINISM=1 to bypass)
 
 .PHONY: determinism-check-force
-determinism-check-force: bootstrap
+determinism-check-force: bootstrap ## Determinism check with the witness cache bypassed (rebuild and diff every artifact)
 	@rm -f $(DETERMINISM_WITNESS)
 	@tmpdir=$$(mktemp -d /tmp/resecta-rebuild.XXXXXX); \
 	    trap "rm -rf $$tmpdir" EXIT; \
@@ -870,13 +909,13 @@ determinism-check-force: bootstrap
 	@$(STAMP_KEY) write $(DETERMINISM_WITNESS) $(WITNESS_KEY_INPUTS)
 
 .PHONY: hash-check-only
-hash-check-only: bootstrap
+hash-check-only: bootstrap ## Verify asset_hashes.lock against the existing build/ (no rebuild)
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock
 
 # Hash-verify only what the current host actually built; entries for
 # artifacts that need the large fetched sources are reported as skipped.
 .PHONY: hash-check-built-only
-hash-check-built-only: bootstrap
+hash-check-built-only: bootstrap ## Verify asset_hashes.lock against what this host built; entries needing fetched sources are skipped
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock --built-only
 
 .PHONY: hash-check
@@ -899,6 +938,67 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 	@echo "verify-fast PASSED — determinism-check NOT run; run 'gmake verify' before any install/ship step."
 
 # -----------------------------------------------------------------------------
+# G8 eval — corpus -> engine emitters -> scores in ONE invocation
+# -----------------------------------------------------------------------------
+# Rebuilds the G8 corpus (stamped), checks the engine's bundled test fixture
+# IS that corpus (or installs it when EVAL_INSTALL_CORPUS=1), runs the two G8
+# emitters of the engine TEST target on the host twice (`swift test`, no
+# simulator, no production code; the second run is the determinism twin and
+# the six trio files plus the two per-span sidecars must be byte-identical),
+# then derives the detector-site and Site-B baselines (each with its per-span
+# outcome aggregate, reconciled against its cells) and the site gap. Needs the
+# sibling iOS checkout at
+# RESECTA_IOS_ROOT with a Swift toolchain. Everything lands under EVAL_OUT;
+# the evidence copy (run.json + SUMMARY.md) is a hand step, never automated.
+EVAL_OUT ?= $(BUILD_DIR)/eval/g8
+EVAL_INSTALL_CORPUS ?= 0
+# The corpus PROFILE the emitters run on (1.2 C12-95): g8 (default) = the
+# bundled fixture, checked against build/corpus/g8_corpus.json below; any
+# other profile is read by the harness from build/ through the test-target
+# override RESECTA_G8_CORPUS_PATH (+ its sha, #expected by the harness) and is
+# NEVER installed into the engine tree. The sidecars are joined to THAT file.
+EVAL_CORPUS_PROFILE ?= g8
+EVAL_CORPUS := $(BUILD_DIR)/corpus/$(if $(filter g8,$(EVAL_CORPUS_PROFILE)),g8_corpus.json,g8_corpus_$(EVAL_CORPUS_PROFILE).json)
+EVAL_CORPUS_ENV := $(if $(filter g8,$(EVAL_CORPUS_PROFILE)),,RESECTA_G8_CORPUS_PATH=$(abspath $(EVAL_CORPUS)) RESECTA_G8_CORPUS_SHA256=$$(shasum -a 256 $(EVAL_CORPUS) | cut -d' ' -f1))
+ENGINE_PACKAGE := $(RESECTA_IOS_ROOT)/Packages/RedactionEngine
+ENGINE_SWIFT_TEST := swift test --package-path $(ENGINE_PACKAGE) --no-parallel
+EVAL_TRIO := g8_cells.json g8_raw_scores.json g8_fire_features.json g8_siteb_cells.json g8_siteb_raw_scores.json g8_siteb_fire_features.json
+EVAL_SIDECARS := g8_detector_spans.jsonl g8_siteb_spans.jsonl
+
+.PHONY: eval
+eval: bootstrap corpus ## corpus (EVAL_CORPUS_PROFILE) -> both G8 emitters (host swift test, n=2) -> eval-baseline x2 -> eval-sitegap into EVAL_OUT
+	@test -d "$(ENGINE_PACKAGE)" || { echo "ERROR: engine package not found at $(ENGINE_PACKAGE); set RESECTA_IOS_ROOT." >&2; exit 1; }
+	@test -f "$(EVAL_CORPUS)" || { echo "ERROR: corpus profile $(EVAL_CORPUS_PROFILE) not built at $(EVAL_CORPUS); run make corpus." >&2; exit 1; }
+	@if [ "$(EVAL_INSTALL_CORPUS)" = "1" ] && [ "$(EVAL_CORPUS_PROFILE)" != "g8" ]; then \
+		echo "ERROR: EVAL_INSTALL_CORPUS=1 installs only the g8 profile; a spec profile is never installed." >&2; exit 1; \
+	fi
+	@if [ "$(EVAL_INSTALL_CORPUS)" = "1" ]; then \
+		$(RESECTA_DATA) install-assets --build-dir $(BUILD_DIR) --resources-dir $(SWIFT_RESOURCES) --fixtures-dir $(SWIFT_FIXTURES); \
+	fi
+	@if [ "$(EVAL_CORPUS_PROFILE)" = "g8" ]; then \
+		built=$$(shasum -a 256 $(BUILD_DIR)/corpus/g8_corpus.json | cut -d' ' -f1); \
+		fixture=$$(shasum -a 256 $(SWIFT_FIXTURES)/corpus/g8_corpus.json | cut -d' ' -f1); \
+		if [ "$$built" != "$$fixture" ]; then \
+			echo "ERROR: engine fixture corpus ($$fixture) != build/corpus ($$built); rerun with EVAL_INSTALL_CORPUS=1" >&2; exit 1; \
+		fi; echo "[eval] engine fixture corpus == build/corpus ($$built)"; \
+	else \
+		sha=$$(shasum -a 256 $(EVAL_CORPUS) | cut -d' ' -f1); \
+		echo "[eval] profile $(EVAL_CORPUS_PROFILE): the emitters read $(EVAL_CORPUS) ($$sha) through RESECTA_G8_CORPUS_PATH; the bundled fixture is not consulted and nothing is installed"; \
+	fi
+	@mkdir -p $(EVAL_OUT)/rerun $(EVAL_OUT)/eval-detector $(EVAL_OUT)/eval-siteb
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8BaselineHarnessTests'
+	$(EVAL_CORPUS_ENV) RESECTA_BASELINE_OUT=$(abspath $(EVAL_OUT))/rerun/g8 $(ENGINE_SWIFT_TEST) --filter 'G8SearchParityHarnessTests/emitSiteBBaseline'
+	@for f in $(EVAL_TRIO) $(EVAL_SIDECARS); do \
+		cmp -s $(EVAL_OUT)/$$f $(EVAL_OUT)/rerun/$$f || { echo "ERROR: $$f differs between the two emitter runs" >&2; exit 1; }; \
+	done; echo "[eval] six trio files + two span sidecars byte-identical across the n=2 emitter runs"
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_cells.json --raw-scores $(EVAL_OUT)/g8_raw_scores.json --out-dir $(EVAL_OUT)/eval-detector --spans $(EVAL_OUT)/g8_detector_spans.jsonl --corpus $(EVAL_CORPUS)
+	$(RESECTA_DATA) build eval-baseline --cells $(EVAL_OUT)/g8_siteb_cells.json --raw-scores $(EVAL_OUT)/g8_siteb_raw_scores.json --out-dir $(EVAL_OUT)/eval-siteb --spans $(EVAL_OUT)/g8_siteb_spans.jsonl --corpus $(EVAL_CORPUS)
+	$(RESECTA_DATA) build eval-sitegap --detector $(EVAL_OUT)/eval-detector/g8_detection_baseline.json --siteb $(EVAL_OUT)/eval-siteb/g8_detection_baseline.json --out $(EVAL_OUT)/g8_site_gap.json
+	@echo "eval DONE -> $(EVAL_OUT) (profile $(EVAL_CORPUS_PROFILE) = $(EVAL_CORPUS); trios + span sidecars + rerun/ twins, eval-detector/, eval-siteb/ (each with g8_span_outcomes.json), g8_site_gap.json)"
+
+# -----------------------------------------------------------------------------
 # Sign gazetteer manifest (verified by the iOS engine)
 # -----------------------------------------------------------------------------
 # Ed25519-signs build/gazetteers/gazetteer_manifest.json and writes
@@ -906,9 +1006,12 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 # flow into Resources/Gazetteers/ via `install-assets` so the iOS engine
 # can verify the manifest at detector init.
 #
-# Private key lives at ~/.resecta-data/manifest-private-key.pem (gitignored
-# — outside both repos so it never enters git history). Rotation cadence
-# is per major release.
+# Private key lives under ~/.resecta-data/ (gitignored — outside both repos
+# so it never enters git history): manifest-private-key.pem.age (age-encrypted,
+# preferred; decrypted in memory through the age identity at
+# ~/.resecta-data/age-identity.txt) or the transitional plaintext
+# manifest-private-key.pem. The key is rotated on the maintainer's documented
+# schedule and on any suspicion of compromise — see KEY-MANAGEMENT.md.
 #
 # install-assets depends on sign-manifest so the .sig / .pem files are
 # always in build/ for the asset install + hash-check.
@@ -918,16 +1021,28 @@ verify-fast: bootstrap build ## Dev-loop gate: verify WITHOUT determinism-check 
 # the bloom builder — so the bloom stamp is the narrowest sound prerequisite.
 # This cannot weaken the ship gate: install-assets still requires full
 # `verify` before any signed byte crosses into the Swift tree.
+# The shipped manifest = the bloom manifest + `assets[]` (every installed
+# asset's sha256 + bytes). Derived at install time, never by `make build`: the
+# digests cover the reviewed negative-context file, the calibrated Classifier
+# files and the installed supersets, none of which the locked build produces.
+# stage-reviewed-negctx runs first so the reviewed file is digested from build/;
+# SWIFT_RESOURCES supplies the installed bytes for assets this host did not
+# build (absent on CI — only built artifacts are listed there).
+.PHONY: manifest-assets
+manifest-assets: bootstrap $(STAMP_DIR)/bloom stage-reviewed-negctx ## Derive gazetteer_manifest.shipped.json (bloom manifest + every installed asset's digest)
+	$(PYTHON_VENV) -m resecta_data.cli manifest-assets --build-dir $(BUILD_DIR) --resources-dir $(SWIFT_RESOURCES)
+
 .PHONY: sign-manifest
-sign-manifest: bootstrap $(STAMP_DIR)/bloom ## Sign gazetteer_manifest.json with Ed25519 (writes .sig + .pem peers)
+sign-manifest: bootstrap manifest-assets ## Sign gazetteer_manifest.shipped.json with Ed25519 (writes .sig + .pem peers)
 	$(PYTHON_VENV) -m resecta_data.cli sign-manifest --build-dir $(BUILD_DIR)
 
 # -----------------------------------------------------------------------------
 # Install into Swift tree
 # -----------------------------------------------------------------------------
 
-# stage-reviewed-negctx is a prerequisite so the reviewed file is always
-# present-and-current in build/ before any byte crosses into the Swift tree.
+# stage-reviewed-negctx is a prerequisite (through manifest-assets) so the
+# reviewed file is always present-and-current in build/ — and digested into
+# the shipped manifest — before any byte crosses into the Swift tree.
 # A drifted candidates file (sidecar not re-stamped) makes install-assets
 # fail by design — installing an unreviewed negative_context.json is the
 # failure mode the sidecar tripwire exists to stop.
@@ -937,7 +1052,7 @@ sign-manifest: bootstrap $(STAMP_DIR)/bloom ## Sign gazetteer_manifest.json with
 # (the first install after a source refresh).
 INSTALL_ASSETS_FLAGS ?=
 .PHONY: install-assets
-install-assets: verify sign-manifest stage-reviewed-negctx ## Copy artifacts from build/ into the Swift Resources path
+install-assets: verify sign-manifest ## Copy artifacts from build/ into the Swift Resources path (verify → stage-reviewed-negctx → manifest-assets → sign-manifest, then copy)
 	@if [ ! -d "$(SWIFT_RESOURCES)" ]; then \
 		echo "ERROR: Swift Resources path not found: $(SWIFT_RESOURCES)" >&2; \
 		echo "       This target must be run from inside the Resecta repo." >&2; \
@@ -960,7 +1075,7 @@ doctor: ## Print environment health summary (read-only)
 	@printf "  venv:    "
 	@if [ -x "$(PYTHON_VENV)" ]; then $(PYTHON_VENV) --version 2>&1; else echo "not bootstrapped (run: make bootstrap)"; fi
 	@echo ""
-	@echo "=== ParaNames LFS ==="
+	@echo "=== ParaNames corpus (fetch-on-demand) ==="
 	@printf "  file:     %s\n" "$(PARANAMES_FULL)"
 	@printf "  size:     %s bytes\n" "$(PARANAMES_FULL_SIZE)"
 	@printf "  hydrated: %s\n" "$(PARANAMES_FULL_HYDRATED)"
@@ -1029,8 +1144,18 @@ doctor: ## Print environment health summary (read-only)
 	  else echo "  – $$d absent (make calibrate fails with a pointer)"; fi; done
 	@echo ""
 	@echo "=== Signing key ==="
-	@k="$$HOME/.resecta-data/manifest-private-key.pem"; \
-	  if [ -f "$$k" ]; then echo "  ✓ $$k present"; else echo "  ⚠️  $$k missing — sign-manifest needs it (or --generate-key for a new pair)"; fi
+	@d="$$HOME/.resecta-data"; k="$$d/manifest-private-key.pem"; e="$$k.age"; i="$$d/age-identity.txt"; \
+	  if [ -f "$$e" ]; then echo "  ✓ $$e present (age-encrypted working copy)"; \
+	    if [ -f "$$i" ]; then echo "  ✓ $$i present"; \
+	      p="$$(sed -nE '/^AGE-PLUGIN-/{s/^AGE-PLUGIN-([A-Z0-9-]+)-1.*/\1/p;q;}' "$$i" 2>/dev/null | tr 'A-Z' 'a-z' || true)"; \
+	      if [ -n "$$p" ]; then if command -v "age-plugin-$$p" >/dev/null 2>&1; then echo "  ✓ age-plugin-$$p on PATH"; \
+	        else echo "  ⚠️  age-plugin-$$p not on PATH — the identity needs it to decrypt"; fi; fi; \
+	    else echo "  ⚠️  $$i missing — sign-manifest cannot decrypt the key (pass --age-identity)"; fi; \
+	    if [ -f "$$k" ]; then echo "  ⚠️  $$k also present in plaintext — retire it (KEY-MANAGEMENT.md)"; fi; \
+	  elif [ -f "$$k" ]; then echo "  ⚠️  $$k present in PLAINTEXT (transitional) — move it into the encrypted form (KEY-MANAGEMENT.md)"; \
+	  else echo "  ⚠️  no signing key under $$d — sign-manifest needs one (--generate-key --encrypt-to RECIPIENT)"; fi; \
+	  if command -v age >/dev/null 2>&1; then echo "  ✓ age on PATH ($$(age --version 2>/dev/null))"; \
+	  else echo "  ⚠️  age not on PATH — required to read an encrypted key"; fi
 	@echo ""
 	@echo "=== Ingest cache ==="
 	@if [ -d $(BUILD_DIR)/gazetteers/_ingest_cache ]; then printf "  size: "; du -sh $(BUILD_DIR)/gazetteers/_ingest_cache 2>/dev/null | cut -f1; \

@@ -23,8 +23,9 @@ dependencies = [
     # Chosen over PyNaCl: cryptography is already on the Apache-2.0-compatible
     # allowlist, has stricter type stubs, and bundles the same audited
     # Ed25519 primitive used by CryptoKit on the Swift side.
-    # Pin range covers the current LTS series; bump in the next major.
-    "cryptography>=42,<43",
+    # Pin range covers the current major; the lower bound is raised past
+    # every advisory fix the dependency audit reports. Bump with each major.
+    "cryptography>=50,<51",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,8 @@ dev = [
     "ruff==0.15.12",
     "mypy==1.20.2",
     "pip-tools>=7.4,<8",
+    # Local mirror of security.yml's pip-audit leg (`make security-check`).
+    "pip-audit>=2.10,<3",
     "types-jsonschema>=4.22,<5",
 ]
 

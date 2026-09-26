@@ -1,0 +1,10 @@
+Usage: resecta-data build gazetteers [OPTIONS] {negative-context|institutions|address-components|dl-
+                                     patterns|passport-patterns|nicknames|name-common-words}
+
+  Build non-Bloom gazetteer artifacts.
+
+Options:
+  --build-dir DIRECTORY    [required]
+  --sources-dir DIRECTORY  [default: src/resecta_data/gazetteers/sources/negative_context]
+  --seed INTEGER           [default: 20260416]
+  --help                   Show this message and exit.

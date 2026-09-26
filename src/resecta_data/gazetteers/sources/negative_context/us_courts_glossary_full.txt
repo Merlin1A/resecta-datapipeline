@@ -1,5 +1,5 @@
 # US Courts glossary — scraped from uscourts.gov/glossary.
-# Jesse reviews and trims before this file replaces the bootstrap sample.
+# The maintainer reviews and trims the extracted list before it replaces the bootstrap sample.
 acquittal
 administrative law judge
 administrative office of the united states courts (ao)

@@ -44,8 +44,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Final
 
+from resecta_data.common.candidates import build_from_candidates
 from resecta_data.common.exceptions import PipelineError
-from resecta_data.common.io import load_json
 
 _GENERATED_BY: Final[str] = "resecta-data/rules"
 _SCHEMA_VERSION: Final[int] = 1
@@ -116,32 +116,32 @@ def build(seed: int, *, source_path: Path | None = None) -> dict[str, Any]:
             row count diverges from the closed count (21). Fail-loud.
     """
     path = source_path if source_path is not None else _SOURCE_PATH
-    data = load_json(path)
-    if not isinstance(data, list):
-        raise PipelineError(
-            f"rule_catalog: source file {path} is malformed "
-            "(expected a top-level JSON array of row dicts)."
-        )
 
-    if len(data) != _EXPECTED_TOTAL:
-        raise PipelineError(
-            f"rule_catalog: expected {_EXPECTED_TOTAL} rows, got {len(data)}. "
-            "Catalog is closed at the currently-shipping Swift detectors "
+    def check_unique_rule_ids(entries: list[dict[str, Any]]) -> None:
+        rule_ids = [row["rule_id"] for row in entries]
+        if len(set(rule_ids)) != len(rule_ids):
+            raise PipelineError(
+                f"rule_catalog: duplicate rule_id detected. Rule IDs must be "
+                f"unique within the catalog. Saw: {rule_ids}"
+            )
+
+    entries, _ = build_from_candidates(
+        path,
+        label="rule_catalog",
+        rows_key=None,
+        file_noun="source file",
+        project=_to_wire,
+        sort_key=lambda row: row["rule_id"],
+        expected_count=_EXPECTED_TOTAL,
+        count_note=(
+            ". Catalog is closed at the currently-shipping Swift detectors "
             "(17 PIIDetector.detect detectors with the MRN 3-way split, plus "
             "the two rect-based visual detectors, plus pii.routing_number.v1). "
             "pii.dd.v1 + pii.audit.v1 + pii.icn.v1 ship separately with their "
             "own chain."
-        )
-
-    entries = [_to_wire(entry) for entry in data]
-    entries.sort(key=lambda row: row["rule_id"])
-
-    rule_ids = [row["rule_id"] for row in entries]
-    if len(set(rule_ids)) != len(rule_ids):
-        raise PipelineError(
-            f"rule_catalog: duplicate rule_id detected. Rule IDs must be "
-            f"unique within the catalog. Saw: {rule_ids}"
-        )
+        ),
+        check=check_unique_rule_ids,
+    )
 
     return {
         "version": _SCHEMA_VERSION,

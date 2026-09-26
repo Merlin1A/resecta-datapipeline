@@ -1,0 +1,8 @@
+Usage: resecta-data build classifier [OPTIONS] {keywords|presets|scorer|all}
+
+  Build doctype keywords and preset threshold candidates.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

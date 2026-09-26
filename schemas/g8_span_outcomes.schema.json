@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_span_outcomes.schema.json",
+  "title": "G8 per-span outcomes",
+  "description": "Per-span outcome aggregate derived by resecta_data.eval.spans from one G8 emitter's JSON-Lines sidecar (one row per ground-truth span of all 17 families plus one row per surfaced detection overlapping no ground-truth span; offsets only, never text) joined to the G8 corpus. Counts per family x doctype x bucket x outcome with a Wilson interval on recall; when the corpus carries the context annotation (every span's context_class), the ground-truth rows again per family x context class and per family x doctype x bucket x context class; when the corpus carries planted furniture (a generator profile's furniture[] regions), the detection-only fp rows per family x furniture kind. Dev/eval artifact: not installed to the Swift Resources path.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "metric",
+    "site",
+    "source_spans_sha256",
+    "source_corpus_sha256",
+    "join_rule",
+    "context_class",
+    "furniture",
+    "row_counts",
+    "one_token_rule",
+    "cells_crosscheck",
+    "per_family",
+    "cells",
+    "by_context_class",
+    "cells_by_context_class",
+    "by_furniture_kind",
+    "totals"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 3,
+      "description": "Wire-format version. 2 since the context-class tables (by_context_class, cells_by_context_class) and the context_class descriptor; 3 since the furniture join (by_furniture_kind and the furniture descriptor) over the detection-only rows."
+    },
+    "generated_by": {
+      "type": "string",
+      "const": "resecta_data.eval.spans",
+      "description": "Identifier of the builder that produced this artifact."
+    },
+    "metric": {
+      "type": "string",
+      "const": "g8_span_outcomes",
+      "description": "Stable metric identifier."
+    },
+    "site": {
+      "type": "string",
+      "description": "The emitter site the sidecar came from, as the trio's _cells.json names it (detector or siteB); unknown when no cells payload accompanied the sidecar."
+    },
+    "source_spans_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the sidecar bytes (a hash of the input, not a wall-clock)."
+    },
+    "source_corpus_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 of the corpus bytes the rows were joined to."
+    },
+    "join_rule": {
+      "type": "string",
+      "description": "The overlap rule under which the emitter assigned outcomes (binary half-open offset overlap, same family)."
+    },
+    "context_class": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["source", "vocabulary", "present", "classed_ground_truth_rows"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string" },
+            "vocabulary": { "type": "array", "items": { "$ref": "#/$defs/context_class" }, "minItems": 1 },
+            "present": { "type": "array", "items": { "$ref": "#/$defs/context_class" } },
+            "classed_ground_truth_rows": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ],
+      "description": "Null when the joined corpus carries no context annotation; otherwise where the class was read from (the corpus span, never the emitter), the full vocabulary and the classes present. The class tables below are empty in the null case."
+    },
+    "furniture": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["source", "join", "kinds_present", "regions", "documents_with_furniture"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string" },
+            "join": { "type": "string" },
+            "kinds_present": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "regions": { "type": "integer", "minimum": 1 },
+            "documents_with_furniture": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ],
+      "description": "Null when no document of the joined corpus carries planted furniture (the corpus as furnished); otherwise where the regions were read from (the corpus document, never the emitter), the join rule, the kinds present and the region count. by_furniture_kind is empty in the null case."
+    },
+    "row_counts": {
+      "type": "object",
+      "required": [
+        "total",
+        "ground_truth",
+        "corpus_spans",
+        "tp",
+        "fn",
+        "fp",
+        "tn",
+        "must_not_fired",
+        "one_token_tp"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0, "description": "Every sidecar row." },
+        "ground_truth": { "type": "integer", "minimum": 0, "description": "Rows that name a corpus span (tp, fn, tn, fired must_not); equals corpus_spans by construction." },
+        "corpus_spans": { "type": "integer", "minimum": 0, "description": "Spans in the joined corpus." },
+        "tp": { "type": "integer", "minimum": 0 },
+        "fn": { "type": "integer", "minimum": 0 },
+        "fp": { "type": "integer", "minimum": 0, "description": "Detection-only rows (tier null): surfaced detections overlapping no ground-truth span of their family." },
+        "tn": { "type": "integer", "minimum": 0, "description": "Planted must_not spans that stayed quiet." },
+        "must_not_fired": { "type": "integer", "minimum": 0, "description": "Planted must_not spans that fired (fp rows carrying tier must_not)." },
+        "one_token_tp": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "one_token_rule": {
+      "type": "string",
+      "description": "How one_token_tp is counted (from offsets and the corpus text on this side)."
+    },
+    "cells_crosscheck": {
+      "type": "object",
+      "required": ["status", "cells_compared"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["identical", "not_run"],
+          "description": "identical when the sidecar reproduced every counter of the trio's _cells.json it was reconciled against; not_run when no cells payload was supplied. A mismatch is an error, never an artifact."
+        },
+        "cells_compared": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "per_family": {
+      "type": "object",
+      "description": "One tally per corpus family (the corpus vocabulary: ssn, npi, dea, dob, address, account, mrn, name, phone, email, routingNumber, ein, itin, creditCard, driversLicense, passport, licensePlate).",
+      "additionalProperties": { "$ref": "#/$defs/tally" }
+    },
+    "cells": {
+      "type": "object",
+      "description": "One tally per family_doctype_bucket cell, with the cell's coordinates repeated inside; context_class is null here because these cells are class-agnostic (see cells_by_context_class).",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["family", "doctype", "bucket", "context_class"],
+        "unevaluatedProperties": false,
+        "allOf": [{ "$ref": "#/$defs/tally" }],
+        "properties": {
+          "family": { "type": "string" },
+          "doctype": { "type": "string", "enum": ["court", "medical", "financial", "foia", "generic"] },
+          "bucket": { "type": "string", "enum": ["white", "black", "hispanic", "asian", "ai_an"] },
+          "context_class": { "type": "null" }
+        }
+      }
+    },
+    "by_context_class": {
+      "type": "object",
+      "description": "Ground-truth rows per corpus family, then per context class (the corpus span's annotation): tp / fn / tn / fired must_not; fp is 0 by construction (a detection-only row names no span). Empty on an unannotated corpus.",
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/$defs/context_class" },
+        "additionalProperties": { "$ref": "#/$defs/tally" }
+      }
+    },
+    "cells_by_context_class": {
+      "type": "object",
+      "description": "One tally per family_doctype_bucket_class cell over the ground-truth rows, with the coordinates and the class repeated inside. Empty on an unannotated corpus.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["family", "doctype", "bucket", "context_class"],
+        "unevaluatedProperties": false,
+        "allOf": [{ "$ref": "#/$defs/tally" }],
+        "properties": {
+          "family": { "type": "string" },
+          "doctype": { "type": "string", "enum": ["court", "medical", "financial", "foia", "generic"] },
+          "bucket": { "type": "string", "enum": ["white", "black", "hispanic", "asian", "ai_an"] },
+          "context_class": { "$ref": "#/$defs/context_class" }
+        }
+      }
+    },
+    "by_furniture_kind": {
+      "type": "object",
+      "description": "Detection-only fp rows (tier null) per corpus family, then per furniture kind the detection overlaps (role_noun, label, plate_label, salutation, closing from the Spec-D generator; a row overlapping no region counts under 'unattributed'; a row overlapping two kinds counts once under each). Each kind carries the count and its split by doctype. Empty when the corpus carries no furniture.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["fp", "by_doctype"],
+          "additionalProperties": false,
+          "properties": {
+            "fp": { "type": "integer", "minimum": 0 },
+            "by_doctype": {
+              "type": "object",
+              "propertyNames": { "enum": ["court", "medical", "financial", "foia", "generic"] },
+              "additionalProperties": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "totals": { "$ref": "#/$defs/tally" }
+  },
+  "$defs": {
+    "context_class": {
+      "type": "string",
+      "enum": [
+        "caption_left",
+        "caption_right",
+        "role_label",
+        "title_label",
+        "closing_line",
+        "salutation",
+        "subject_line",
+        "document_initial",
+        "body_prose",
+        "table_cell",
+        "header",
+        "none"
+      ]
+    },
+    "tally": {
+      "type": "object",
+      "required": [
+        "tp",
+        "fn",
+        "fp",
+        "must_not_total",
+        "must_not_fired",
+        "one_token_tp",
+        "recall",
+        "recall_wilson95",
+        "recall_all_tokens",
+        "recall_all_tokens_wilson95",
+        "by_tier",
+        "token_coverage",
+        "detections_per_tp"
+      ],
+      "properties": {
+        "tp": { "type": "integer", "minimum": 0 },
+        "fn": { "type": "integer", "minimum": 0 },
+        "fp": { "type": "integer", "minimum": 0 },
+        "must_not_total": { "type": "integer", "minimum": 0 },
+        "must_not_fired": { "type": "integer", "minimum": 0 },
+        "one_token_tp": { "type": "integer", "minimum": 0, "description": "tp rows whose detection overlaps fewer whitespace-separated tokens than the ground-truth span holds." },
+        "recall": { "type": "number", "minimum": 0, "maximum": 1, "description": "tp / (tp + fn); 0.0 when the denominator is zero." },
+        "recall_wilson95": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 }
+          ],
+          "description": "Wilson 95% interval on recall_all_tokens; null when tp + fn is zero."
+        },
+        "recall_all_tokens": { "type": "number", "minimum": 0, "maximum": 1, "description": "(tp - one_token_tp) / (tp + fn): recall credited only when every token of the ground-truth span is covered by a detection; 0.0 when the denominator is zero." },
+        "recall_all_tokens_wilson95": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 }, "minItems": 2, "maxItems": 2 }
+          ],
+          "description": "Wilson 95% interval on recall; null when tp + fn is zero."
+        },
+        "by_tier": {
+          "type": "object",
+          "required": ["must", "should", "watch"],
+          "additionalProperties": false,
+          "properties": {
+            "must": { "$ref": "#/$defs/tier" },
+            "should": { "$ref": "#/$defs/tier" },
+            "watch": { "$ref": "#/$defs/tier" }
+          }
+        },
+        "token_coverage": {
+          "type": "object",
+          "description": "Histogram of tp rows keyed 'covered/total' whitespace-separated tokens (the detections' joint token reach over the ground-truth span).",
+          "propertyNames": { "pattern": "^[0-9]+/[0-9]+$" },
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "detections_per_tp": {
+          "type": "object",
+          "description": "Histogram of tp rows keyed by how many surfaced detections overlapped the ground-truth span (the name path emits one per token).",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "tier": {
+      "type": "object",
+      "required": ["total", "covered"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "covered": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

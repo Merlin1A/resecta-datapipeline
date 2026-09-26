@@ -20,12 +20,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
+from resecta_data.common.exceptions import PipelineError
 from resecta_data.common.io import dump_canonical_json, load_json
 
 from .baseline import build_baseline
 from .headroom import build_headroom
+from .payloads import as_cells_payload, as_raw_scores_payload
+from .spans import main as spans_main
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,14 @@ BASELINE_FILENAME = "g8_detection_baseline.json"
 HEADROOM_FILENAME = "g8_headroom.json"
 
 
-def main(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> dict[str, Path]:
+def main(
+    cells_path: Path,
+    raw_scores_path: Path,
+    out_dir: Path,
+    *,
+    spans_path: Path | None = None,
+    corpus_path: Path | None = None,
+) -> dict[str, Path]:
     """Build both eval artifacts from the two Swift JSONs into ``out_dir``.
 
     Args:
@@ -41,16 +50,23 @@ def main(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> dict[str, Pa
         raw_scores_path: Path to the Swift ``_raw_scores.json``.
         out_dir: Directory the two derived artifacts are written into; created
             if absent.
+        spans_path: Optional path to the emitter's per-span JSONL sidecar
+            (``g8_detector_spans.jsonl`` / ``g8_siteb_spans.jsonl``). When
+            given, ``g8_span_outcomes.json`` is derived beside the other two
+            and the sidecar is reconciled against the cells payload.
+        corpus_path: The G8 corpus the sidecar rows are joined to; required
+            with ``spans_path``.
 
     Returns:
-        A dict mapping ``"baseline"`` / ``"headroom"`` to the written paths.
+        A dict mapping ``"baseline"`` / ``"headroom"`` (and ``"spans"`` when a
+        sidecar was read) to the written paths.
 
     Raises:
         PipelineError: If either input JSON is missing or unparsable
             (propagated from :func:`common.io.load_json`).
     """
-    cells_payload: dict[str, Any] = load_json(cells_path)
-    raw_scores_payload: dict[str, Any] = load_json(raw_scores_path)
+    cells_payload = as_cells_payload(load_json(cells_path))
+    raw_scores_payload = as_raw_scores_payload(load_json(raw_scores_path))
 
     baseline = build_baseline(cells_payload)
     headroom = build_headroom(raw_scores_payload)
@@ -67,4 +83,9 @@ def main(cells_path: Path, raw_scores_path: Path, out_dir: Path) -> dict[str, Pa
         baseline["totals"]["f1"],
         baseline_path,
     )
-    return {"baseline": baseline_path, "headroom": headroom_path}
+    written = {"baseline": baseline_path, "headroom": headroom_path}
+    if spans_path is not None:
+        if corpus_path is None:
+            raise PipelineError("a per-span sidecar needs the corpus it was emitted against")
+        written["spans"] = spans_main(spans_path, corpus_path, out_dir, cells_payload=cells_payload)
+    return written

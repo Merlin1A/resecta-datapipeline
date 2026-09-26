@@ -26,11 +26,12 @@ test suite to exercise the validator.
 - `ssn_structural_vectors.schema.json` — SSA structural rejection vectors (mirrors Swift SSNStructuralValidator)
 - `zip_scf_states.schema.json` — USPS SCF-prefix → state table with 5-digit overrides
 - `redos_payloads.schema.json` — attacker-shaped strings for the Swift-side regex fuzz harness
+- `pdf_mutations.schema.json` — index of deterministically damaged copies of one source PDF, for measuring importer degradation (H4.2); development-only, schema-routed but never installed
 - `adversarial_patterns.schema.json` — detector false-positive and classifier-stuffing fragments
 
 ## Phase 2 (landed)
 
-- `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema
+- `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema; the shipped form (`gazetteer_manifest.shipped.json`, `make manifest-assets`) adds `assets[]` — every installed engine asset's SHA-256 and byte count, verified by the engine at first load
 - `negative_context.schema.json` — candidate keywords with (category_scope × doctype_scope) routing; the candidates file ships to build/ only — the reviewed copy is installed under an approved change plan
 - `demographic_coverage.schema.json` — per-filter bucket breakdown across five Census race/ethnicity groups; baseline for the Phase 4 G2 parity-gap CI gate
 
@@ -48,6 +49,7 @@ test suite to exercise the validator.
 - `negative_corpus.schema.json` — deterministic no-PII negative corpus
 - `doctype_softmax_dump.schema.json` / `detector_score_dump.schema.json` — the Swift-produced calibration dumps the Phase 3b `calibrate` targets consume
 - `nicknames.schema.json`, `bundle_size.schema.json`, `cutover_diff.schema.json` — the Phase 2/3 sidecars and probes
+- `name_common_words.schema.json` — the common-word curation sidecar the Swift name gazetteer reads on top of the surname Bloom filter (demote, never strip)
 
 ## Conventions
 

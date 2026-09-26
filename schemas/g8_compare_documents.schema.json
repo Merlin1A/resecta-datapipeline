@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://resecta.app/schemas/g8_compare_documents.schema.json",
+  "title": "Document-row compare verdict (eval before/after over documents_eval.json)",
+  "description": "Verdict produced by resecta_data.eval.compare_documents from two documents_eval.json dicts (a BEFORE and an AFTER): the same four-clause predicate the G8 comparator applies per scorer family, applied to every (document, leg kind) row present on both sides and to a grand-total aggregate pooled over the rows. Row cells are the median-run strict headline (Option C: precision is must-not-fire constructed, so the C2 decoy-FPR sense reads it directly); C4 walks the per-category strict precision on a row and the per-leg-kind pooled precision on the aggregate. Pure arithmetic over the frozen evals; dev/eval artifact, not installed; both input digests carried.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_by",
+    "metric",
+    "before_sha256",
+    "after_sha256",
+    "before_site",
+    "after_site",
+    "thresholds",
+    "regression",
+    "rows",
+    "rows_skipped",
+    "aggregate"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "generated_by": { "type": "string", "const": "resecta_data.eval.compare_documents" },
+    "metric": { "type": "string", "const": "g8_compare_documents_verdict" },
+    "before_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "after_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "before_site": { "type": "string", "description": "The `site` the BEFORE eval was measured at (siteB for the product path)." },
+    "after_site": { "type": "string" },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delta_p", "delta_f_rel", "eps", "delta_slice"],
+      "properties": {
+        "delta_p": { "type": "number", "minimum": 0 },
+        "delta_f_rel": { "type": "number", "minimum": 0, "maximum": 1 },
+        "eps": { "type": "number", "minimum": 0 },
+        "delta_slice": { "type": "number", "minimum": 0 }
+      }
+    },
+    "regression": {
+      "type": "boolean",
+      "description": "True when any gating clause fails on any row or on the aggregate."
+    },
+    "rows": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rowVerdict" },
+      "description": "One verdict per (document, leg kind) present in both evals, ordered by document then leg (text, ocr, ocr-forced, mixed)."
+    },
+    "rows_skipped": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "`<document>/<leg>` rows present on one side only; listed, never evaluated."
+    },
+    "aggregate": { "$ref": "#/$defs/aggregateVerdict" }
+  },
+  "$defs": {
+    "clause": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["clause", "win", "regressed"],
+      "properties": {
+        "clause": {
+          "type": "string",
+          "enum": ["C1_precision", "C2_family_fpr", "C3_recall", "C4_slice_non_regression"]
+        },
+        "win": { "type": "boolean" },
+        "regressed": { "type": "boolean" }
+      }
+    },
+    "rowVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "document", "leg", "regression", "win", "non_regression_only", "regressed_clauses", "clauses", "low_confidence"],
+      "properties": {
+        "name": { "type": "string", "description": "`<document>/<leg>`." },
+        "document": { "type": "string" },
+        "leg": { "type": "string", "enum": ["text", "ocr", "ocr-forced", "mixed"] },
+        "regression": { "type": "boolean" },
+        "win": { "type": "boolean" },
+        "non_regression_only": { "type": "boolean", "description": "Always false for a document row (every row is gated on uplift like a scored family)." },
+        "regressed_clauses": { "type": "array", "items": { "type": "string" } },
+        "clauses": { "type": "array", "items": { "$ref": "#/$defs/clause" }, "minItems": 4, "maxItems": 4 },
+        "low_confidence": { "type": "boolean", "description": "Advisory: the row's must-fire support is below 30 on either side (low_support); reported, never gated." }
+      }
+    },
+    "aggregateVerdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "regression", "win", "non_regression_only", "regressed_clauses", "clauses", "low_confidence", "rows_pooled"],
+      "properties": {
+        "name": { "type": "string" },
+        "regression": { "type": "boolean" },
+        "win": { "type": "boolean" },
+        "non_regression_only": { "type": "boolean" },
+        "regressed_clauses": { "type": "array", "items": { "type": "string" } },
+        "clauses": { "type": "array", "items": { "$ref": "#/$defs/clause" }, "minItems": 4, "maxItems": 4 },
+        "low_confidence": { "type": "boolean" },
+        "rows_pooled": { "type": "integer", "minimum": 0, "description": "How many (document, leg) rows the aggregate pools." }
+      }
+    }
+  }
+}

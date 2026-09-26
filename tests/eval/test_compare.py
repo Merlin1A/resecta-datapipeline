@@ -21,6 +21,7 @@ See ``src/resecta_data/eval/compare.py`` for the implementation and
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,7 @@ from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.eval.baseline import build_baseline
 from resecta_data.eval.compare import build_compare
+from resecta_data.eval.payloads import BaselinePayload
 
 _SCHEMAS = Path(__file__).parent.parent.parent / "schemas"
 
@@ -59,7 +61,7 @@ def _cell(
     }
 
 
-def _baseline(cells: dict[str, dict[str, int]]) -> dict[str, Any]:
+def _baseline(cells: dict[str, dict[str, int]]) -> BaselinePayload:
     """Derive a full, schema-valid baseline from a synthetic cells map."""
     return build_baseline({"cells": cells})
 
@@ -79,9 +81,9 @@ def _before_cells() -> dict[str, dict[str, int]]:
     }
 
 
-def _family(verdict: dict[str, Any], name: str) -> dict[str, Any]:
+def _family(verdict: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     """Return the family verdict record for ``name``."""
-    families: list[dict[str, Any]] = verdict["families"]
+    families: list[Mapping[str, Any]] = verdict["families"]
     for fam in families:
         if fam["name"] == name:
             return fam
@@ -207,7 +209,9 @@ def test_slice_regression_trips_c4_on_aggregate() -> None:
     agg = verdict["aggregate"]
     assert agg["regression"] is True
     assert "C4_slice_non_regression" in agg["regressed_clauses"]
-    c4 = next(c for c in agg["clauses"] if c["clause"] == "C4_slice_non_regression")
+    c4: Mapping[str, Any] = next(
+        c for c in agg["clauses"] if c["clause"] == "C4_slice_non_regression"
+    )
     assert "doctype:court" in c4["regressed_slices"]
     assert verdict["regression"] is True
 
@@ -298,7 +302,7 @@ def test_low_confidence_is_reported_not_gated() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def _write_baseline(d: Path, name: str, payload: dict[str, Any]) -> Path:
+def _write_baseline(d: Path, name: str, payload: Mapping[str, Any]) -> Path:
     path = d / name
     dump_canonical_json(payload, path)
     return path

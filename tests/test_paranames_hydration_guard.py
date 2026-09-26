@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from resecta_data.cli import _paranames_full_specs
+from resecta_data.bloom.paranames_specs import _paranames_full_specs
 from resecta_data.common.exceptions import PipelineError
 
 
@@ -33,7 +33,7 @@ def test_absent_corpus_warns_and_returns_empty(
 ) -> None:
     monkeypatch.delenv("RESECTA_REQUIRE_LFS", raising=False)
     sources = _sources_with_paranames(tmp_path, size=None)
-    with caplog.at_level(logging.WARNING, logger="resecta_data.cli"):
+    with caplog.at_level(logging.WARNING, logger="resecta_data.bloom.paranames_specs"):
         specs = _paranames_full_specs(sources)
     assert specs == []
     assert any("bootstrap sample only" in rec.message for rec in caplog.records)

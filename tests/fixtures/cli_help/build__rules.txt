@@ -1,0 +1,8 @@
+Usage: resecta-data build rules [OPTIONS]
+
+  Build the PII detector rule-ID catalog.
+
+Options:
+  --build-dir DIRECTORY  [required]
+  --seed INTEGER         [default: 20260416]
+  --help                 Show this message and exit.

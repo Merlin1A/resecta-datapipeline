@@ -5,9 +5,10 @@ stratified by (doctype, demographic_bucket) using a deterministic sub-seed,
 and fits T by minimising mean negative log-likelihood on the held-out 30%
 split.
 
-The optimiser is a pure-Python golden-section search — no scipy dep. The
-search is convex in T for a fixed dataset, so golden-section converges to the
-unique minimum.
+The optimiser is a pure-Python golden-section search — no scipy dep. For a
+fixed dataset the objective is convex in 1/T (a log-sum-exp of a linear map
+minus a linear term) and therefore unimodal in T; golden-section, which needs
+unimodality, converges to the unique minimum.
 
 Output conforms to ``schemas/doctype_temperature.schema.json`` and ships to
 ``Resources/Classifier/doctype-temperature.json`` via INSTALL_ROUTES.

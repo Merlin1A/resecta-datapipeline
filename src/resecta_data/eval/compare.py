@@ -53,12 +53,27 @@ coordinates.
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any, Final
+from collections.abc import Mapping
+from typing import Final
 
-from resecta_data.common.io import sha256_bytes
+from resecta_data.common.io import canonical_bytes, sha256_bytes
 from resecta_data.common.mechanism_language import assert_safe
+
+from .payloads import (
+    AbsentFamilyVerdict,
+    BaselinePayload,
+    Clause,
+    ClauseCell,
+    ComparePayload,
+    FamilyFprClause,
+    FamilyVerdict,
+    PrecisionClause,
+    RecallClause,
+    SliceClause,
+    SliceRecord,
+    as_baseline_payload,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +119,7 @@ _C4: Final[str] = "C4_slice_non_regression"
 _FLOAT_TOL: Final[float] = 1e-12
 
 
-def _family_fpr(cell: dict[str, Any]) -> float:
+def _family_fpr(cell: ClauseCell) -> float:
     """Return the GT-label-keyed family false-positive rate of a cell.
 
     ``family_FPR = 1 - precision_with_decoys`` -- the decoy-inclusive FP rate.
@@ -121,7 +136,7 @@ def _family_fpr(cell: dict[str, Any]) -> float:
     return 1.0 - float(cell["precision_with_decoys"])
 
 
-def _clause_c1(before: dict[str, Any], after: dict[str, Any], delta_p: float) -> dict[str, Any]:
+def _clause_c1(before: ClauseCell, after: ClauseCell, delta_p: float) -> PrecisionClause:
     """Evaluate the precision clause, carrying both the WIN and the regression sense.
 
     Two senses, one clause:
@@ -146,7 +161,7 @@ def _clause_c1(before: dict[str, Any], after: dict[str, Any], delta_p: float) ->
     }
 
 
-def _clause_c2(before: dict[str, Any], after: dict[str, Any], delta_f_rel: float) -> dict[str, Any]:
+def _clause_c2(before: ClauseCell, after: ClauseCell, delta_f_rel: float) -> FamilyFprClause:
     """Evaluate the family-FPR clause, carrying both the WIN and the regression sense.
 
     Reads ``precision_with_decoys`` via :func:`_family_fpr` (NOT ``precision``)
@@ -172,7 +187,7 @@ def _clause_c2(before: dict[str, Any], after: dict[str, Any], delta_f_rel: float
     }
 
 
-def _clause_c3(before: dict[str, Any], after: dict[str, Any], eps: float) -> dict[str, Any]:
+def _clause_c3(before: ClauseCell, after: ClauseCell, eps: float) -> RecallClause:
     """Evaluate the recall clause, carrying both the WIN and the regression sense.
 
     The over-suppression guard -- the augment can only lower confidence, so this
@@ -198,12 +213,12 @@ def _clause_c3(before: dict[str, Any], after: dict[str, Any], eps: float) -> dic
 
 
 def _slice_regressions(
-    before: dict[str, Any],
-    after: dict[str, Any],
+    before: BaselinePayload,
+    after: BaselinePayload,
     axis_keys: tuple[str, ...],
     axis_label: str,
     delta_slice: float,
-) -> list[dict[str, Any]]:
+) -> list[SliceRecord]:
     """Return the per-slice precision deltas for one axis (doctype or demographic).
 
     A slice is a regression when ``after.precision < before.precision -
@@ -221,10 +236,10 @@ def _slice_regressions(
     Returns:
         One record per slice, in ``axis_keys`` order.
     """
-    block_key = "per_doctype" if axis_label == "doctype" else "per_demographic"
-    before_block = before[block_key]
-    after_block = after[block_key]
-    records: list[dict[str, Any]] = []
+    doctype_axis = axis_label == "doctype"
+    before_block = before["per_doctype"] if doctype_axis else before["per_demographic"]
+    after_block = after["per_doctype"] if doctype_axis else after["per_demographic"]
+    records: list[SliceRecord] = []
     for name in axis_keys:
         before_p = float(before_block[name]["precision"])
         after_p = float(after_block[name]["precision"])
@@ -244,10 +259,10 @@ def _slice_regressions(
 
 
 def _clause_c4(
-    before: dict[str, Any],
-    after: dict[str, Any],
+    before: BaselinePayload,
+    after: BaselinePayload,
     delta_slice: float,
-) -> dict[str, Any]:
+) -> SliceClause:
     """Evaluate the slice non-regression clause (per-doctype/per-demographic).
 
     A slice that drops more than ``delta_slice`` is a regression; this is a pure
@@ -270,14 +285,14 @@ def _clause_c4(
 
 def _family_verdict(
     name: str,
-    before: dict[str, Any],
-    after: dict[str, Any],
+    before: ClauseCell,
+    after: ClauseCell,
     *,
     delta_p: float,
     delta_f_rel: float,
     eps: float,
     delta_slice: float,
-) -> dict[str, Any]:
+) -> FamilyVerdict:
     """Build the four-clause verdict for one scorer family or the aggregate.
 
     ``non_regression_only`` families (MRN/EIN -- clean on G8, zero FP) drop the
@@ -313,7 +328,7 @@ def _family_verdict(
     c1 = _clause_c1(before, after, delta_p)
     c2 = _clause_c2(before, after, delta_f_rel)
     c3 = _clause_c3(before, after, eps)
-    clauses = [c1, c2, c3]
+    clauses: list[Clause] = [c1, c2, c3]
 
     # The precision clause's REGRESSION sense gates only for the
     # uplift-required families; family-FPR/recall always gate. (Its
@@ -344,10 +359,10 @@ def _family_verdict(
 
 
 def build_compare(
-    before: dict[str, Any],
-    after: dict[str, Any],
+    before: Mapping[str, object],
+    after: Mapping[str, object],
     thresholds: dict[str, float],
-) -> dict[str, Any]:
+) -> ComparePayload:
     """Decide the four-clause before/after predicate from two derived G8 detection baselines.
 
     Pure arithmetic over the frozen ``BaselineCell`` fields. Evaluates the four
@@ -379,13 +394,16 @@ def build_compare(
     eps = float(thresholds["eps"])
     delta_slice = float(thresholds["delta_slice"])
 
-    before_sha = sha256_bytes(_canonical_bytes(before))
-    after_sha = sha256_bytes(_canonical_bytes(after))
+    before_sha = sha256_bytes(canonical_bytes(before))
+    after_sha = sha256_bytes(canonical_bytes(after))
 
-    before_families: dict[str, Any] = before["per_family"]
-    after_families: dict[str, Any] = after["per_family"]
+    before_baseline = as_baseline_payload(before)
+    after_baseline = as_baseline_payload(after)
+    before_families = before_baseline["per_family"]
+    after_families = after_baseline["per_family"]
 
-    family_verdicts: list[dict[str, Any]] = []
+    family_verdicts: list[FamilyVerdict | AbsentFamilyVerdict] = []
+    notes: list[str] = []
     for family in _FAMILY_ORDER:
         key = _FAMILY_KEY[family]
         before_cell = before_families.get(key)
@@ -393,14 +411,14 @@ def build_compare(
         if before_cell is None or after_cell is None:
             # ITIN is absent from the G8 panel (no GT). Tolerate with no
             # KeyError; mark off-panel rather than fabricating a verdict.
-            family_verdicts.append(
-                {
-                    "name": family,
-                    "absent": True,
-                    "note": "off-G8-panel (no per_family entry); not evaluated",
-                    "regression": False,
-                }
-            )
+            absent: AbsentFamilyVerdict = {
+                "name": family,
+                "absent": True,
+                "note": "off-G8-panel (no per_family entry); not evaluated",
+                "regression": False,
+            }
+            family_verdicts.append(absent)
+            notes.append(absent["note"])
             continue
         family_verdicts.append(
             _family_verdict(
@@ -419,14 +437,14 @@ def build_compare(
     # once here).
     aggregate = _family_verdict(
         _AGGREGATE_NAME,
-        before["totals"],
-        after["totals"],
+        before_baseline["totals"],
+        after_baseline["totals"],
         delta_p=delta_p,
         delta_f_rel=delta_f_rel,
         eps=eps,
         delta_slice=delta_slice,
     )
-    c4 = _clause_c4(before, after, delta_slice)
+    c4 = _clause_c4(before_baseline, after_baseline, delta_slice)
     aggregate["clauses"].append(c4)
     if c4["regressed"]:
         aggregate["regressed_clauses"].append(c4["clause"])
@@ -436,10 +454,10 @@ def build_compare(
 
     # Overall regression: ANY family OR the aggregate regressed. An aggregate
     # PASS never excuses a per-family FAIL, and vice-versa.
-    any_family_regression = any(fv.get("regression") for fv in family_verdicts)
+    any_family_regression = any(fv["regression"] for fv in family_verdicts)
     overall_regression = any_family_regression or bool(aggregate["regression"])
 
-    payload: dict[str, Any] = {
+    payload: ComparePayload = {
         "schema_version": _SCHEMA_VERSION,
         "generated_by": _MODULE_NAME,
         "metric": _METRIC,
@@ -458,10 +476,8 @@ def build_compare(
 
     # The only free-form string this builder surfaces is the off-panel note;
     # guard it (and any future note) before returning. Mechanism-language only.
-    for fv in family_verdicts:
-        note = fv.get("note")
-        if note is not None:
-            assert_safe(note, context="eval.compare family note")
+    for note in notes:
+        assert_safe(note, context="eval.compare family note")
 
     verdict_word = "regression" if overall_regression else "no-regression"
     logger.info(
@@ -472,25 +488,6 @@ def build_compare(
     )
 
     return payload
-
-
-def _canonical_bytes(payload: dict[str, Any]) -> bytes:
-    """Return the canonical-JSON byte encoding of ``payload`` for hashing.
-
-    Mirrors the serialization parameters of
-    :func:`resecta_data.common.io.dump_canonical_json` (sorted keys, indent 2,
-    the canonical separators, ``ensure_ascii=False``, trailing newline) so each
-    input's provenance digest is invariant to upstream whitespace / key-order
-    churn: an unchanged baseline yields an unchanged ``*_sha256``.
-    """
-    encoded = json.dumps(
-        payload,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "),
-        ensure_ascii=False,
-    )
-    return encoded.encode("utf-8") + b"\n"
 
 
 __all__ = ["build_compare"]

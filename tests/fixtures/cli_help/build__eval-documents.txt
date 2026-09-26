@@ -1,0 +1,23 @@
+Usage: resecta-data build eval-documents [OPTIONS]
+
+  Derive the document-level Site-B eval from the H1.2 harness JSONs.
+
+  Joins each document's hits (per leg, per run) against its draw-time ground truth under the
+  Option-C match rule with the chosen coverage credit, and writes ``documents_eval.json`` (per-
+  document metrics + pooled micro/macro + Wilson/BCa intervals + miss attribution) into ``--out-
+  dir`` via the canonical JSON writer, validated against its schema. Dev/eval only -- the artifact
+  is not installed to the Swift Resources path.
+
+Options:
+  --manifest FILE             Path to documents.manifest.json (the T1.4 document manifest).
+                              [required]
+  --gt-root DIRECTORY         Root that resolves the manifest's gt paths (a sample-doc checkout with
+                              variants/ built).  [required]
+  --hits-dir DIRECTORY        DocumentHarnessTests output directory (RESECTA_DOCS_OUT).  [required]
+  --out-dir DIRECTORY         Directory for documents_eval.json.  [required]
+  --join-rule [single|union]  Coverage credit: the union of same-category detections over a box, or
+                              the best single detection (the two are reported as a pair on the same
+                              hits).  [default: union]
+  --schemas-dir DIRECTORY     Directory holding documents_eval.schema.json; the artifact is
+                              validated against it.  [default: schemas]
+  --help                      Show this message and exit.

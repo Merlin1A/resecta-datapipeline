@@ -1,0 +1,9 @@
+Usage: resecta-data build demographics [OPTIONS]
+
+  Build the demographic coverage report from the current name corpora.
+
+Options:
+  --build-dir DIRECTORY    [required]
+  --sources-dir DIRECTORY  [default: src/resecta_data/gazetteers/sources]
+  --seed INTEGER           [default: 20260416]
+  --help                   Show this message and exit.
