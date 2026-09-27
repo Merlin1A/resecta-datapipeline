@@ -1,5 +1,6 @@
 # Hermetic pull-request gate: everything below runs from the git-tracked tree
-# and the two hash-pinned lockfiles — no network access after bootstrap.
+# and the two hash-pinned lockfiles — no network access after the uv.lock
+# check and the bootstrap.
 name: ci
 
 on:
@@ -31,6 +32,16 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+      # uv.lock (the lock Dependabot's uv ecosystem reads) must describe the
+      # same dependency set as the two hash-pinned lockfiles. uv is installed
+      # hash-pinned for this check only; the gate runs from the pip lockfiles.
+      - name: uv.lock is current
+        run: |
+          cat > "${RUNNER_TEMP}/uv-requirements.txt" <<'REQ'
+          uv==0.11.26 --hash=sha256:4dcf4e0b5b5cbdc242dcb002f1f8d99e7cf8c043609869228a9ce15e095c0b18 --hash=sha256:c28822517d03aebbe9549aaaecc88ad580e4b2b6a927abffe5774a74d6ba09f6
+          REQ
+          python -m pip install --quiet --require-hashes -r "${RUNNER_TEMP}/uv-requirements.txt"
+          python -m uv lock --check --python 3.12
       - name: Bootstrap (hash-verified lockfiles)
         run: scripts/bootstrap.sh
       - name: PII guard

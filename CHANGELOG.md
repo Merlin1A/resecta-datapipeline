@@ -45,6 +45,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- Dependencies: pytest 9.0.3 (dev extra, `<10`) and click 8.3.3 in both hash-pinned lockfiles
+  (only those rows move). `uv.lock` — the lock Dependabot's uv ecosystem reads — is regenerated
+  to the same versions as `requirements-dev.lock` (it still carried cryptography 42.0.8 and
+  pytest 8.4.2), and the pull-request gate checks it with `uv lock --check` (uv installed
+  hash-pinned for that step). The security workflow's pip-audit is the locked version, installed
+  hash-verified from the lockfiles. `scripts/_fetch_lib.sh` downloads over HTTPS only, the first
+  request and every redirect.
 - The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
   public-key fingerprint and keeps the retired one in its history table. The shipped manifest and
   every asset it lists are unchanged; only the detached signature and the bundled public key moved.

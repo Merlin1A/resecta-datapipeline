@@ -72,6 +72,7 @@ fetch_lib::probe_url() {
     local url="$1"
     local code
     if ! code="$(curl --head --silent --show-error --max-time 30 \
+                       --proto '=https' --proto-redir '=https' \
                        --user-agent "Wget/1.21" \
                        --output /dev/null --write-out '%{http_code}' "$url" 2>&1)"; then
         echo "fetch_lib::probe_url: curl failed for $url (cert / DNS / network):" >&2
@@ -90,7 +91,8 @@ fetch_lib::probe_url() {
 }
 
 # fetch_lib::download_with_sha <url> <dest> [<ua>]
-# Download <url> to <dest> via curl --fail --silent --show-error --location.
+# Download <url> to <dest> via curl --fail --silent --show-error --location,
+# HTTPS only (the first request and every redirect).
 # Capture SHA-256 into <dest>.sha256 sidecar.
 # Refuses to overwrite <dest>. On cache-hit, verifies the
 # existing sidecar (or writes one if absent) and returns 0.
@@ -119,6 +121,7 @@ fetch_lib::download_with_sha() {
     tmp="$(mktemp "${dest}.tmp.XXXXXX")"
     local rc=0
     curl --fail --silent --show-error --location \
+        --proto '=https' --proto-redir '=https' \
         --max-time 600 \
         --user-agent "$ua" \
         --output "$tmp" "$url" || rc=$?
