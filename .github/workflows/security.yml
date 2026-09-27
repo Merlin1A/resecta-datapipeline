@@ -36,7 +36,9 @@ jobs:
       - name: Audit the locked dependency set
         continue-on-error: true
         run: |
-          python -m pip install --quiet pip-audit
+          # pip-audit at the version the dev lock pins, hash-verified with the
+          # rest of the locked set (the copy `make security-check` runs).
+          python -m pip install --quiet --require-hashes -r requirements.lock -r requirements-dev.lock
           set +e
           python -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes 2>&1 | tee audit.txt
           rc="${PIPESTATUS[0]}"
