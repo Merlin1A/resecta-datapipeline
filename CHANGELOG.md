@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
+  public-key fingerprint and keeps the retired one in its history table. The shipped manifest and
+  every asset it lists are unchanged; only the detached signature and the bundled public key moved.
 - Documentation: shorter code of conduct; README/CONTRIBUTING/SECURITY trimmed and corrected.
 - Curated context assets change under a written, approved change plan; the
   reviewed negative-context sidecar is re-stamped by the same change — the

@@ -32,11 +32,12 @@ it does not fail silently.
 
 ## The current public key
 
-The public key bundled in the app since 2026-07-11 has this fingerprint
-(SHA-256 over the DER-encoded SubjectPublicKeyInfo):
+The public key in the app repository since 2026-09-27, and in every app
+release built after that date, has this fingerprint (SHA-256 over the
+DER-encoded SubjectPublicKeyInfo):
 
 ```
-d471e66bb6d3b6682c3ab3e5baf7679d7e58b2059f359da997bbb0cded9d20d1
+2f94b2aecc157d818bbdee34e04d20cbecc4b83e86f8ecbea932fdee07e90bd2
 ```
 
 To recompute it from a checkout of the app repository:
@@ -46,6 +47,10 @@ openssl pkey -pubin \
   -in Packages/RedactionEngine/Sources/RedactionEngine/Resources/Gazetteers/manifest_public_key.pem \
   -outform DER | openssl dgst -sha256
 ```
+
+The app's test suite pins this fingerprint, and the app repository's
+pre-archive hash check pins the key file itself, so changing the key without
+moving both pins in the same change fails both checks.
 
 ## How the private key is held
 
@@ -97,7 +102,8 @@ with.
 
 | Public key fingerprint (SHA-256 of the SPKI DER) | In the app since |
 |---|---|
-| `d471e66bb6d3b6682c3ab3e5baf7679d7e58b2059f359da997bbb0cded9d20d1` | 2026-07-11 (current) |
+| `2f94b2aecc157d818bbdee34e04d20cbecc4b83e86f8ecbea932fdee07e90bd2` | 2026-09-27 (current) |
+| `d471e66bb6d3b6682c3ab3e5baf7679d7e58b2059f359da997bbb0cded9d20d1` | 2026-07-11 (retired 2026-09-27, scheduled rotation) |
 
 ## If the key is suspected to be exposed
 
