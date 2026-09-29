@@ -4,8 +4,9 @@ This file contains attribution and acknowledgement for third-party data sources 
 by the resecta-datapipeline build artifacts.
 
 Created 2026-04-26 when the address substrate moved to OpenAddresses CC0 +
-OpenStreetMap ODbL. Attribution rows for other bundled data sources are added
-under an approved plan when those sources ship.
+OpenStreetMap ODbL. Rows are carried where a licence calls for attribution
+(ODbL, MIT); the OpenAddresses row is a courtesy row for a CC0 input. A row is
+added under an approved plan.
 
 ---
 
@@ -14,9 +15,9 @@ under an approved plan when those sources ship.
 This product includes data derived from OpenStreetMap, © OpenStreetMap contributors,
 available under the Open Database License (ODbL) 1.0. See
 https://www.openstreetmap.org/copyright. Per ODbL §4.3, substantial use of
-OSM-derived data is acknowledged here; insubstantial fact-extraction (US
-street-suffix vocabulary frequency rank for the street_suffix gazetteer) is
-not share-alike-encumbered.
+OSM-derived data is acknowledged here; insubstantial fact-extraction (a US
+street-type vocabulary frequency rank, for the street-type list in
+address_components.json) is not share-alike-encumbered.
 
 ---
 
@@ -31,11 +32,10 @@ audit.
 
 ## Third-party MIT-licensed inputs
 
-The name Bloom-filter and gazetteer artifacts produced by this pipeline are
-derived from the MIT-licensed inputs below. The person-name Bloom filters are
-membership-derived from the bltlab/paranames corpus; Faker (MIT) generates this
-project's synthetic evaluation corpus. The MIT permission notice is reproduced
-once and applies to each input.
+The person-name Bloom filters are membership-derived from the bltlab/paranames
+corpus; Faker generates this project's synthetic evaluation corpus, a test
+fixture that is not shipped. The MIT permission notice is reproduced once and
+applies to each input.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

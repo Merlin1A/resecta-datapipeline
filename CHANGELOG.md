@@ -11,17 +11,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 - `sign-manifest`: the signing key can be held age-encrypted (`~/.resecta-data/manifest-private-key.pem.age`,
   preferred over the plaintext PEM when present) and is decrypted in memory through the age identity
-  named by `--age-identity`; `--generate-key --encrypt-to RECIPIENT` births a key straight into its
+  named by `--age-identity`; `--generate-key --encrypt-to RECIPIENT` creates a key straight into its
   encrypted form with no plaintext written. `make doctor` reports the key's form and the tools it
   needs. `KEY-MANAGEMENT.md` documents what the signature proves, the current public-key
   fingerprint, and the rotation and exposure procedures.
-- `context`: six title labels — `counsel of record` (court), `bill to` and `ap contact`
-  (financial), `employee's name` (financial, generic), `from` and `to` (every doctype) —
-  ship as GLOBAL positive name anchors in the context-keyword gazetteer (no doctype scope: the
-  label word is its own context and the search leg detects without a doctype; name 35 → 41; 223 rows;
-  the schema pin and the lock row move). Consumer: the engine's label-anchor route, which
-  reads the name positives case-folded and token-bounded with a colon and takes only the
-  capitalised run after it on the same line.
+- `context`: six title labels (`counsel of record`, `bill to`, `ap contact`, `employee's name`,
+  `from`, `to`) ship as global positive name anchors in the context-keyword gazetteer, read by the
+  engine's label-anchor route (name 35 → 41; 223 rows; the schema pin and the lock row move).
 - `manifest-assets`: the shipped gazetteer manifest (`gazetteers/gazetteer_manifest.shipped.json`,
   version 1.1.0) carries an `assets[]` section — the SHA-256 and byte count of
   every asset `install-assets` routes into the engine bundle, except the
@@ -46,10 +42,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 ### Changed
 
 - Dependencies: pytest 9.0.3 (dev extra, `<10`) and click 8.3.3 in both hash-pinned lockfiles
-  (only those rows move). `uv.lock` — the lock Dependabot's uv ecosystem reads — is regenerated
-  to the same versions as `requirements-dev.lock` (it still carried cryptography 42.0.8 and
-  pytest 8.4.2), and the pull-request gate checks it with `uv lock --check` (uv installed
-  hash-pinned for that step). The security workflow's pip-audit is the locked version, installed
+  (only those rows move). `uv.lock` is regenerated to the same versions as `requirements-dev.lock`
+  (it still carried cryptography 42.0.8 and pytest 8.4.2), and the pull-request gate checks it
+  with `uv lock --check` (uv installed hash-pinned for that step). The security workflow's pip-audit is the locked version, installed
   hash-verified from the lockfiles. `scripts/_fetch_lib.sh` downloads over HTTPS only, the first
   request and every redirect.
 - The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
@@ -57,32 +52,31 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   every asset it lists are unchanged; only the detached signature and the bundled public key moved.
 - Documentation: shorter code of conduct; README/CONTRIBUTING/SECURITY trimmed and corrected.
 - Curated context assets change under a written, approved change plan; the
-  reviewed negative-context sidecar is re-stamped by the same change — the
-  policy text is person-neutral throughout. Provenance prose in shipped assets
-  no longer cites private planning documents. Context assets: the
+  reviewed negative-context sidecar is re-stamped by the same change.
+  Provenance prose in shipped assets no longer cites private planning
+  documents. Context assets: the
   negative-context placeholder entry `abc corp.` is now `corp.`; multi-word
   doctype keywords (never matchable) are single tokens; labeled license plates
   carry their own context words; the bare `ein`/`mbi` suppression tokens are
   label phrases; the FOIA and generic doctype vocabularies are rebalanced. The
   routing-number builder raises PipelineError instead of asserting.
 
-## 0.1.0 — 2026-06-24
+## 0.1.0 — 2026-07-11
 
 Initial public release.
 
 ### Added
 
-- **Build-time data pipeline** producing the assets bundled into the Resecta iOS
-  app: surname and given-name Bloom filters, institution / address-component /
-  ZIP→SCF gazetteers, negative-context keyword sets, doctype-classifier
-  dictionaries and calibration artifacts, a synthetic document corpus,
-  structural test vectors (NPI / DEA / SSN), and ReDoS fuzz payloads.
+- **Build-time data pipeline** producing the detection data shipped inside the
+  Resecta iOS app (name Bloom filters, gazetteers and pattern tables, classifier
+  assets, the rule catalog) and the engine's test fixtures (test vectors, fuzz
+  payloads, the synthetic G8 corpus).
 - **Deterministic, zero-network builds.** Artifacts are byte-reproducible from a
   commit; `make verify` runs schema validation, a hash lock, and a determinism
   rebuild.
 - **License-provenance tracking.** `SOURCES.md` records every raw dataset's
-  license, source URL, retrieval date, and SHA-256; `NOTICE.txt` aggregates the
-  attribution flow-through for the app distribution.
+  license, source URL, retrieval date, and SHA-256; `NOTICE.txt` carries the
+  third-party attribution, mirrored by the app repository's root `NOTICE`.
 - **Fetch-on-demand ParaNames.** The large ParaNames corpus is fetched via
   `scripts/fetch_paranames.sh` rather than committed; builds degrade to a
   bootstrap sample when it is absent (no Git-LFS).

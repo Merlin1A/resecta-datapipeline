@@ -1,7 +1,9 @@
 # Source Provenance
 
-Every file checked in under `src/resecta_data/*/sources/` must have a row in
-the table below. Adding a source without a row is a policy violation.
+Every third-party raw file checked in under `src/resecta_data/**/sources/`
+has a row in the table below; `.sha256` sidecars, dated mirrors and
+self-authored inputs are exempt. Adding a source without a row is a policy
+violation.
 
 ## Columns
 
@@ -25,8 +27,6 @@ the table below. Adding a source without a row is a policy violation.
 | LOINC | Deferred | Do not fetch; pending legal review |
 
 ## Entries
-
-<!-- When Phase 1 or later adds sources, append rows below the header here. -->
 
 | Path | License | URL | Retrieved | SHA-256 | Description |
 |------|---------|-----|-----------|---------|-------------|
@@ -59,124 +59,70 @@ the table below. Adding a source without a row is a policy violation.
 | src/resecta_data/context/sources/d12_candidates.json | 135 rows §105 PD (IRS, SSA, CMS, DEA/DOJ, HHS, eCFR, Cornell LII, Federal Register, SAMHSA); 5 rows CC0 (FHIR US Core); 18 rows self-authored internal (Apache-2.0). The former NUCC/payer date-of-birth rows are replaced with self-authored equivalents; all rows are license-cleared (none pending review). The X12 `DMG*D8` surface ships engine-side as a CMS-crosswalk-anchored regex, not as a context keyword. | Multiple — per-entry `source_url` in the candidates file (57 distinct URLs) | 2026-04-25 | 37824c97a2e8da966d74c27642aa61ccecefbc24bcb60f1c2a4631448ba92982 | English context-keyword candidates. 142 rows: DOB 26 / Name 30 / NPI 29 / DEA 29 / ITIN 28 (was 143 / DOB 27; the Row 3 X12 `DMG*D8` literal was dropped — regex ships engine-side, not as a context-keyword). Per-row `source_url`, `license_posture`, `fp_neighbors` (≥3), `proposed_doctypes`, `confidence`, `synthetic_sample`, `primary_source_type`, `aliases`, `notes` travel inside the file. Vocabulary expansion ships `.foia`/`.financial`/`.generic` in the `proposed_doctypes` enum. The bare `DEA` row carries `confidence: "low"` + `detector_requires_secondary: true`. 3 ITIN-specific negative-context-gazetteer rows are drafted separately and are not in this JSON. `decedent`/`name of requester` are reinstated; 7 other V1.1+ rows are omitted. NUCC/payer DOB rows are replaced with self-authored internal equivalents (none pending license review). The IRSN literal carries `confidence: "medium (flag)"`. `date of birth` family rows carry a `detector_note` about the windowed-matching head-noun requirement; `date of` standalone is not shipped. Count drift: DOB 28→27 (drop `birthdt`) → 26 (dropped `DMG*D8`); Name 31+2→30 (drop `family name` / `given name` / `prescriber name`); ITIN 30→28 (drop `Acceptance Agent` / `Reason you're submitting Form W-7`). (edited: provenance prose; two DOB rows doctype-scoped; four court role nouns removed from name, 2026-08-27). |
 | src/resecta_data/context/sources/d16_bates_anchors.json | Public Domain — vocabulary-of-art (Bates numbering is industry practice named for the Bates Manufacturing Co. stamping device, not a copyrighted system); FRCP 30 / FRCP 34 citations are U.S. federal-government works non-copyrightable under 17 U.S.C. § 105 | https://www.law.cornell.edu/rules/frcp/rule_34 (FRCP 34 — production of documents) + https://www.law.cornell.edu/rules/frcp/rule_30 (FRCP 30 — depositions) | 2026-04-26 | 6b5747bec877237d7f45e87ba7e1018cf59207e56eae98377d6e3caa6d4368f6 | Bates `.legal`-scoped context-keyword anchors (10 rows). Multi-word phrases that do not collide with the context-keyword gazetteer's 11 doctype-unscoped baseline single-word bates rows: `bates label`, `bates no.`, `bates number`, `bates stamp`, `deposition exhibit`, `document no.`, `document number`, `page id`, `production number`, `production stamp`. All rows carry `proposed_doctypes: [".legal"]` (translates to wire `doctypes: ["court"]`) and `category: "bates"`. Confidence distribution: 5 high (bates-prefixed terms + `deposition exhibit`), 2 medium-high (production-prefixed terms — discovery-process anchors with non-zero non-legal usage), 3 medium (`document no.`/`document number`/`page id` — generic anchors that resolve to Bates-style numbering only under `.legal` doctype scoping). Per-row `aliases`, `fp_neighbors` (≥3), `notes`, `source_url`, `license_posture`, `primary_source_type` travel inside the file (the same staging shape as `d12_candidates.json`, so the existing `_to_wire` projection applies without special-casing in `gazetteers/context_keywords/build.py`). Path placed under `src/resecta_data/context/sources/` (parallel to `d12_candidates.json`) instead of `build/context/d16_bates_anchors.json`, because `build/` is git-ignored and source candidates live under `src/.../sources/`. Engine-side baseline regex `^[A-Z]{1,4}[_-]?0*\d{4,8}$` is the Swift-deferred half and does NOT flow through the builder. Shipping artifact `build/context/context_keywords.json`'s contribution here lifts the per-category `bates` count from 11 to 21 and the total from 187 to 197. |
 | src/resecta_data/gazetteers/dl_patterns/sources/dl_patterns_candidates.json | Per-row mixture: §105 PD (federal RIDE fact sheet) + permissive-OSS-MIT format-fact baselines + state-statute-anchored rows (NC G.S. § 20-7(n)(7); Tenn. Code Ann. § 55-50-331(b)(1); Utah Code Ann. § 53-3-207(3)(a)(i)) + AAMVA-envelope rows. Format-fact regexes only; no upstream OSS prose ships. No needs-legal-review rows. | Multiple — per-row `source_url` in the candidates file (state-DMV / state-statute / federal RIDE) | 2026-04-25 | edd017e5bce1a5acb61e6e5f0d4628e8c64dd64cb77b84b76ca5e199ad6a4a8a | Driver-license pattern candidates (51 rows: 50 states + DC). Distribution: 11 state-work + 26 permissive-OSS-MIT + 3 state-statute-anchored + 11 aamva-envelope = 51. NC/TN/UT are statute-anchored; AK/MT/SC/SD/WV/WY/DC use the AAMVA envelope; statute pins were re-verified 2026-04-26 against primary sources. MO collapses to a single live `^[A-Z][0-9]{9}$` pattern. An elevated `pii_severity` flag is set on 8 Soundex/Gallian-derived rows (FL, IL, MD, MI, MN, NH, WA, WI) — informational-only. A WA specimen-image audit ships as JSON-only `_advisory_note` at file root (no separate audit deliverable). WY range tightening is now subsumed by the envelope. V1 no-op for FL (regex shape unchanged). SSN/DLN two-way ambiguity flag on 5 rows (AR, HI, ID, LA, MS; was three-way before a later change was withdrawn). IL/WA/NV/NJ use the envelope; aggregator lineage is retired. 3 rows carry `historical_variants` (MA 2018-11-13; NH 2017-10-11; RI 2017-07-05). Shipping artifact `build/gazetteers/dl_patterns.json` is built by the pipeline; the Swift loader is deferred to a macOS build. (edited: provenance prose, 2026-08-27). |
-
 | src/resecta_data/gazetteers/institutions/sources/federalregister_agencies.json | Public Domain | https://www.federalregister.gov/api/v1/agencies.json?per_page=1000 | 2026-04-27 | 6b5713fae71a5ae9fcfc8def7fc46ddab3afe115ee403d75a8620387bda109d6 | Federal Register agencies API feed; ~444 rows on 2026-04-22 probe; NARA Office of the Federal Register + GPO; §105 PD; consumed by gazetteers/institutions.json rebuild scoped to federal_agency only. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_06_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_06_place.zip | 2026-04-27 | 81b827124043164a93d442f6dc4c088fd56c319da14195e4a14ab0fb39656a42 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 06; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/sources/ssa_given_names/names.zip | Public Domain | https://www.ssa.gov/oact/babynames/names.zip | 2026-04-27 | 4800e5c02c7f0c1db0807807675d728a11d30859d231b6abe935d7cb3106172c | SSA national baby-names archive (multi-year yob<YYYY>.txt files 1880→present; §105 PD; consumed by the given-names Bloom regen). |
-
 | src/resecta_data/gazetteers/sources/ssa_given_names/namesbystate.zip | Public Domain | https://www.ssa.gov/oact/babynames/state/namesbystate.zip | 2026-04-27 | b22b2eae9d0ca89605dbdac3b7021baaa2c6e367540e2113855142c7393f4a8b | SSA per-state baby-names archive (per-state yobYYYY-style files; §105 PD; consumed by the demographic-bucket extension via state-specific given-name distribution). |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_01_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_01_place.zip | 2026-04-28 | 5a6787d4caf39dc103a254879ad07e0fce047a93c0ea2f68c25432cb78ec3f4b | Census TIGER/Line 2024 PLACE shapefile for FIPS state 01; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_02_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_02_place.zip | 2026-04-28 | 3894e722e71170434340dcda5ecb64d6e8fefb5af46665323f6b82b5f5c46df3 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 02; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_04_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_04_place.zip | 2026-04-28 | 8f4971b0a3f6e025229befbc2ad9bdb55346463a1067d0cc610072b72860aca1 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 04; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_05_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_05_place.zip | 2026-04-28 | cc0cfd031be66abc027aa98c3bc05320b4836b62fab8506d40dd5919364021fa | Census TIGER/Line 2024 PLACE shapefile for FIPS state 05; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_08_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_08_place.zip | 2026-04-28 | 0f8e5e4fd4462f26038b926d44be1eb1b24e494695edf2187751f735e68b34ce | Census TIGER/Line 2024 PLACE shapefile for FIPS state 08; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_09_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_09_place.zip | 2026-04-28 | fc63d10e35fad1d77c7e20c123d6c42755c5d6d36131acdc5983871c9ed5c6e2 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 09; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_10_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_10_place.zip | 2026-04-28 | f0c6af53ff197da0a529a4b50f8110876014b84bc38afd4f3d3874d2c8ebca14 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 10; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_11_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_11_place.zip | 2026-04-28 | edb5f856da4c9f0e24da70f875948a9a4b008476adbf85a8c29ab50e2b64a5ed | Census TIGER/Line 2024 PLACE shapefile for FIPS state 11; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_12_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_12_place.zip | 2026-04-28 | 30d57de7fd40faaf3208bef7bc00f706f70a038aacd2feb1ff1681f68216869e | Census TIGER/Line 2024 PLACE shapefile for FIPS state 12; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_13_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_13_place.zip | 2026-04-28 | f56648317615c8063854086ea5112156009a146b433b7e1f442c7ef6e132763c | Census TIGER/Line 2024 PLACE shapefile for FIPS state 13; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_15_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_15_place.zip | 2026-04-28 | 6419aca7b17c7195a9205ff9d518ca93db524e71477ced4066e31d41065529b2 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 15; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_16_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_16_place.zip | 2026-04-28 | b227cb21271654a28f5c06d981c3d8c215cfa3abaed038911124b5e9905e0cb0 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 16; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_17_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_17_place.zip | 2026-04-28 | 237f9f4b492e67414699fe6ceeb2175b6db4f2dd84d3ed67bd88f38458da7524 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 17; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_18_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_18_place.zip | 2026-04-28 | e96afe64d8774101295f532c94e129cf571a21e9615c134dbdf87618286fcfb0 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 18; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_19_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_19_place.zip | 2026-04-28 | b0b24338f923f11e067b6c2804629c7d0a0d44710b7e3ac42c65fe39db9ce460 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 19; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_20_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_20_place.zip | 2026-04-28 | da6184404d3e8560c010f7914a530dfe14c10e393a7600d64a856117f5626e87 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 20; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_21_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_21_place.zip | 2026-04-28 | 86145ff62220536d978fc665b4dd37cb04f8b8061102511f2b5069583fbe9a58 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 21; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_22_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_22_place.zip | 2026-04-28 | c339b9c1a1df6d45e1ceaff4888a16c6062745b3d6292fd63fda3158b8bcf30f | Census TIGER/Line 2024 PLACE shapefile for FIPS state 22; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_23_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_23_place.zip | 2026-04-28 | dabcaf7f3b62c7e7b812d89451abd84ca93cd98c01428a79ef4d89ff2f40ff93 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 23; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_24_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_24_place.zip | 2026-04-28 | 5622093f62dbb5b3b6433ff9680dab796bfb9d473cdd33d60fb4af7bb5fe564c | Census TIGER/Line 2024 PLACE shapefile for FIPS state 24; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_25_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_25_place.zip | 2026-04-28 | 79c5b9084a3e5cd123331ec76529a21735e74f9e89b72f3413e1857f21eb6ca3 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 25; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_26_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_26_place.zip | 2026-04-28 | 29f7ff510b4b7f6dc5df5d9578ddecf3def12abaad83d8e4277b16d4272fbbfd | Census TIGER/Line 2024 PLACE shapefile for FIPS state 26; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_27_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_27_place.zip | 2026-04-28 | b0771030d6cce3a975c45e212116e6f31cc86f460ba156b7edf9b1079fc15c97 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 27; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_28_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_28_place.zip | 2026-04-28 | c0953a04695baad63245143dd244210732c0f7fe0a3282b2f468eae4eb53a32a | Census TIGER/Line 2024 PLACE shapefile for FIPS state 28; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_29_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_29_place.zip | 2026-04-28 | bdc8fbeba0e52adc4e84f27ec7c93fc6e7f7ad63439ecb8e8e5f7c2dbc6f5270 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 29; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_30_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_30_place.zip | 2026-04-28 | 0c8c2a84b309f390cf59ee71cf70470eec921ec029162245e6ffd68d72bb416f | Census TIGER/Line 2024 PLACE shapefile for FIPS state 30; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_31_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_31_place.zip | 2026-04-28 | 301f091f0073cca688f396a59abf8f401b1cad53c3c60a421445c5f6ab9f8767 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 31; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_32_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_32_place.zip | 2026-04-28 | def5ba249c9d3e0697a66205ac822fb9b7de557818f69a749222a9100bdc21bf | Census TIGER/Line 2024 PLACE shapefile for FIPS state 32; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_33_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_33_place.zip | 2026-04-28 | 413ab59c748b4f683517380783106dd487ba8d6255437130388417fb1c150282 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 33; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_34_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_34_place.zip | 2026-04-28 | 5995bae3e4a4eaae958e31064d1de84f575b5ca94fc1e5435b161684eea2369a | Census TIGER/Line 2024 PLACE shapefile for FIPS state 34; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_35_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_35_place.zip | 2026-04-28 | 355e20d9afb3146b753a028603d50f10f639f8ff893a27e1e66e708300b230db | Census TIGER/Line 2024 PLACE shapefile for FIPS state 35; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_36_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_36_place.zip | 2026-04-28 | 2dbe5718443425dc454034ada84cec7ef936beed286289a5110c99c31d634424 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 36; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_37_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_37_place.zip | 2026-04-28 | 9d05aca18240e55db0d8ecc382e73bafca95bc296c02f8647a58145532e706cc | Census TIGER/Line 2024 PLACE shapefile for FIPS state 37; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_38_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_38_place.zip | 2026-04-28 | 631e93f5f16a485ca525652ace0e73142c3a8182bdebba5f4dced5f0c1dc4214 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 38; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_39_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_39_place.zip | 2026-04-28 | b0d66206f3ad10ee6432ce8b3167f5e86d862db508a5d7053cb9de71fe4b3d24 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 39; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_40_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_40_place.zip | 2026-04-28 | 29fdd4e607bc2c006437f6b4879d3dc4843b3a0435a05a55a2b22776577e7d1f | Census TIGER/Line 2024 PLACE shapefile for FIPS state 40; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_41_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_41_place.zip | 2026-04-28 | c60dc879c61791e830d38dc7e5269352b174c802429dfe6268d45773cfcf18c2 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 41; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_42_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_42_place.zip | 2026-04-28 | d6312bfcbffadeb20ac1843cf3ca3246a4e106a8e0fa9b3ac992a07beebf8350 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 42; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_44_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_44_place.zip | 2026-04-28 | 1f87297a1e416a9084dc4d3679d1d770a62f532ac8de674740f58d400127334c | Census TIGER/Line 2024 PLACE shapefile for FIPS state 44; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_45_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_45_place.zip | 2026-04-28 | af62ae0436293c3ce8e97705e8240d993a3d150c24f5e1161892cfd8adb859d6 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 45; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_46_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_46_place.zip | 2026-04-28 | e582bd817142603d85ee8469def308a586b1c9a509638cb758ea912bbe928076 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 46; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_47_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_47_place.zip | 2026-04-28 | 4aefbd5932e826d83770e8b605a2a2116fcf747d3c04694cc158d03481cb8ec0 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 47; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_48_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_48_place.zip | 2026-04-28 | 0388b08a708a1a3ada0ab594b0a574e9ab65654d00cb0c56369f55661cf8439d | Census TIGER/Line 2024 PLACE shapefile for FIPS state 48; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_49_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_49_place.zip | 2026-04-28 | b1404bfbd5e80d505b270f3e20aa79b4cead51168c0d944e465e60585ddc8de6 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 49; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_50_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_50_place.zip | 2026-04-28 | e1096989fd53cf4ab819bd83df8ad10efffa763de1b69090800d03db380769f2 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 50; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_51_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_51_place.zip | 2026-04-28 | f530fd65c4d83cbf9a854cea6900fde5add4a7ca26bc8a11a59426c6ca07e16b | Census TIGER/Line 2024 PLACE shapefile for FIPS state 51; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_53_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_53_place.zip | 2026-04-28 | 7da61ba276bfdd886ffeb36bf9af37a99a42f8c446e47c684ae48087d86657c6 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 53; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_54_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_54_place.zip | 2026-04-28 | ca841b8a96d93ec177b25a20e77b245e0c86635a8099cb1ab2d81743796fd149 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 54; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_55_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_55_place.zip | 2026-04-28 | 062202ffa5ed57ea2499aac856e694e6407cf8f40de1163b91f67d2a6dcac976 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 55; §105 PD; consumed by gazetteers/address_components.json cities list. |
-
 | src/resecta_data/gazetteers/address_components/sources/tiger_places/tl_2024_56_place.zip | Public Domain | https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_56_place.zip | 2026-04-28 | b09d97a483e6c0b23ae94f1fbd2ac93292085d34f577aa081fdfe7e08a709694 | Census TIGER/Line 2024 PLACE shapefile for FIPS state 56; §105 PD; consumed by gazetteers/address_components.json cities list. |
 
 ## Institutions: shipped scope and gated financial fetchers
 
-> V1.0 `institutions.json` ships only the `federal_agency` category, sourced from
+> The shipped `institutions.json` carries only the `federal_agency` category, sourced from
 > the Federal Register agencies API feed (§105 PD); the legacy GSA Federal
 > Hierarchy Crosswalk is read only to compute the advisory cutover diff and is not
 > folded into the shipped provenance. The financial-institution fetchers
 > (`scripts/fetch_edgar_companies.sh`, `fetch_fdic_banks.sh`,
 > `fetch_finra_members.sh`) and their parsers are present for a future phase and
-> contribute nothing to V1.0: SEC EDGAR and FDIC are U.S. federal §105
+> contribute nothing to the shipped file: SEC EDGAR and FDIC are U.S. federal §105
 > public-domain works, while FINRA member-firm data is a private
 > self-regulatory-organization (SRO) dataset that is NOT license-cleared for
 > redistribution and is excluded from the shipped bundle pending legal review.

@@ -11,8 +11,9 @@ and what happens when the key is rotated or suspected to be exposed.
 with an Ed25519 key. That manifest lists every detection asset the pipeline
 installs into the app bundle, with each file's SHA-256 and byte count. The
 detached signature (`gazetteer_manifest.sig`) and the public key
-(`manifest_public_key.pem`) are installed beside the manifest under the
-engine's `Resources/Gazetteers/` directory by `make install-assets`.
+(`manifest_public_key.pem`) are installed with the manifest (as
+`gazetteer-manifest.json`) under the engine's `Resources/Gazetteers/`
+directory by `make install-assets`.
 
 Signing is a maintainer step on the maintainer's machine. Hosted continuous
 integration never signs: the runners hold no key, and the signed files are
@@ -21,14 +22,17 @@ committed to the app repository like any other asset.
 ## What the signature proves
 
 At first load, the app verifies the signature over the manifest bytes with the
-public key it bundles, then checks each gated asset against its manifest entry
-before reading it. A valid signature means the detection data the app reads is
-the data this pipeline produced and signed — pipeline-to-bundle provenance.
+public key it bundles, then checks every listed file's size and SHA-256 against
+its manifest entry, once per process. A valid signature means the detection
+data the app reads is the data this pipeline installed and signed —
+pipeline-to-bundle provenance.
 
 It is not the mechanism that protects an installed app from tampering. That is
-the app-bundle code signature, which seals these same files. On any
-verification failure the app withholds the gated loaders and shows a banner;
-it does not fail silently.
+the app-bundle code signature, which seals these same files. A failed
+signature, or a digest failure on a file the five signature-gated loaders
+read, withholds those loaders; a digest failure on any other listed asset is
+reported and its loader keeps its fallback. Either way a banner shows; it
+never fails silently.
 
 ## The current public key
 
@@ -58,8 +62,9 @@ The private key does not enter either repository and is not published.
 
 - The working copy is held encrypted with [age](https://age-encryption.org)
   to a hardware-bound key on the maintainer's build machine. `sign-manifest`
-  decrypts it in memory, through the age identity named by `--age-identity`,
-  only for the duration of a signing run; no plaintext copy is written.
+  decrypts it in memory, through the age identity at
+  `~/.resecta-data/age-identity.txt` (`--age-identity` overrides), only for
+  the duration of a signing run; no plaintext copy is written.
 - An offline recovery copy of the same key, encrypted to a passphrase that
   exists only on paper, is kept apart from the machine. Loss of the machine
   is a restore from that copy, not a forced rotation.
@@ -87,14 +92,15 @@ later signing run would use the new key.
 
 ## Rotation
 
-The key is rotated on the maintainer's documented schedule and on any
-suspicion of compromise. A rotation retires the existing key (an encrypted
-copy is kept until the release that carries the new key is out), generates a
-new key straight into its encrypted form (`sign-manifest --generate-key
---encrypt-to RECIPIENT`; no plaintext is written, and the same run signs
-through the identity, which proves the new file decrypts), re-signs the
-manifest, and ships the new public key inside the next app update. The app
-verifies against the one public key it bundles.
+The key is rotated on a schedule the maintainer keeps and on any suspicion of
+compromise. A rotation retires the existing key — the old `.age` file is
+moved out of `~/.resecta-data/` (an encrypted copy is kept until the release
+that carries the new key is out) — then generates a new key straight into its
+encrypted form and signs with it in the same run: `gmake manifest-assets`,
+then `.venv/bin/resecta-data sign-manifest --build-dir build --generate-key
+--encrypt-to RECIPIENT`. No plaintext is written, and the signing pass proves
+the new file decrypts. The new public key ships inside the next app update;
+the app verifies against the one public key it bundles.
 
 There is no revocation list, by design: replacing the key means shipping a new
 app version, and older versions keep verifying against the key they shipped
@@ -113,9 +119,9 @@ with.
    released.
 3. The event is recorded in this file and in the changelog.
 
-An exposed signing key does not by itself let anyone alter an installed app:
-the app bundle's own code signature still seals the files. It would let
-someone who can also replace files inside a bundle produce detection data the
-app would accept, which is why exposure is treated as a rotation trigger.
+As above, an exposed key does not by itself alter an installed app: the app
+bundle's own code signature still seals the files. It would let someone who
+can also replace files inside a bundle produce detection data the app would
+accept, which is why exposure is treated as a rotation trigger.
 
 Report suspected exposure through the channels in `SECURITY.md`.
