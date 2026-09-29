@@ -3,34 +3,32 @@
 [![ci](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml)
 [![verify](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml)
 
-Build-time Python tooling that produces the data assets shipped inside the Resecta iOS app — name Bloom filters, gazetteers, classifier keyword dictionaries, test corpora, and CI fixtures.
+Build-time Python tooling that produces the detection data shipped inside the Resecta iOS app (name Bloom filters, gazetteers and pattern tables, classifier assets, the rule catalog) and the engine's test fixtures (test vectors, fuzz payloads, the synthetic G8 corpus).
 
-This repository is independent of the Xcode project. Nothing here is linked into the iOS binary; the pipeline's only coupling to the app is the `make install-assets` step that copies generated files into `../resecta/Packages/RedactionEngine/Sources/RedactionEngine/Resources/` (the sibling `resecta` iOS repository).
+This repository is independent of the Xcode project. Nothing here is linked into the iOS binary. The pipeline's couplings to the app are `make install-assets`, which copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides), and `make eval`, which runs the engine's G8 tests there.
 
-**Contributor workflow and invariants are in [`CONTRIBUTING.md`](./CONTRIBUTING.md). Read that before making changes.**
+Workflow, required checks and the plan-first list: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
 ## Quickstart
 
 ```
-# One-time setup
+# One-time setup (Python 3.12; creates .venv/ from the two hash-pinned lockfiles)
 scripts/bootstrap.sh
 
-# Build everything
-make all
+# Build every artifact into build/, then run the full gate
+gmake build verify
 
-# Build and verify without copying into the Swift tree
-make build verify
+# Remove build/ (the five committed files under build/ go too; `git checkout -- build` restores them)
+gmake clean
 
-# Copy built artifacts into the engine Resources path
-make install-assets
-
-# Clean build outputs (leaves raw sources alone)
-make clean
+# Maintainer only: both need the sibling ../resecta checkout and the signing key
+gmake install-assets     # verify → stage the reviewed file → manifest → sign → copy into the engine tree
+gmake all                # build + verify + install-assets
 ```
 
-Python 3.12 is required. The bootstrap script creates a local venv at `.venv/`, installs pinned dependencies from `requirements.lock` and `requirements-dev.lock`, and installs this package in editable mode. On macOS, install GNU Make 4.x (`brew install make`) and invoke targets as `gmake` — stock `/usr/bin/make` (3.81) cannot run the `verify` recipe.
+Python 3.12 is required. The bootstrap script creates a local venv at `.venv/`, installs pinned dependencies from `requirements.lock` and `requirements-dev.lock`, and installs this package in editable mode. On macOS, install GNU Make 4.x (`brew install make`) and invoke every target as `gmake` — stock `/usr/bin/make` (3.81) cannot run the `verify` recipe.
 
 ---
 
@@ -43,9 +41,9 @@ resecta-datapipeline/
 ├── requirements.lock        pip-compile output, runtime dependencies
 ├── requirements-dev.lock    pip-compile output, dev tools
 ├── uv.lock                  the uv resolver's lock
-├── asset_hashes.lock        sha256 of every generated artifact
-├── SOURCES.md               every raw dataset: license, URL, retrieval date, SHA-256
-├── NOTICE.txt               hand-maintained license aggregate bundled into the iOS app
+├── asset_hashes.lock        sha256 of every in-band `make build` artifact
+├── SOURCES.md               every third-party raw file: license, URL, retrieval date, SHA-256
+├── NOTICE.txt               third-party attribution, hand-maintained; the app repo's root NOTICE mirrors it
 ├── CHANGELOG.md             release notes
 ├── CONTRIBUTING.md          workflow, invariants, the changes that need a written plan, source hygiene
 ├── CODE_OF_CONDUCT.md       community standards
@@ -61,9 +59,9 @@ resecta-datapipeline/
 │   ├── hygiene_gate.py      planning-identifier gate (allowlist: hygiene_allowlist.txt)
 │   ├── etl_graph.py         regenerates the README stage map from the make database
 │   ├── readme_targets.py    regenerates the README targets block from `make help`
-│   ├── fetch_*.sh           per-dataset fetchers behind `make sources` (Linux; see CONTRIBUTING)
+│   ├── fetch_*.sh           per-dataset fetchers, run by hand (see CONTRIBUTING, "Fetching sources")
 │   ├── shard_paranames.py   pre-shards the ParaNames corpus for parallel ingest (+ write_shard_meta.py)
-│   └── …                    _fetch_lib.sh, reap_orphan_workers.py, reinstall_signatures.sh
+│   └── …                    _fetch_lib.sh, reap_orphan_workers.py
 ├── src/resecta_data/
 │   ├── cli.py               the click groups + one register call per command module
 │   ├── commands/            the click commands, one module per builder family
@@ -83,7 +81,7 @@ resecta-datapipeline/
 │   ├── instrumentation/     bundle-size probe (Phase 3)
 │   └── eval/                the G8 eval derivations — see eval/README.md
 ├── tests/                   pytest suite: unit, determinism, schema and Hypothesis property tests
-└── build/                   generated artifacts (git-ignored)
+└── build/                   generated artifacts (git-ignored except five committed calibration/scorer inputs)
 ```
 
 ---
@@ -98,7 +96,7 @@ Resecta DataPipeline — build targets
 
 Primary targets:
   help                 Print this help
-  check-python         Verify Python version matches .python-version
+  check-python         Verify host + venv Python is 3.12
   bootstrap            Create venv and install pinned deps
   check-make           Fail with install advice when GNU make is older than 4.0 (the parse-time guard's twin)
   paranames-shards     Pre-shard paranames_full.tsv.gz so `bloom` can parallelize ingest
@@ -130,7 +128,7 @@ Primary targets:
   calibrate-sweep      [Phase 3b] Sweep per-category thresholds against a Swift dump (writes the sweep_raw inspection file only)
   calibrate-finalize   [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (under an approved change plan: review the diff first)
   calibrate            [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
-  sources              Fetch raw inputs (the ONLY network target)
+  sources              List the fetch scripts for the raw inputs (fetching is manual)
   lint                 Run ruff check + format check, the planning-id gate, and the README block currency checks
   security-check       Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
   format               Apply ruff formatting
@@ -158,7 +156,7 @@ Primary targets:
   clean                Remove build/ (preserves sources/)
   distclean            Remove build/, .venv/, caches
   all                  Build, verify, and install into Swift tree
-  freeze               Regenerate requirements.lock from pyproject.toml
+  freeze               Regenerate both pip lockfiles (then `uv lock`; CI checks uv.lock)
   shell                Launch an interactive Python shell with the package importable
 
 Current phase: 1+2+3 (Phase 3 adds doctype keywords, preset-threshold candidates, G8 corpus).
@@ -166,7 +164,7 @@ Phase 3b: 'make calibrate' is out-of-band. It requires Swift-side softmax + dete
 ```
 <!-- make-help:end -->
 
-`make all` is equivalent to `make build verify install-assets`. `make eval` is the G8 regression gate — the corpus, the engine's two G8 emitters run on the host, and one derived verdict per site; the contract, the four compare clauses and a checked-in sample verdict are in [`src/resecta_data/eval/README.md`](./src/resecta_data/eval/README.md).
+`make all` is `make build verify install-assets` — a maintainer step, since `install-assets` needs the sibling `../resecta` checkout and the signing key. `make eval` measures the engine on the G8 corpus: the corpus, the engine's two G8 emitters run on the host, and one derived baseline per site; `resecta-data build eval-compare` turns two such runs into a before/after verdict. The contract, the four compare clauses and a checked-in sample verdict are in [`src/resecta_data/eval/README.md`](./src/resecta_data/eval/README.md).
 
 ---
 
@@ -264,13 +262,13 @@ graph LR
 
 ## The G8 corpus
 
-There is one canonical G8 corpus: 17 PII families over 1,100 synthetic documents (five doctypes × five demographic buckets), built by `make corpus` into `build/corpus/g8_corpus.json` and hashed in `asset_hashes.lock` (the `corpus/g8_corpus.json` row is the digest of record). `make install-assets` copies it into the engine's test fixtures (`Fixtures/corpus/`) through `INSTALL_ROUTES`, so the engine's bundled fixture and the pipeline's build are the same bytes; `make eval` refuses to run when they differ. The generator profiles (`g8-specC`, `g8-specD`, …) re-render the same 1,100 documents along one axis each, for evaluation only, and are never installed.
+There is one canonical G8 corpus: 17 PII families over 1,100 synthetic documents (five doctypes × five demographic buckets), built by `make corpus` into `build/corpus/g8_corpus.json` and hashed in `asset_hashes.lock` (the `corpus/g8_corpus.json` row is the digest of record). `make install-assets` copies it into the engine's test fixtures (`Fixtures/corpus/`) through `INSTALL_ROUTES`, so the engine's bundled fixture and the pipeline's build are the same bytes; `make eval` refuses to run when they differ. The generator profiles (`g8-specC`, `g8-specD`, …) re-render the same 1,100 documents along one axis each (specCD and specAGH combine axes), for evaluation only, and are never installed.
 
 ---
 
 ## ParaNames (fetch-on-demand)
 
-The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed**, and the repo uses **no Git-LFS**. `scripts/fetch_paranames.sh` downloads it on demand into `src/resecta_data/gazetteers/sources/paranames/` and validates its SHA-256 against `SOURCES.md`. When the full corpus is absent, the Bloom builders degrade to the committed bootstrap sample (`paranames_bootstrap_*.tsv`) so the build still runs; the full corpus is only needed to reproduce the shipped name filters exactly.
+The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed**, and the repo uses **no Git-LFS**. `scripts/fetch_paranames.sh` downloads it on demand into `src/resecta_data/gazetteers/sources/paranames/` and checks its SHA-256 against the pinned `SOURCES.md` row. When the full corpus is absent, the Bloom builders degrade to the committed bootstrap sample (`paranames_bootstrap_*.tsv`) so the build still runs; the full corpus is only needed to reproduce the shipped name filters exactly.
 
 > Reproducing the shipped name filters: `gmake verify` hash-checks the built Bloom filters against `asset_hashes.lock`, whose hashes were produced from the full ParaNames corpus. Run `scripts/fetch_paranames.sh` before `gmake verify`. A bare clean-clone `gmake verify` is expected to fail hash-check (bootstrap-only Bloom != full-corpus lock) — this is the no-LFS / fetch-on-demand design, not a regression.
 
@@ -278,7 +276,13 @@ The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed
 
 ## Verification
 
-Every pull request runs a hermetic gate on a hosted runner (`ci.yml`): `ruff check`, `ruff format --check`, `mypy`, `pytest`, the pure-code builders, schema validation, and a hash check of everything built. A weekly `verify.yml` run hydrates the large fetched sources (SHA-256-validated, cached) and runs the full verify sequence, and `security.yml` audits the locked dependency set. Locally, `make verify` (use `gmake` on macOS) remains the gate: it runs `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, hash-lock verification, and a determinism rebuild; `scripts/ci_verify.sh` runs the same sequence as a local smoke check.
+Three hosted workflows read this repository:
+
+- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. Hermetic after the bootstrap: no network.
+- **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
+- **Weekly and on every pull request (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Findings are reported, never gating.
+
+Locally, `gmake verify` is the gate before anything ships: one build, then `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, a check of every in-band artifact against `asset_hashes.lock`, and a determinism rebuild that confirms byte-identical output (witness-cached on unchanged inputs; `RESECTA_FORCE_DETERMINISM=1` forces it). `scripts/ci_verify.sh` runs the weekly workflow's sequence locally — serially, with the determinism rebuild forced.
 
 The shipped manifest is signed with an Ed25519 key that lives outside the repository, held age-encrypted on the maintainer's machine and decrypted in memory only while `make sign-manifest` runs; `make doctor` reports the key's state. What the signature proves, the current public-key fingerprint, and the rotation and exposure procedures are in [`KEY-MANAGEMENT.md`](KEY-MANAGEMENT.md).
 
@@ -300,6 +304,4 @@ Invariants that hold over a whole input space are tested with [Hypothesis](https
 
 ## Licensing
 
-Every dataset under `src/*/sources/` has a row in `SOURCES.md` with its license, retrieval URL, retrieval date, and SHA-256. The bundled `NOTICE.txt` (hand-maintained at the repo root, not generated by `make install-assets`) aggregates these for the iOS app.
-
-See `common/licensing.py`'s `ALLOWLIST`/`GATED`/`FORBIDDEN` sets for the license allowlist and the datasets currently gated on legal review.
+Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST`, `GATED` and `FORBIDDEN` sets; the datasets deferred on legal review are listed in `SOURCES.md`.
