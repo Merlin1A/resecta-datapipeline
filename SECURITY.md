@@ -1,10 +1,11 @@
 # Security Policy
 
-resecta-data is the build-time pipeline that produces the data assets — name
-Bloom filters, gazetteers, classifier dictionaries, calibration vectors, and
-test corpora — bundled into the Resecta iOS app. Because those artifacts ship
-inside a privacy tool, we take reports of security and supply-chain issues
-seriously and welcome good-faith research.
+resecta-data is the build-time pipeline that produces the detection data
+shipped inside the Resecta iOS app (name Bloom filters, gazetteers and pattern
+tables, classifier assets, the rule catalog) and the engine's test fixtures
+(test vectors, fuzz payloads, the synthetic G8 corpus). Because the shipped
+artifacts sit inside a privacy tool, we take reports of security and
+supply-chain issues seriously and welcome good-faith research.
 
 ## Reporting a vulnerability
 
@@ -45,25 +46,30 @@ been addressed and coordinated disclosure has been agreed upon.
 
 **Out of scope:**
 
-- The Resecta iOS app itself — report app issues through that repository's
-  `SECURITY.md`.
+- The Resecta iOS app itself — report app issues through
+  [that repository's `SECURITY.md`](https://github.com/Merlin1A/resecta/blob/main/SECURITY.md).
 - Third-party upstream datasets and their hosting — report to the upstream
   project; this repo records each source in `SOURCES.md`.
-- Issues requiring a compromised build host or developer machine.
+- Issues requiring a compromised build host or developer machine — except a
+  suspected exposure of the manifest-signing key
+  ([`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md)), which is in scope.
 
 ## Supply-chain posture
 
-- **Zero-network builds.** `make build` makes no network calls; only
-  `make sources` fetches raw inputs, and it validates each against the SHA-256
-  recorded in `SOURCES.md`.
-- **Deterministic outputs.** Every artifact is byte-reproducible from a given
-  commit; `make verify` rebuilds each artifact and diffs against
-  `asset_hashes.lock`.
-- **License provenance.** Every raw dataset has a row in `SOURCES.md` with its
-  license, retrieval URL, retrieval date, and hash.
+- **No builder makes a network call.** Raw inputs are fetched by hand with
+  `scripts/fetch_*.sh`, which record each file's SHA-256 in `SOURCES.md` and
+  refuse a later fetch whose bytes differ; ParaNames is checked against its
+  pinned row.
+- **Hash-locked, deterministic outputs.** `make verify` checks every in-band
+  artifact against `asset_hashes.lock` and rebuilds them to confirm
+  byte-identical output.
+- **A signed shipped manifest.** The detection data the app loads is listed in
+  an Ed25519-signed manifest; what the signature proves and how the key is held
+  are in [`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md).
 
-See `CONTRIBUTING.md` for the verification workflow and the full list of
-plan-sign-off changes.
+Every third-party raw file under `src/resecta_data/**/sources/` has a row in
+`SOURCES.md` (license, retrieval URL, retrieval date, SHA-256). The checks a
+change must pass and the plan-sign-off changes are in `CONTRIBUTING.md`.
 
 ## Coordinated disclosure
 

@@ -8,34 +8,36 @@ Every schema uses JSON Schema Draft 2020-12 and includes:
 - `$id` identifying the schema
 - `title` and `description` for human readers
 - `type`, `required`, `properties` as appropriate
-- `additionalProperties: false` at every object level (strict by default)
+- `additionalProperties: false` at every object level (strict by default; one
+  `$defs` entry in `g8_span_outcomes` omits it)
 
 Schemas are consumed by `resecta_data.common.schema.validate_file`. Routing
 from an artifact path in `build/` to a schema name lives in
-`src/resecta_data/cli.py::SCHEMA_ROUTES`.
+`src/resecta_data/routes.py::SCHEMA_ROUTES` (`cli.py` re-exports it). One
+schema per routed artifact; `SCHEMA_ROUTES` is the index — the lists below
+name the families, not every file.
 
-## Phase 0
+## The template
 
-The placeholder `_example.schema.json` serves as a template and is used by the
-test suite to exercise the validator.
+`_example.schema.json` is a template for new schemas; nothing routes to it.
 
-## Phase 1 (landed)
+## Phase 1
 
 - `npi_test_vectors.schema.json` — CMS Luhn-with-80840-prefix checksum vectors
 - `dea_test_vectors.schema.json` — DEA position-weighted checksum vectors
 - `ssn_structural_vectors.schema.json` — SSA structural rejection vectors (mirrors Swift SSNStructuralValidator)
 - `zip_scf_states.schema.json` — USPS SCF-prefix → state table with 5-digit overrides
 - `redos_payloads.schema.json` — attacker-shaped strings for the Swift-side regex fuzz harness
-- `pdf_mutations.schema.json` — index of deterministically damaged copies of one source PDF, for measuring importer degradation (H4.2); development-only, schema-routed but never installed
+- `pdf_mutations.schema.json` — index of deterministically damaged copies of one source PDF, for measuring importer degradation; development-only, schema-routed but never installed
 - `adversarial_patterns.schema.json` — detector false-positive and classifier-stuffing fragments
 
-## Phase 2 (landed)
+## Phase 2
 
 - `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema; the shipped form (`gazetteer_manifest.shipped.json`, `make manifest-assets`) adds `assets[]` — every installed engine asset's SHA-256 and byte count, verified by the engine at first load
 - `negative_context.schema.json` — candidate keywords with (category_scope × doctype_scope) routing; the candidates file ships to build/ only — the reviewed copy is installed under an approved change plan
-- `demographic_coverage.schema.json` — per-filter bucket breakdown across five Census race/ethnicity groups; baseline for the Phase 4 G2 parity-gap CI gate
+- `demographic_coverage.schema.json` — per-filter bucket breakdown across five Census race/ethnicity groups
 
-## Phase 3 (landed)
+## Phase 3
 
 - `doctype_keywords.schema.json` — per-class keyword dictionaries and structural-bonus regexes for the doctype classifier
 - `preset_thresholds.schema.json` — Conservative / Balanced / Aggressive per-category threshold vectors
@@ -53,9 +55,12 @@ test suite to exercise the validator.
 
 ## Conventions
 
-- All `description` strings comply with mechanism-description language rules.
-  The `assert_safe` pass runs over every schema in CI.
-- Version fields are integers. Bump when a consumer needs to distinguish
+- All `description` strings follow the mechanism-description language rule
+  (`common/mechanism_language.py`); the scanner runs in the test suite over the
+  schemas `tests/test_phase2_mechanism_language.py` names, the rest are
+  reviewed by hand.
+- Version fields are integers, except the manifest's semver string and
+  `g8_bucket_recall`'s `"v1"`. Bump when a consumer needs to distinguish
   formats. Swift-side decoders must check the version field on load.
 - Where a field is optional, say so with an explicit `"description"` rather
   than omitting it — the schema doubles as documentation for Swift

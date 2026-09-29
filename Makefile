@@ -263,7 +263,7 @@ help: ## Print this help
 # -----------------------------------------------------------------------------
 
 .PHONY: check-python
-check-python: ## Verify Python version matches .python-version
+check-python: ## Verify host + venv Python is 3.12
 	@actual=$$($(PYTHON) -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'); \
 	expected="$(REQUIRED_PY_MAJOR).$(REQUIRED_PY_MINOR)"; \
 	if [ "$$actual" != "$$expected" ]; then \
@@ -773,7 +773,7 @@ calibrate: calibrate-temperature calibrate-sweep ## [Phase 3b] Run both calibrat
 # -----------------------------------------------------------------------------
 
 .PHONY: sources
-sources: bootstrap ## Fetch raw inputs (the ONLY network target)
+sources: bootstrap ## List the fetch scripts for the raw inputs (fetching is manual)
 	@echo "Phase 1+2 ship bootstrap sources in git (no fetch needed)."
 	@echo "For the full HUD crosswalk, run:"
 	@echo "  scripts/fetch_hud_zip_crosswalk.sh <YYYY> <Qn>"
@@ -1205,7 +1205,7 @@ distclean: clean ## Remove build/, .venv/, caches
 all: build verify install-assets ## Build, verify, and install into Swift tree
 
 .PHONY: freeze
-freeze: bootstrap ## Regenerate requirements.lock from pyproject.toml
+freeze: bootstrap ## Regenerate both pip lockfiles (then `uv lock`; CI checks uv.lock)
 	scripts/freeze_deps.sh
 
 .PHONY: shell

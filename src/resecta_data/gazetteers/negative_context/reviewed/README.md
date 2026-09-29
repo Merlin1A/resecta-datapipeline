@@ -8,9 +8,8 @@ committed here and staged from here — the build never writes it.
 
 ## Change policy
 
-Curated context assets change only under a written change plan approved by
-the maintainer before the edit — the asset, the rows or fields, the reason,
-and the regeneration and verification steps. No row-by-row review afterwards.
+Curated context assets change only under a written change plan approved
+before the edit — `CONTRIBUTING.md`, "Plan-sign-off changes".
 
 A change to this gazetteer therefore lands as one commit that carries the
 edited builder inputs (`sources/scope_rules_v1.json`; the loader in

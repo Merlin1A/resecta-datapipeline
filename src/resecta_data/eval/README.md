@@ -1,8 +1,9 @@
 # The G8 eval contract
 
-`make eval` is the pipeline's regression gate for the redaction engine's
-detection behaviour: it runs the engine's two G8 emitters over the synthetic
-G8 corpus and derives one verdict per surfacing site. This document is the
+`make eval` measures the redaction engine's detection behaviour on the
+synthetic G8 corpus: it runs the engine's two G8 emitters over the corpus and
+derives one baseline per surfacing site; `resecta-data build eval-compare`
+turns two such runs into a before/after verdict. This document is the
 contract the code in this package and the `build eval-*` CLI commands cite:
 what the target runs and writes (§1), the two harness files the derivations
 read (§2), the four clauses a before/after comparison is decided on (§3), a
@@ -75,8 +76,8 @@ additive packet-tier counters (`tier_must_total` / `tier_must_covered` and
 their `should`, `watch` and `must_not` siblings). `baseline.py::build_baseline`
 turns those counts into precision / recall / F1 / F2 / the
 adversarial-suppression FP rate per cell and aggregated four ways
-(`per_family`, `per_doctype`, `per_demographic`, `totals`), with Wilson
-intervals on the totals and a `low_confidence` flag on any slice under 30
+(`per_family`, `per_doctype`, `per_demographic`, `totals`), with Wilson 95 %
+intervals on every slice and a `low_confidence` flag on any slice under 30
 supports. No re-join, no IoU, no device score dump: pure arithmetic over the
 supplied counts, with the canonical bytes of the input hashed into
 `source_cells_sha256` for provenance.
