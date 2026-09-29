@@ -1,6 +1,6 @@
 # Sample verdict — one `make eval` run, transcribed
 
-**Corpus-relative: G8 17/17 at corpus digest
+**Corpus-relative: all 17 G8 families at corpus digest
 `c7fc84c39761cf65044b68bf06c075cd8296aa413b26d3d0c5dd01915da5ca8c` (the
 `asset_hashes.lock` row `corpus/g8_corpus.json`), engine at iOS commit
 `39d9990e7b0007399f9a5ca7486c3db2e1166dc5`; no standards bar exists.** The six
@@ -8,7 +8,7 @@ trio files and the two sidecars were byte-identical across the two emitter
 runs. The numbers are the derived `g8_detection_baseline.json` and
 `g8_span_outcomes.json` of each site, rounded to four decimals. Support is the
 number of ground-truth spans of the family; both sites read the same corpus,
-so it is the same on both.
+so it is the same on both. Family names are the engine's category keys.
 
 ## Grand totals
 
