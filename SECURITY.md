@@ -3,7 +3,8 @@
 resecta-data is the build-time pipeline that produces the detection data
 shipped inside the Resecta iOS app (name Bloom filters, gazetteers and pattern
 tables, classifier assets, the rule catalog) and the engine's test fixtures
-(test vectors, fuzz payloads, the synthetic G8 corpus). Because the shipped
+(test vectors, fuzz payloads, adversarial patterns, the synthetic G8
+evaluation corpus). Because the shipped
 artifacts sit inside a privacy tool, we take reports of security and
 supply-chain issues seriously and welcome good-faith research.
 
@@ -56,20 +57,31 @@ been addressed and coordinated disclosure has been agreed upon.
 
 ## Supply-chain posture
 
-- **No builder makes a network call.** Raw inputs are fetched by hand with
-  `scripts/fetch_*.sh`, which record each file's SHA-256 in `SOURCES.md` and
-  refuse a later fetch whose bytes differ; ParaNames is checked against its
-  pinned row.
+- **No builder makes a network call.** Raw inputs are fetched with
+  `scripts/fetch_*.sh`, a separate step from building, and pinned by SHA-256
+  in `SOURCES.md`. The fetchers built on `scripts/_fetch_lib.sh` append the
+  row themselves and fail when a later fetch does not match the recorded row;
+  `fetch_paranames.sh` checks its download against its pinned row (the weekly
+  workflow runs it on a cache miss); the two remaining downloaders (the HUD
+  crosswalk and the court glossary) refuse to overwrite an existing file, and
+  their rows are added by hand. Outside the
+  fetchers, the network is used to install the hash-pinned dependencies
+  (`scripts/bootstrap.sh`), to regenerate the lockfiles
+  (`scripts/freeze_deps.sh`, `uv lock`), by CI's `uv lock --check` and by the
+  dependency audit.
 - **Hash-locked, deterministic outputs.** `make verify` checks every in-band
-  artifact against `asset_hashes.lock` and rebuilds them to confirm
-  byte-identical output.
-- **A signed shipped manifest.** The detection data the app loads is listed in
-  an Ed25519-signed manifest; what the signature proves and how the key is held
-  are in [`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md).
+  artifact against `asset_hashes.lock` and rebuilds them to compare bytes (the
+  rebuild is skipped while its witness shows unchanged inputs;
+  `RESECTA_FORCE_DETERMINISM=1` forces it, as the weekly workflow does).
+- **A signed shipped manifest.** The detection-data files the pipeline
+  installs into the app are listed in an Ed25519-signed manifest; what the
+  signature proves and how the key is held are in
+  [`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md).
 
-Every third-party raw file under `src/resecta_data/**/sources/` has a row in
-`SOURCES.md` (license, retrieval URL, retrieval date, SHA-256). The checks a
-change must pass and the plan-sign-off changes are in `CONTRIBUTING.md`.
+A third-party raw file the builders read under `src/resecta_data/**/sources/`
+has a row in `SOURCES.md` (license, retrieval URL, retrieval date, SHA-256).
+The checks a change must pass and the plan-sign-off changes are in
+`CONTRIBUTING.md`.
 
 ## Coordinated disclosure
 

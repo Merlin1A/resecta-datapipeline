@@ -8,14 +8,24 @@ Every schema uses JSON Schema Draft 2020-12 and includes:
 - `$id` identifying the schema
 - `title` and `description` for human readers
 - `type`, `required`, `properties` as appropriate
-- `additionalProperties: false` at every object level (strict by default; one
-  `$defs` entry in `g8_span_outcomes` omits it)
+- `additionalProperties: false` (or `unevaluatedProperties: false` where a
+  schema composes) on every fixed-shape object, strict by default; map-shaped
+  objects constrain their values with an `additionalProperties` schema
+  instead. Two `$defs` entries are looser: `tally` in `g8_span_outcomes` omits
+  the keyword, and `clause` in `g8_compare_verdict` and `g8_compare_documents`
+  sets it `true`
 
 Schemas are consumed by `resecta_data.common.schema.validate_file`. Routing
 from an artifact path in `build/` to a schema name lives in
-`src/resecta_data/routes.py::SCHEMA_ROUTES` (`cli.py` re-exports it). One
-schema per routed artifact; `SCHEMA_ROUTES` is the index — the lists below
-name the families, not every file.
+`src/resecta_data/routes.py::SCHEMA_ROUTES` (`cli.py` re-exports it). Each
+routed artifact maps to one schema, and `SCHEMA_ROUTES` is the index; the
+document-level eval and the two Swift calibration dumps are validated by name
+in their own commands, and the compare verdict's schema is exercised by its
+test. The lists below are a selection, not every file. Their headings are the
+Makefile's `[Phase N]` build groups; the eval and calibration schemas and the
+`nicknames`, `bundle_size` and `cutover_diff` sidecars and probes are listed
+under Phase 3, and `pdf_mutations` (built on demand by
+`build fuzz pdf-mutations`) under Phase 1.
 
 ## The template
 
@@ -36,12 +46,13 @@ name the families, not every file.
 - `gazetteer_manifest.schema.json` — manifest for the dual-Bloom-filter bundle (surnames + given-names); the .bloom binaries themselves use the RSBF header format (see `src/resecta_data/bloom/spec.py`) rather than a JSON schema; the shipped form (`gazetteer_manifest.shipped.json`, `make manifest-assets`) adds `assets[]` — every installed engine asset's SHA-256 and byte count, verified by the engine at first load
 - `negative_context.schema.json` — candidate keywords with (category_scope × doctype_scope) routing; the candidates file ships to build/ only — the reviewed copy is installed under an approved change plan
 - `demographic_coverage.schema.json` — per-filter bucket breakdown across five Census race/ethnicity groups
+- `name_common_words.schema.json` — the common-word curation sidecar the Swift name gazetteer reads on top of the surname Bloom filter (demote, never strip)
 
 ## Phase 3
 
 - `doctype_keywords.schema.json` — per-class keyword dictionaries and structural-bonus regexes for the doctype classifier
 - `preset_thresholds.schema.json` — Conservative / Balanced / Aggressive per-category threshold vectors
-- `doctype_temperature.schema.json` — the doctype-softmax temperature fit
+- `doctype_temperature.schema.json` — the doctype-softmax temperature fit (written by the Phase 3b `calibrate-temperature` target)
 - `context_scorer.schema.json` — per-family logistic context false-positive-suppression weights
 - `g8_corpus.schema.json` — the G8 synthetic evaluation corpus
 - `g8_detection_baseline.schema.json` — detection baseline derived from the Swift harness's join cells
@@ -51,16 +62,17 @@ name the families, not every file.
 - `negative_corpus.schema.json` — deterministic no-PII negative corpus
 - `doctype_softmax_dump.schema.json` / `detector_score_dump.schema.json` — the Swift-produced calibration dumps the Phase 3b `calibrate` targets consume
 - `nicknames.schema.json`, `bundle_size.schema.json`, `cutover_diff.schema.json` — the Phase 2/3 sidecars and probes
-- `name_common_words.schema.json` — the common-word curation sidecar the Swift name gazetteer reads on top of the surname Bloom filter (demote, never strip)
 
 ## Conventions
 
-- All `description` strings follow the mechanism-description language rule
-  (`common/mechanism_language.py`); the scanner runs in the test suite over the
-  schemas `tests/test_phase2_mechanism_language.py` names, the rest are
-  reviewed by hand.
-- Version fields are integers, except the manifest's semver string and
-  `g8_bucket_recall`'s `"v1"`. Bump when a consumer needs to distinguish
+- `description` strings are written to the mechanism-description language
+  rule (`common/mechanism_language.py`); the scanner runs in the test suite
+  over the schemas `tests/test_phase2_mechanism_language.py` names, the rest
+  are reviewed by hand.
+- Format-version fields are integers, except the manifest's semver string and
+  the `"v1"` strings in `g8_bucket_recall` (`version`) and `bundle_size`
+  (`_meta.schema_version`); the rule catalog's per-entry `version` is a
+  separate per-rule string. Bump when a consumer needs to distinguish
   formats. Swift-side decoders must check the version field on load.
 - Where a field is optional, say so with an explicit `"description"` rather
   than omitting it — the schema doubles as documentation for Swift

@@ -1,7 +1,7 @@
 # The G8 eval contract
 
-`make eval` measures the redaction engine's detection behaviour on the
-synthetic G8 corpus: it runs the engine's two G8 emitters over the corpus and
+`make eval` measures the redaction engine's detection behaviour on G8, the
+pipeline's synthetic evaluation corpus: it runs the engine's two G8 emitters over the corpus and
 derives one baseline per surfacing site; `resecta-data build eval-compare`
 turns two such runs into a before/after verdict. This document is the
 contract the code in this package and the `build eval-*` CLI commands cite:
@@ -25,12 +25,13 @@ Prerequisites: `bootstrap corpus` (the stamped corpus build; the profile is
 
 1. checks that the engine's bundled test fixture **is** the built corpus
    (`shasum -a 256` of `build/corpus/g8_corpus.json` equals the engine's
-   `Fixtures/corpus/g8_corpus.json`; `EVAL_INSTALL_CORPUS=1` installs it
-   first). A non-`g8` profile is handed to the harness through
+   `Fixtures/corpus/g8_corpus.json`; `EVAL_INSTALL_CORPUS=1` first runs the
+   `install-assets` CLI command, which copies every routed artifact in
+   `build/`, not only the corpus). A non-`g8` profile is handed to the harness through
    `RESECTA_G8_CORPUS_PATH` (with its sha) and is never installed;
 2. runs the two G8 emitters of the engine's **test** target on the host, each
    twice (`swift test --package-path <engine> --no-parallel --filter …`; no
-   simulator, no production code):
+   simulator, no app build):
    - `G8BaselineHarnessTests` — the **detector site**: doctype-aware
      detection surfaced on the raw balanced cutoff;
    - `G8SearchParityHarnessTests/emitSiteBBaseline` — **Site B**: the
@@ -52,7 +53,7 @@ Everything lands under `EVAL_OUT` (default `build/eval/g8/`):
 |---|---|---|
 | `g8_cells.json`, `g8_siteb_cells.json` | the emitters | file 1 — the per-cell counts (§2) |
 | `g8_raw_scores.json`, `g8_siteb_raw_scores.json` | the emitters | file 2 — every pre-cutoff match with its ground-truth class (§2) |
-| `g8_fire_features.json`, `g8_siteb_fire_features.json` | the emitters | per-fire feature rows; the context-scorer build consumes them, the derivations here do not |
+| `g8_fire_features.json`, `g8_siteb_fire_features.json` | the emitters | per-fire feature rows; the context-scorer build reads the committed copy under `build/corpus/`, the derivations here read neither |
 | `g8_detector_spans.jsonl`, `g8_siteb_spans.jsonl` | the emitters | the per-span outcome sidecars (§2) |
 | `rerun/` | the second emitter pair | the eight files above, byte-compared with the first |
 | `eval-detector/`, `eval-siteb/` | `build eval-baseline` | `g8_detection_baseline.json`, `g8_headroom.json`, `g8_span_outcomes.json` |
@@ -68,12 +69,14 @@ mechanism only — no document text, no PII values, no coordinates).
 
 **File 1 — `_cells.json`.** The Swift harness performs the offset-overlap
 join between detections and ground-truth spans and emits one cell per
-`"<category>_<doctype>_<bucket>"` (17 families × 5 doctypes × 5 buckets).
-Each cell carries the six raw counts `true_positives`, `false_positives`,
+`"<category>_<doctype>_<bucket>"` (17 families, 5 doctypes, 5 buckets; a
+cell exists where the family has ground truth or a detection in that doctype
+and bucket). Each cell carries the six raw counts `true_positives`, `false_positives`,
 `false_negatives`, `suppressed_by_negative_context`,
 `adversarial_suppress_fired` and `adversarial_suppress_total`, plus the eight
-additive packet-tier counters (`tier_must_total` / `tier_must_covered` and
-their `should`, `watch` and `must_not` siblings). `baseline.py::build_baseline`
+additive packet-tier counters (`tier_must_total` / `tier_must_covered`, their
+`should` and `watch` siblings, and `tier_must_not_total` /
+`tier_must_not_fired`). `baseline.py::build_baseline`
 turns those counts into precision / recall / F1 / F2 / the
 adversarial-suppression FP rate per cell and aggregated four ways
 (`per_family`, `per_doctype`, `per_demographic`, `totals`), with Wilson 95 %
@@ -87,17 +90,19 @@ the cutoff, as `rows` of `{category, doctype, bucket, raw, gt_class}`
 (`gt_class` ∈ positive / suppress / none by offset overlap), plus
 `balanced_cutoffs` (family → cutoff) and `absorbing_state_floor`.
 `headroom.py::build_headroom` derives the per-family learned-term headroom
-probe: how much false-positive mass sits above the cutoff against how much
-true-positive mass sits below it, on the engine-seam posterior
-`sigmoid(logit(raw) + logit(floor))`.
+probe: how many false positives score at or above the raw cutoff against how
+many true positives score below it, with summaries on the engine-seam
+posterior `sigmoid(logit(raw) + logit(floor))`.
 
 **The sidecars — `*_spans.jsonl`.** One row per ground-truth span of every
-family plus one per surfaced detection overlapping no span, offsets only:
+family plus one per surfaced detection overlapping no span of its family,
+offsets only:
 `{doc_id, family, start, end, tier, outcome}` with `det_start` / `det_end`
 (the hull of the overlapping same-family detections) and `det_spans` on
 covered rows; `outcome` ∈ tp / fn / fp / tn. `spans.py::build_span_outcomes`
-aggregates them per cell, per context class and per furniture kind, and
-**cross-checks the per-cell tallies against file 1** — a sidecar that does not
+aggregates them per cell, per family, per context class and per furniture
+kind (the default `g8` profile plants no furniture, so those tables are empty
+there), and **cross-checks the per-cell tallies against file 1** — a sidecar that does not
 reproduce the trio's counters fails the derivation. Every tally carries two
 recalls side by side: `recall` credits a true positive on any overlap with the
 ground-truth span (the trio's rule), `recall_all_tokens` only when every token
@@ -108,10 +113,12 @@ rule excludes); both carry a Wilson 95 % interval.
 
 A before/after decision (`resecta-data build eval-compare`;
 `compare.py::build_compare`) reads two derived `g8_detection_baseline.json`
-files and applies four clauses per scorer family (the five the context scorer
-covers: account, phone, mrn, ein, itin) and over the grand-total aggregate.
-Each clause carries a **win** sense (the improvement bar is met) and a
-**regressed** sense (the metric got worse beyond float noise, `1e-12`).
+files and applies clauses C1–C3 per scorer family (the five the context scorer
+covers: account, phone, mrn, ein, itin) and all four over the grand-total
+aggregate; C4, the slice check, is a whole-run guard. Each clause carries a
+**win** sense (the improvement bar is met) and a **regressed** sense (the
+metric got worse: beyond float noise, `1e-12`, for C1 and C2; beyond the
+clause's own tolerance for C3 and C4).
 Failing to improve is not a regression: an identical before/after is a clean
 non-regression.
 
@@ -123,8 +130,9 @@ non-regression.
 | C4 slice non-regression | `_clause_c4` | no uplift is demanded | any `per_doctype` (5) or `per_demographic` (5) precision drops by more than `delta_slice` |
 
 A **regression is any gating clause regressing**, and an aggregate clean
-verdict never excuses a per-family regression. A family with zero false
-positives on the corpus is held to non-regression only; a family absent from
+verdict never excuses a per-family regression. `mrn` and `ein`, which have no
+false positives on the corpus, are held to non-regression only: their
+precision clause is reported but does not gate. A family absent from
 the panel is marked off-panel, never a `KeyError`. `delta_p` and `delta_slice`
 are precision fractions in the module (the CLI takes points and converts);
 `eps` and `delta_f_rel` are fractions throughout.
@@ -144,19 +152,23 @@ moves.
 
 ## 5. How to read a verdict
 
-- **What moves is the finding.** Compare like with like: the same corpus
+- **What moves is the result.** Compare like with like: the same corpus
   digest, the same harness join, two engine commits. A per-family cell that
   moved names the family and the site; the four clauses (§3) say whether the
   move is a win, noise or a regression.
 - **The identity belt comes first.** The trio + sidecar `cmp` across the two
-  emitter runs and the `source_cells_sha256` in each derived file are the
-  determinism evidence; without them a difference cannot be attributed.
+  emitter runs and the input digests the derived files carry
+  (`source_cells_sha256` in the baseline; `source_spans_sha256` and
+  `source_corpus_sha256` in the span outcomes) are the determinism evidence;
+  without them a difference cannot be attributed.
 - **Corpus-relative, no standards bar.** Precision and recall here are
   properties of the engine *on this synthetic corpus*. A family at recall
   1.0000 has exhausted the corpus's cases for it, not the world's; a family
-  at precision 0.75 says the corpus's decoys fire it, and the `per_doctype` /
-  `per_demographic` slices plus the context-class and furniture tables in
-  `g8_span_outcomes.json` say where.
+  at precision 0.75 produces false positives on this corpus; the `per_cell`
+  rows and the `per_doctype` / `per_demographic` slices (pooled over families)
+  in `g8_detection_baseline.json` say where, and the context-class tables in
+  `g8_span_outcomes.json` say in which context classes ground-truth spans
+  are missed.
 - **`low_confidence`** marks a slice under 30 supports; its interval is wide
   and its movement is not evidence on its own.
 - **Site B against the detector site.** `g8_site_gap.json` is the product

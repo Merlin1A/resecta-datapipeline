@@ -3,12 +3,16 @@
 **Corpus-relative: all 17 G8 families at corpus digest
 `c7fc84c39761cf65044b68bf06c075cd8296aa413b26d3d0c5dd01915da5ca8c` (the
 `asset_hashes.lock` row `corpus/g8_corpus.json`), engine at iOS commit
-`39d9990e7b0007399f9a5ca7486c3db2e1166dc5`; no standards bar exists.** The six
+`39d9990e7b0007399f9a5ca7486c3db2e1166dc5` (2026-09-21); no standards bar
+exists.** The numbers move with the engine: this file is a worked example of
+the shape, not the current measurement. The six
 trio files and the two sidecars were byte-identical across the two emitter
 runs. The numbers are the derived `g8_detection_baseline.json` and
 `g8_span_outcomes.json` of each site, rounded to four decimals. Support is the
-number of ground-truth spans of the family; both sites read the same corpus,
-so it is the same on both. Family names are the engine's category keys.
+number of positive ground-truth spans of the family (decoys are counted
+separately); both sites read the same corpus, so it is the same on both.
+Family names are the harness's cell keys: the engine's category names,
+lowercased, with spaces removed.
 
 ## Grand totals
 
@@ -50,6 +54,7 @@ the cells count separately (11,287 + 528 = 11,815).
 | Site B | 11,815 | 10,654 | 633 | 1,272 | 528 | 0 |
 
 Reading this run: `account` surfaces nothing at the detector site (0 of 300)
-and two thirds at Site B at precision 1.0000; `phone` is the widest site gap;
+and two thirds at Site B at precision 1.0000; `phone` gains the most spans
+between the sites (recall 0.5173 to 0.9082);
 `name` carries most of the false positives on both sites (precision 0.7557 at
 recall 0.9767). None of these is a grade — see the contract's §5.

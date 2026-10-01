@@ -514,7 +514,7 @@ $(STAMP_DIR)/vectors: $(VECTORS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,vectors,$(RESECTA_DATA) build vectors all --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: vectors
-vectors: $(STAMP_DIR)/vectors  ## [Phase 1] Build NPI/DEA/SSN test vectors
+vectors: $(STAMP_DIR)/vectors  ## [Phase 1] Build the structural test vectors (one file per vector family)
 
 $(STAMP_DIR)/fuzz: $(FUZZ_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,fuzz,$(RESECTA_DATA) build fuzz redos --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -615,7 +615,7 @@ $(STAMP_DIR)/gaz-nicknames: $(GAZ_NICKNAMES_PY) $(COMMON_DEPS) $(GAZ_NICKNAMES_S
 	$(call keyed_stamp,gaz-nicknames,$(RESECTA_DATA) build gazetteers nicknames --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: gazetteers-nicknames
-gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [Phase 2] Build nickname/diminutive sidecar (needs fetched CC0 source)
+gazetteers-nicknames: $(STAMP_DIR)/gaz-nicknames  ## [Phase 2] Build nickname/diminutive sidecar (needs its fetched source)
 
 $(STAMP_DIR)/gaz-common-words: $(GAZ_COMMON_WORDS_PY) $(COMMON_DEPS) $(GAZ_COMMON_WORDS_SOURCES) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,gaz-common-words,$(RESECTA_DATA) build gazetteers name-common-words --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -726,7 +726,7 @@ calibrate-temperature: bootstrap corpus ## [Phase 3b] Fit doctype-softmax temper
 		--seed $(RESECTA_SEED)
 
 .PHONY: calibrate-sweep
-calibrate-sweep: bootstrap corpus calibrate-temperature ## [Phase 3b] Sweep per-category thresholds against a Swift dump (writes the sweep_raw inspection file only)
+calibrate-sweep: bootstrap corpus calibrate-temperature ## [Phase 3b] Sweep per-category thresholds against a Swift dump (re-runs the temperature fit; writes the sweep_raw inspection file, never the shipping thresholds)
 	@if [ ! -f "$(SCORE_DUMP)" ]; then \
 		echo "ERROR: Swift detector score dump not found at $(SCORE_DUMP)." >&2; \
 		echo "       Produced by the Swift PII detector test target;" >&2; \
@@ -773,7 +773,7 @@ calibrate: calibrate-temperature calibrate-sweep ## [Phase 3b] Run both calibrat
 # -----------------------------------------------------------------------------
 
 .PHONY: sources
-sources: bootstrap ## List the fetch scripts for the raw inputs (fetching is manual)
+sources: bootstrap ## Print fetch commands for the main raw inputs (fetching is manual)
 	@echo "Phase 1+2 ship bootstrap sources in git (no fetch needed)."
 	@echo "For the full HUD crosswalk, run:"
 	@echo "  scripts/fetch_hud_zip_crosswalk.sh <YYYY> <Qn>"
@@ -813,7 +813,7 @@ security-check: bootstrap ## Audit both hash-pinned lockfiles with pip-audit (th
 	$(PYTHON_VENV) -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes
 
 .PHONY: format
-format: bootstrap ## Apply ruff formatting
+format: bootstrap ## Apply ruff formatting and auto-fixes
 	$(RUFF) format src tests scripts
 	$(RUFF) check --fix src tests scripts
 
@@ -915,7 +915,7 @@ hash-check-only: bootstrap ## Verify asset_hashes.lock against the existing buil
 # Hash-verify only what the current host actually built; entries for
 # artifacts that need the large fetched sources are reported as skipped.
 .PHONY: hash-check-built-only
-hash-check-built-only: bootstrap ## Verify asset_hashes.lock against what this host built; entries needing fetched sources are skipped
+hash-check-built-only: bootstrap ## Verify asset_hashes.lock against the files present in build/; lock rows with no built file are skipped
 	$(PYTHON_VENV) -m resecta_data.cli verify-hashes --build-dir $(BUILD_DIR) --lockfile asset_hashes.lock --built-only
 
 .PHONY: hash-check
@@ -1177,7 +1177,7 @@ doctor-orphans: ## List stale resecta-data worker processes (read-only)
 # NOT prompt — the prompt lives here so direct script invocations stay
 # scriptable.
 .PHONY: reap-orphans
-reap-orphans: ## Send SIGTERM to detected orphan workers (with confirmation)
+reap-orphans: ## Send SIGTERM, then SIGKILL after 5 s, to detected orphan workers (with confirmation)
 	@$(PYTHON) scripts/reap_orphan_workers.py
 	@printf 'Reap detected orphans? [y/N]: '; \
 	read c && [ "$$c" = "y" ] && \
@@ -1189,7 +1189,7 @@ reap-orphans: ## Send SIGTERM to detected orphan workers (with confirmation)
 # -----------------------------------------------------------------------------
 
 .PHONY: clean
-clean: ## Remove build/ (preserves sources/)
+clean: ## Remove build/, including the committed files under it (git checkout -- build restores them)
 	rm -rf $(BUILD_DIR)
 
 .PHONY: distclean

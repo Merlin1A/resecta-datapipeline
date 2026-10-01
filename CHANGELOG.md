@@ -28,21 +28,29 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   copying. The engine verifies each entry at first load.
 - `build gazetteers name-common-words`: a common-word curation sidecar
   (`gazetteers/name_common_words.json`, installed as
-  `Gazetteers/name-common-words.json`) built from the in-estate non-name word
-  list; the Swift name gazetteer withholds surname credit for exact members.
+  `Gazetteers/name-common-words.json`) built from the project's own non-name
+  word list; the Swift name gazetteer withholds surname credit for exact
+  members.
   The Bloom filters are unchanged.
 - Context keywords: the four court role nouns (`plaintiff`, `defendant`,
   `petitioner`, `respondent`) ship again as court-scoped positive name
   anchors (`name` 31 → 35; 217 rows); the candidates rows record why.
 - GitHub Actions: a hermetic pull-request gate (lint, types, tests, pure-code
   builders, schema and hash checks), a weekly full-verify workflow with cached
-  sources, and a supply-chain job (pip-audit, OSV-Scanner, SBOM); the dev tools
-  are hash-pinned in `requirements-dev.lock`; `make lint` covers `scripts/`.
+  sources, and a supply-chain workflow (pip-audit, OSV-Scanner, SBOM); the dev
+  tools are hash-pinned in `requirements-dev.lock`; `make lint` covers
+  `scripts/`.
+- Evaluation: `make eval` and the `build eval-sitegap`, `eval-documents` and
+  `eval-compare-documents` commands join `eval-baseline` and `eval-compare`
+  to measure the engine on the G8 corpus and compare two runs; the contract
+  and a sample verdict are in `src/resecta_data/eval/`. The corpus generator
+  gains profiles for evaluation only, and `build fuzz pdf-mutations` writes
+  damaged copies of a PDF for importer testing.
 
 ### Changed
 
-- Dependencies: pytest 9.0.3 (dev extra, `<10`) and click 8.3.3 in both hash-pinned lockfiles
-  (only those rows move). `uv.lock` is regenerated to the same versions as `requirements-dev.lock`
+- Dependencies: pytest 9.0.3 (dev extra, `<10`) in `requirements-dev.lock` and click 8.3.3 in
+  both hash-pinned lockfiles (only those rows move). `uv.lock` is regenerated to the same versions as `requirements-dev.lock`
   (it still carried cryptography 42.0.8 and pytest 8.4.2), and the pull-request gate checks it
   with `uv lock --check` (uv installed hash-pinned for that step). The security workflow's pip-audit is the locked version, installed
   hash-verified from the lockfiles. `scripts/_fetch_lib.sh` downloads over HTTPS only, the first
@@ -50,7 +58,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
   public-key fingerprint and keeps the retired one in its history table. The shipped manifest and
   every asset it lists are unchanged; only the detached signature and the bundled public key moved.
-- Documentation: shorter code of conduct; README/CONTRIBUTING/SECURITY trimmed and corrected.
+- Documentation: shorter code of conduct; the public documents trimmed and re-checked against
+  the tree (the quickstart, the workflow triggers, the key-management page, the eval contract,
+  the `make help` lines).
 - Curated context assets change under a written, approved change plan; the
   reviewed negative-context sidecar is re-stamped by the same change.
   Provenance prose in shipped assets no longer cites private planning
@@ -72,8 +82,8 @@ Initial public release.
   assets, the rule catalog) and the engine's test fixtures (test vectors, fuzz
   payloads, the synthetic G8 corpus).
 - **Deterministic, zero-network builds.** Artifacts are byte-reproducible from a
-  commit; `make verify` runs schema validation, a hash lock, and a determinism
-  rebuild.
+  commit; `make verify` runs schema validation, a hash-lock check, and a
+  determinism rebuild.
 - **License-provenance tracking.** `SOURCES.md` records every raw dataset's
   license, source URL, retrieval date, and SHA-256; `NOTICE.txt` carries the
   third-party attribution, mirrored by the app repository's root `NOTICE`.

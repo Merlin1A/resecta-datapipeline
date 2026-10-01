@@ -3,11 +3,18 @@
 [![ci](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/ci.yml)
 [![verify](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml/badge.svg)](https://github.com/Merlin1A/resecta-datapipeline/actions/workflows/verify.yml)
 
-Build-time Python tooling that produces the detection data shipped inside the Resecta iOS app (name Bloom filters, gazetteers and pattern tables, classifier assets, the rule catalog) and the engine's test fixtures (test vectors, fuzz payloads, the synthetic G8 corpus).
+Build-time Python tooling that produces the detection data shipped inside the [Resecta](https://github.com/Merlin1A/resecta) iOS app (name Bloom filters, gazetteers and pattern tables, classifier assets, the rule catalog) and the engine's test fixtures (test vectors, fuzz payloads, adversarial patterns, the synthetic G8 evaluation corpus).
 
-This repository is independent of the Xcode project. Nothing here is linked into the iOS binary. The pipeline's couplings to the app are `make install-assets`, which copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides), and `make eval`, which runs the engine's G8 tests there.
+The pipeline lives in its own repository, apart from the app, for four reasons:
 
-Workflow, required checks and the plan-first list: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+- **Its outputs are data, not code.** The app bundles the detection data as resource files, and its test suite reads the fixtures. Nothing here is linked into the iOS binary and no Python runs on a device.
+- **Third-party inputs stay accounted for.** [`SOURCES.md`](./SOURCES.md) records each raw input's license, URL, retrieval date and SHA-256; [`NOTICE.txt`](./NOTICE.txt) carries the attribution.
+- **Builds are reproducible.** No builder makes a network call: raw inputs are fetched with `scripts/fetch_*.sh`, a separate step from building. `asset_hashes.lock` pins the SHA-256 of every in-band build artifact, and `make verify` rebuilds them and compares bytes.
+- **What reaches the app is signed.** The manifest that lists the installed files is signed with Ed25519 on the maintainer's machine, and the app checks the signature and each file's digest at first load ([`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md)).
+
+The pipeline touches the app repository through make targets. `make install-assets` copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides); its `manifest-assets` step also reads the installed copy under `Resources/` of any routed file this host did not build. `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Some tests also read a sibling checkout at a fixed path when it is present and skip when it is not.
+
+Setup, the checks a change must pass and the changes that need an approved plan: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
@@ -17,10 +24,18 @@ Workflow, required checks and the plan-first list: [`CONTRIBUTING.md`](./CONTRIB
 # One-time setup (Python 3.12; creates .venv/ from the two hash-pinned lockfiles)
 scripts/bootstrap.sh
 
-# Build every artifact into build/, then run the full gate
+# The pull-request gate's make targets; they work on a clean clone, nothing to fetch
+gmake lint typecheck test
+gmake vectors fuzz adversarial zip-scf corpus classifier gazetteers context rules
+gmake schema-check-only hash-check-built-only
+
+# The full gate: fetch the ParaNames corpus once (about 1 GB), then build
+# every artifact into build/ and verify
+scripts/fetch_paranames.sh
+gmake paranames-shards
 gmake build verify
 
-# Remove build/ (the five committed files under build/ go too; `git checkout -- build` restores them)
+# Remove build/ (the committed files under build/ go too; `git checkout -- build` restores them)
 gmake clean
 
 # Maintainer only: both need the sibling ../resecta checkout and the signing key
@@ -28,7 +43,7 @@ gmake install-assets     # verify → stage the reviewed file → manifest → s
 gmake all                # build + verify + install-assets
 ```
 
-Python 3.12 is required. The bootstrap script creates a local venv at `.venv/`, installs pinned dependencies from `requirements.lock` and `requirements-dev.lock`, and installs this package in editable mode. On macOS, install GNU Make 4.x (`brew install make`) and invoke every target as `gmake` — stock `/usr/bin/make` (3.81) cannot run the `verify` recipe.
+Python 3.12 is required. The bootstrap script creates a local venv at `.venv/`, installs pinned dependencies from `requirements.lock` and `requirements-dev.lock`, and installs this package in editable mode. On macOS, install GNU Make 4.x (`brew install make`) and invoke every target as `gmake` — the Makefile refuses its build, verify and install targets under stock `/usr/bin/make` (3.81).
 
 ---
 
@@ -37,51 +52,52 @@ Python 3.12 is required. The bootstrap script creates a local venv at `.venv/`, 
 ```
 resecta-datapipeline/
 ├── Makefile                 every build target (`make help` lists them; the block below is generated from it)
-├── pyproject.toml           pinned dependencies, tool configs
+├── pyproject.toml           dependency ranges, tool configs
 ├── requirements.lock        pip-compile output, runtime dependencies
-├── requirements-dev.lock    pip-compile output, dev tools
-├── uv.lock                  the uv resolver's lock
+├── requirements-dev.lock    pip-compile output, runtime + dev tools
+├── uv.lock                  uv's lock of the same set; CI checks it is current, nothing installs from it
 ├── asset_hashes.lock        sha256 of every in-band `make build` artifact
-├── SOURCES.md               every third-party raw file: license, URL, retrieval date, SHA-256
+├── SOURCES.md               third-party raw inputs: license, URL, retrieval date, SHA-256
 ├── NOTICE.txt               third-party attribution, hand-maintained; the app repo's root NOTICE mirrors it
 ├── CHANGELOG.md             release notes
-├── CONTRIBUTING.md          workflow, invariants, the changes that need a written plan, source hygiene
+├── CONTRIBUTING.md          setup, checks, invariants, the changes that need a written plan
 ├── CODE_OF_CONDUCT.md       community standards
-├── SECURITY.md              vulnerability disclosure
+├── SECURITY.md              vulnerability disclosure, supply-chain posture
+├── KEY-MANAGEMENT.md        the manifest-signing key: what it proves, custody, rotation
 ├── LICENSE                  the license text
 ├── .github/                 dependabot config; workflows ci (the PR gate), verify (weekly full verify), security (dependency audit)
-├── schemas/                 JSON Schema for every output file
+├── schemas/                 JSON Schema for the JSON outputs
 ├── scripts/
 │   ├── bootstrap.sh         first-time setup
-│   ├── freeze_deps.sh       regenerate both lockfiles
-│   ├── ci_verify.sh         local verify mirror (lint / type / test / build)
+│   ├── freeze_deps.sh       regenerate both pip lockfiles
+│   ├── ci_verify.sh         the weekly verify sequence, run serially
 │   ├── check_no_pii.py      pre-public guard against personal e-mail addresses
 │   ├── hygiene_gate.py      planning-identifier gate (allowlist: hygiene_allowlist.txt)
 │   ├── etl_graph.py         regenerates the README stage map from the make database
 │   ├── readme_targets.py    regenerates the README targets block from `make help`
 │   ├── fetch_*.sh           per-dataset fetchers, run by hand (see CONTRIBUTING, "Fetching sources")
 │   ├── shard_paranames.py   pre-shards the ParaNames corpus for parallel ingest (+ write_shard_meta.py)
-│   └── …                    _fetch_lib.sh, reap_orphan_workers.py
+│   └── …                    _fetch_lib.sh (+ its README), reap_orphan_workers.py, probe_temperature_convexity.py
 ├── src/resecta_data/
 │   ├── cli.py               the click groups + one register call per command module
-│   ├── commands/            the click commands, one module per builder family
+│   ├── commands/            the click commands, one module per command family
 │   ├── routes.py            the INSTALL_ROUTES / SCHEMA_ROUTES / SHRINK_GUARDED_ROUTES tables
 │   ├── manifest_signing.py  Ed25519 signing of the shipped gazetteer manifest
-│   ├── common/              io, determinism, licensing, mechanism language, stamp keys, exceptions
-│   ├── vectors/             structural test vectors per PII family (Phase 1)
-│   ├── fuzz/                ReDoS payload generator (Phase 1)
-│   ├── adversarial/         adversarial pattern fixtures (Phase 1)
-│   ├── bloom/               name Bloom filter builder + manifest (Phase 2)
-│   ├── gazetteers/          negative/positive context, institutions, address components, ZIP→SCF, passport / DL patterns, common words, nicknames (Phase 2)
-│   ├── context/             raw sources for the positive context keywords (built by gazetteers/context_keywords/) (Phase 2)
-│   ├── rules/               PII detector rule-ID catalog (Phase 2)
-│   ├── demographics/        demographic coverage report (Phase 2); the G8 bucket-stratified recall artifact (Phase 3)
-│   ├── classifier/          doctype keywords, temperature fit, threshold sweep, context scorer (Phase 3)
-│   ├── corpus/              G8 synthetic corpus generator + generator profiles (Phase 3)
-│   ├── instrumentation/     bundle-size probe (Phase 3)
+│   ├── common/              io, schema validation, determinism, licensing, mechanism language, stamp keys, exceptions, …
+│   ├── vectors/             structural test vectors per PII family
+│   ├── fuzz/                ReDoS payload generator; on-demand damaged-PDF fixtures
+│   ├── adversarial/         adversarial pattern fixtures
+│   ├── bloom/               name Bloom filter builder + manifest
+│   ├── gazetteers/          negative/positive context, institutions, address components, ZIP→SCF, passport / DL patterns, common words, nicknames
+│   ├── context/             raw sources for the positive context keywords (built by gazetteers/context_keywords/)
+│   ├── rules/               PII detector rule-ID catalog
+│   ├── demographics/        demographic coverage report; the G8 bucket-stratified recall artifact
+│   ├── classifier/          doctype keywords, temperature fit, threshold sweep, context scorer
+│   ├── corpus/              G8 synthetic corpus generator + generator profiles
+│   ├── instrumentation/     bundle-size probe
 │   └── eval/                the G8 eval derivations — see eval/README.md
 ├── tests/                   pytest suite: unit, determinism, schema and Hypothesis property tests
-└── build/                   generated artifacts (git-ignored except five committed calibration/scorer inputs)
+└── build/                   generated artifacts (git-ignored except a few committed calibration and scorer files)
 ```
 
 ---
@@ -103,7 +119,7 @@ Primary targets:
   build                Generate all artifacts into build/
   build-fast           Alias — `build` is parallel by default now (BUILD_JOBS=N to override; RAM-capped, see BUILD_JOBS)
   time-build           Run each build phase with per-phase wall-time logging
-  vectors              [Phase 1] Build NPI/DEA/SSN test vectors
+  vectors              [Phase 1] Build the structural test vectors (one file per vector family)
   fuzz                 [Phase 1] Build ReDoS fuzz payloads
   zip-scf              [Phase 1] Build ZIP → SCF → state table (Census ZCTA if present, else HUD bootstrap)
   adversarial          [Phase 1] Build adversarial pattern fixtures
@@ -113,7 +129,7 @@ Primary targets:
   stage-reviewed-negctx Stage the reviewed negative_context.json into build/ (verifies the candidates-hash sidecar; safe to re-run)
   gazetteers-institutions [Phase 2] Build institutions gazetteer
   gazetteers-address-components [Phase 2] Build address-components gazetteer
-  gazetteers-nicknames [Phase 2] Build nickname/diminutive sidecar (needs fetched CC0 source)
+  gazetteers-nicknames [Phase 2] Build nickname/diminutive sidecar (needs its fetched source)
   gazetteers-name-common-words [Phase 2] Build the common-word curation sidecar for the surname Bloom filter
   passport-patterns    [Phase 2] Build per-country passport-pattern gazetteer
   dl-patterns          [Phase 2] Build per-state driver-license-pattern gazetteer
@@ -125,13 +141,13 @@ Primary targets:
   g8-bucket-recall     [Phase 3] Build the G8 bucket-stratified recall artifact
   bundle-size          [Phase 3] Build the bundle-size instrumentation probe
   calibrate-temperature [Phase 3b] Fit doctype-softmax temperature against a Swift dump
-  calibrate-sweep      [Phase 3b] Sweep per-category thresholds against a Swift dump (writes the sweep_raw inspection file only)
+  calibrate-sweep      [Phase 3b] Sweep per-category thresholds against a Swift dump (re-runs the temperature fit; writes the sweep_raw inspection file, never the shipping thresholds)
   calibrate-finalize   [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (under an approved change plan: review the diff first)
   calibrate            [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
-  sources              List the fetch scripts for the raw inputs (fetching is manual)
+  sources              Print fetch commands for the main raw inputs (fetching is manual)
   lint                 Run ruff check + format check, the planning-id gate, and the README block currency checks
   security-check       Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
-  format               Apply ruff formatting
+  format               Apply ruff formatting and auto-fixes
   graph                Regenerate the ETL stage map in README.md from the make database (Mermaid; stdlib)
   readme-targets       Regenerate the Makefile-targets block in README.md from the help output
   typecheck            Run mypy --strict
@@ -142,7 +158,7 @@ Primary targets:
   determinism-check    Rebuild artifacts and diff (cached via .stamps/.determinism-witness; RESECTA_FORCE_DETERMINISM=1 to bypass)
   determinism-check-force Determinism check with the witness cache bypassed (rebuild and diff every artifact)
   hash-check-only      Verify asset_hashes.lock against the existing build/ (no rebuild)
-  hash-check-built-only Verify asset_hashes.lock against what this host built; entries needing fetched sources are skipped
+  hash-check-built-only Verify asset_hashes.lock against the files present in build/; lock rows with no built file are skipped
   hash-check           Verify asset_hashes.lock matches current build
   verify               Full verification suite (single build; parallel checks + parallel determinism-check)
   verify-fast          Dev-loop gate: verify WITHOUT determinism-check — not sufficient before install-assets (that keeps full verify)
@@ -152,8 +168,8 @@ Primary targets:
   install-assets       Copy artifacts from build/ into the Swift Resources path (verify → stage-reviewed-negctx → manifest-assets → sign-manifest, then copy)
   doctor               Print environment health summary (read-only)
   doctor-orphans       List stale resecta-data worker processes (read-only)
-  reap-orphans         Send SIGTERM to detected orphan workers (with confirmation)
-  clean                Remove build/ (preserves sources/)
+  reap-orphans         Send SIGTERM, then SIGKILL after 5 s, to detected orphan workers (with confirmation)
+  clean                Remove build/, including the committed files under it (git checkout -- build restores them)
   distclean            Remove build/, .venv/, caches
   all                  Build, verify, and install into Swift tree
   freeze               Regenerate both pip lockfiles (then `uv lock`; CI checks uv.lock)
@@ -170,7 +186,9 @@ Phase 3b: 'make calibrate' is out-of-band. It requires Swift-side softmax + dete
 
 ## ETL stage map
 
-Generated from the make database by `scripts/etl_graph.py` (`make graph`; `make lint` checks it is current): the phase-tagged build targets and the verify / eval / install chain, with an edge wherever one target's stamp is a prerequisite of another's. A phase whose every stamped target feeds `build` is drawn as one edge; Phase 2 stays expanded because the nicknames gazetteer joins `build` only when its fetched CC0 source is present.
+Generated from the make database by `scripts/etl_graph.py` (`make graph`; `make lint` checks it is current): the phase-tagged build targets and the verify / eval / install chain, with an edge wherever one target, or its stamp, is a prerequisite of another. A phase whose every stamped target feeds `build` is drawn as one edge; Phase 2 stays expanded because the nicknames gazetteer joins `build` only when its fetched source is present.
+
+The `[Phase N]` tags are the Makefile's own grouping of the builders: Phase 1 is the structural test vectors, the fuzz payloads, the adversarial fixtures and the ZIP table; Phase 2 the name filters, the gazetteers, the context keywords, the rule catalog and the coverage report; Phase 3 the classifier assets, the corpus, the bucket-recall report and the bundle-size probe; Phase 3b the calibration steps, which start from score dumps produced on the Swift side and run outside `make build`.
 
 <!-- etl-graph:begin -->
 ```mermaid
@@ -262,27 +280,27 @@ graph LR
 
 ## The G8 corpus
 
-There is one canonical G8 corpus: 17 PII families over 1,100 synthetic documents (five doctypes × five demographic buckets), built by `make corpus` into `build/corpus/g8_corpus.json` and hashed in `asset_hashes.lock` (the `corpus/g8_corpus.json` row is the digest of record). `make install-assets` copies it into the engine's test fixtures (`Fixtures/corpus/`) through `INSTALL_ROUTES`, so the engine's bundled fixture and the pipeline's build are the same bytes; `make eval` refuses to run when they differ. The generator profiles (`g8-specC`, `g8-specD`, …) re-render the same 1,100 documents along one axis each (specCD and specAGH combine axes), for evaluation only, and are never installed.
+G8 is the code's name for the pipeline's synthetic evaluation corpus. There is one canonical G8 corpus: 17 PII families over 1,100 synthetic documents (five doctypes × five demographic buckets), built by `make corpus` into `build/corpus/g8_corpus.json` and hashed in `asset_hashes.lock` (the `corpus/g8_corpus.json` row is the digest of record). `make install-assets` copies it into the engine's test fixtures (`Fixtures/corpus/`) through `INSTALL_ROUTES`, so the engine's bundled fixture and the pipeline's build are the same bytes; `make eval` refuses to run when they differ. The generator profiles (`g8-specC`, `g8-specD`, …) re-render the same 1,100 documents along one axis each (specCD and specAGH combine axes), for evaluation only, and are never installed.
 
 ---
 
 ## ParaNames (fetch-on-demand)
 
-The large ParaNames corpus (`paranames_full.tsv.gz`, ~953 MB) is **not committed**, and the repo uses **no Git-LFS**. `scripts/fetch_paranames.sh` downloads it on demand into `src/resecta_data/gazetteers/sources/paranames/` and checks its SHA-256 against the pinned `SOURCES.md` row. When the full corpus is absent, the Bloom builders degrade to the committed bootstrap sample (`paranames_bootstrap_*.tsv`) so the build still runs; the full corpus is only needed to reproduce the shipped name filters exactly.
+The large ParaNames corpus (`paranames_full.tsv.gz`, about 1 GB) is **not committed**, and the repo uses **no Git-LFS**. `scripts/fetch_paranames.sh` downloads it on demand into `src/resecta_data/gazetteers/sources/paranames/` and checks its SHA-256 against the pinned `SOURCES.md` row. When the full corpus is absent, the Bloom builders degrade to the committed bootstrap sample (`paranames_bootstrap_*.tsv`) so the build still runs; the full corpus is only needed to reproduce the shipped name filters exactly.
 
-> Reproducing the shipped name filters: `gmake verify` hash-checks the built Bloom filters against `asset_hashes.lock`, whose hashes were produced from the full ParaNames corpus. Run `scripts/fetch_paranames.sh` before `gmake verify`. A bare clean-clone `gmake verify` is expected to fail hash-check (bootstrap-only Bloom != full-corpus lock) — this is the no-LFS / fetch-on-demand design, not a regression.
+> Reproducing the shipped name filters: `gmake verify` hash-checks the built Bloom filters against `asset_hashes.lock`, whose hashes were produced from the full ParaNames corpus. Run `scripts/fetch_paranames.sh` before `gmake verify`. A bare clean-clone `gmake verify` is expected to fail hash-check (bootstrap-only Bloom != full-corpus lock) — this is the no-LFS / fetch-on-demand design, not a regression. The pull-request gate avoids it by building only the targets that need no fetched source and checking them with `hash-check-built-only`, which skips lock rows whose file was not built.
 
 ---
 
 ## Verification
 
-Three hosted workflows read this repository:
+Three workflow files run on this repository (GitHub's CodeQL default setup runs beside them):
 
-- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. Hermetic after the bootstrap: no network.
+- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`.
 - **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
-- **Weekly and on every pull request (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Findings are reported, never gating.
+- **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Results are reported, never gating.
 
-Locally, `gmake verify` is the gate before anything ships: one build, then `ruff check`, `ruff format --check`, `mypy`, `pytest`, schema validation, a check of every in-band artifact against `asset_hashes.lock`, and a determinism rebuild that confirms byte-identical output (witness-cached on unchanged inputs; `RESECTA_FORCE_DETERMINISM=1` forces it). `scripts/ci_verify.sh` runs the weekly workflow's sequence locally — serially, with the determinism rebuild forced.
+Locally, `gmake verify` is the gate before anything ships: one build, then, in parallel, `make lint`, `mypy`, `pytest`, schema validation, a check of every in-band artifact against `asset_hashes.lock`, and a determinism rebuild that compares the rebuilt bytes with the first build (skipped while its witness shows unchanged inputs; `RESECTA_FORCE_DETERMINISM=1` forces it). `scripts/ci_verify.sh` runs the weekly workflow's sequence locally — serially, with the determinism rebuild forced.
 
 The shipped manifest is signed with an Ed25519 key that lives outside the repository, held age-encrypted on the maintainer's machine and decrypted in memory only while `make sign-manifest` runs; `make doctor` reports the key's state. What the signature proves, the current public-key fingerprint, and the rotation and exposure procedures are in [`KEY-MANAGEMENT.md`](KEY-MANAGEMENT.md).
 
@@ -290,12 +308,12 @@ The shipped manifest is signed with an Ed25519 key that lives outside the reposi
 
 ## Property-based testing
 
-Invariants that hold over a whole input space are tested with [Hypothesis](https://hypothesis.readthedocs.io/) rather than a handful of examples — `@given` over the generator's own domain, `@settings(deadline=None)` because verify runs are CPU-oversubscribed:
+Invariants that hold over a whole input space are tested with [Hypothesis](https://hypothesis.readthedocs.io/) rather than a handful of examples — `@given` over the generator's own domain, most with `@settings(deadline=None)` because verify runs are CPU-oversubscribed (the NPI and SSN properties run derandomized with a fixed example count instead):
 
 - `tests/test_checksums.py` — composing any nine-digit prefix with the computed NPI check digit yields CMS-Luhn remainder 0 and every other check digit breaks it; the DEA check digit is a single digit for every six-digit prefix.
-- `tests/test_bloom_ingest_aggregation.py` — the parallel Bloom ingest aggregates any batch of rows to the same key / source / demographic tallies as the serial oracle.
-- `tests/vectors/test_npi.py` — any ten-digit candidate is fully valid iff its prefix is 1 or 2 and Luhn passes, end to end through the detector contract.
-- `tests/vectors/test_ssn.py` — any (area, group, serial) triple is classified consistently with the six structural rules.
+- `tests/test_bloom_ingest_aggregation.py` — the per-source aggregation the parallel Bloom ingest folds together yields, for any batch of rows, the same result, source hash and source list as merging the raw row stream.
+- `tests/vectors/test_npi.py` — any ten-digit candidate is accepted by the test's statement of the detector contract iff its prefix is 1 or 2 and the CMS Luhn check passes.
+- `tests/vectors/test_ssn.py` — any (area, group, serial) triple is classified consistently with the structural rejection rules, through a test-local mirror of the engine's validator.
 - `tests/vectors/test_routing_number.py` — for every eight-digit prefix the computed ninth digit zeroes the ABA checksum and every other final digit breaks it; every seeded draw of the generator is nine digits with a valid prefix and checksum.
 - `tests/vectors/test_credit_card.py` — for every prefix, PAN length and seed the Luhn completion keeps the prefix, has exactly that many digits and passes Luhn, and the flipped-last-digit decoy always fails it.
 - `tests/vectors/test_dea.py` — for every seed the DEA catalog is a pure function of the seed, its valid rows close the checksum and its invalid-checksum rows break it.
@@ -304,4 +322,4 @@ Invariants that hold over a whole input space are tested with [Hypothesis](https
 
 ## Licensing
 
-Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST`, `GATED` and `FORBIDDEN` sets; the datasets deferred on legal review are listed in `SOURCES.md`.
+Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file the builders read under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED` map; the datasets deferred on legal review are listed in `SOURCES.md`. No automated check validates the ledger as a whole; it is reviewed by hand.

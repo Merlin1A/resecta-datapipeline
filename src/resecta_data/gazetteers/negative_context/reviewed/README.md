@@ -12,8 +12,8 @@ Curated context assets change only under a written change plan approved
 before the edit — `CONTRIBUTING.md`, "Plan-sign-off changes".
 
 A change to this gazetteer therefore lands as one commit that carries the
-edited builder inputs (`sources/scope_rules_v1.json`; the loader in
-`_scope_rules.py` pins its counts), the rebuilt candidates, the updated
+edited builder inputs (`../sources/scope_rules_v1.json`; the loader in
+`../_scope_rules.py` pins its counts), the rebuilt candidates, the updated
 reviewed file, the re-stamped sidecar and the moved `asset_hashes.lock` row.
 
 ## Sidecar format
