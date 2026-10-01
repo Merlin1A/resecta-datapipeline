@@ -61,6 +61,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - Documentation: shorter code of conduct; the public documents trimmed and re-checked against
   the tree (the quickstart, the workflow triggers, the key-management page, the eval contract,
   the `make help` lines).
+- `SOURCES.md`: the `d12_candidates.json` row re-hashed and recounted as the file stands; a row
+  added for the raw court-glossary page; stale facts corrected in four other rows.
 - Curated context assets change under a written, approved change plan; the
   reviewed negative-context sidecar is re-stamped by the same change.
   Provenance prose in shipped assets no longer cites private planning
