@@ -8,67 +8,78 @@ lists the checks a change must pass and the changes that need a written plan.
 ## Setup
 
 Python 3.12 and GNU make ≥ 4 (`brew install make` on macOS; invoke every
-target as `gmake`). `scripts/bootstrap.sh` creates `.venv/` from the two
-hash-pinned lockfiles.
+target as `gmake`). `scripts/bootstrap.sh` creates `.venv/` and installs the
+dependencies hash-verified from `requirements.lock` and
+`requirements-dev.lock`.
 
 ## Checks a change must pass
 
-| When | What runs |
-|---|---|
-| Every pull request and push to `main` (`.github/workflows/ci.yml`) | `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format · `scripts/hygiene_gate.py` · `scripts/readme_targets.py --check` · `scripts/etl_graph.py --check`) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only` |
-| Locally, before anything ships | `gmake verify` — one build, then lint, types, tests, schema validation, the `asset_hashes.lock` check and the determinism rebuild; `install-assets` requires it (`verify-fast` skips the rebuild and is the dev loop only) |
-| Weekly (`.github/workflows/verify.yml`) | the ParaNames corpus hydrated from its `SOURCES.md` row, then `scripts/ci_verify.sh` with the determinism rebuild forced |
+Changes reach `main` by pull request, and the `gate` job of
+`.github/workflows/ci.yml` is the required check. What it runs, what the
+weekly workflow adds and what `gmake verify` does locally are described once,
+in the README's "Verification" section. `install-assets` requires the full
+`gmake verify`; `verify-fast` skips the determinism rebuild and is for the dev
+loop only. Beyond that:
 
 - `scripts/hygiene_gate.py` fails `make lint` on a planning-identifier shape in
   a `.py` file under `src/` or `scripts/` (`scripts/hygiene_allowlist.txt`
-  carries the public tokens the shape collides with); other files are reviewed
-  by hand.
+  lists the public tokens the shape collides with and the lines exempted by
+  path, each with its reason); other files are reviewed by hand.
 - `gmake readme-targets` and `gmake graph` regenerate the two README blocks
   `make lint` checks for currency.
 - `tests/test_cli.py` caps `src/resecta_data/cli.py` at 127 lines, never
-  raised; `python tests/test_cli_help_golden.py --write` refreshes the pinned
-  `--help` text.
-- After `scripts/freeze_deps.sh` regenerates the two pip lockfiles, run
-  `uv lock`; CI checks `uv.lock` against them.
+  raised; `.venv/bin/python tests/test_cli_help_golden.py --write` refreshes
+  the pinned `--help` text.
+- The tests run with sockets disabled and need `PYTHONHASHSEED=0`; `gmake test`
+  sets it, and a bare `pytest` exits with a message saying so.
+- After a dependency change, `scripts/freeze_deps.sh` regenerates the two pip
+  lockfiles and `uv lock` refreshes `uv.lock`; CI's `uv lock --check` fails
+  when `uv.lock` is stale against `pyproject.toml`.
 
 ## Invariants
 
-- **Determinism.** Every artifact is byte-identical across machines and
-  rebuilds: explicit seeds (canonical seed `20260416`), no wall-clock content,
-  artifact JSON written only through `common/io.py::dump_canonical_json`. If
-  `asset_hashes.lock` moves, the commit body says why.
-- **No network in builders or tests.** Raw inputs are fetched by hand with
-  `scripts/fetch_*.sh`, which record each file's SHA-256 in `SOURCES.md` and
-  refuse a later fetch whose bytes differ.
-- **License provenance.** Every third-party raw file under
+- **Determinism.** Every `make build` artifact that `asset_hashes.lock` pins
+  is byte-identical across machines and rebuilds: explicit seeds (canonical
+  seed `20260416`), no wall-clock content, artifact JSON written only through
+  `common/io.py::dump_canonical_json`. If `asset_hashes.lock` moves, the
+  commit body says why.
+- **No network in builders or tests.** Raw inputs are fetched by hand, a
+  separate step from building; how they are pinned is in `SECURITY.md`,
+  "Supply-chain posture".
+- **License provenance.** A third-party raw file the builders read under
   `src/resecta_data/**/sources/` has a `SOURCES.md` row; the rules are
-  `common/licensing.py`'s `ALLOWLIST`, `GATED` and `FORBIDDEN` sets.
-- **Mechanism-description language.** Every string the pipeline emits
+  `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED`
+  map.
+- **Mechanism-description language.** The strings the pipeline emits
   (docstrings, JSON `description` fields, `NOTICE.txt` rows, error messages)
-  describes the mechanism, not an outcome; the banned-phrase list is
+  describe the mechanism, not an outcome; the banned-phrase list is
   `common/mechanism_language.py`.
 
-The build, `gmake verify` and the tests enforce the first two; license
-provenance and mechanism language are checked in review against the two
-modules named.
+`gmake verify` (the `asset_hashes.lock` check and the determinism rebuild) and
+the tests' socket ban enforce the first two. License provenance is checked in
+review. Mechanism language is checked in review as well; in addition, the
+builders run the scanner on the notes they emit, and a test runs it over the
+schemas and modules `tests/test_phase2_mechanism_language.py` names.
 
 ## Structure
 
-`src/resecta_data/cli.py` registers only; `src/resecta_data/commands/<family>.py`
-parses the options; the logic lives in the package module beside its siblings.
+`src/resecta_data/cli.py` defines the click groups and registers each command
+module; `src/resecta_data/commands/<family>.py` defines the options and calls
+into the package module, where the logic lives beside its siblings.
 
 ## Plan-sign-off changes
 
 Curated context assets change only under a written change plan approved by the
 maintainer before the edit — the asset, the rows or fields, the reason, and
 the regeneration and verification steps. The pull-request review checks that
-the plan was carried out, not each row. The same posture covers:
+the plan was carried out, not each row. The same posture covers (paths under
+`src/resecta_data/`):
 
-- the negative-context candidates
+- the negative-context scope rules
   (`gazetteers/negative_context/sources/scope_rules_v1.json`) and the reviewed
   `negative_context.json` with its sidecar — `stage-reviewed-negctx`, an
-  `install-assets` prerequisite, refuses when the candidates drift from the
-  hash the sidecar records;
+  `install-assets` prerequisite, refuses when the built candidates no longer
+  match the hash the sidecar records;
 - the context-keyword candidates (`context/sources/d12_candidates.json`,
   `context/sources/d16_bates_anchors.json`,
   `gazetteers/context_keywords/sources/d11_lift_candidates.json`);
@@ -82,8 +93,9 @@ the plan was carried out, not each row. The same posture covers:
 
 ## Fetching sources
 
-Fetchers built on `scripts/_fetch_lib.sh` need Linux `flock`;
-`scripts/fetch_paranames.sh` runs on macOS too (`scripts/_fetch_lib.README.md`).
+Fetchers built on `scripts/_fetch_lib.sh` need `flock` (Linux); the others,
+`scripts/fetch_paranames.sh` among them, do not
+(`scripts/_fetch_lib.README.md`).
 
 ## Sign-off and license
 

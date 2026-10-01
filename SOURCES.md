@@ -1,16 +1,18 @@
 # Source Provenance
 
-Every third-party raw file checked in under `src/resecta_data/**/sources/`
-has a row in the table below; `.sha256` sidecars, dated mirrors and
-self-authored inputs are exempt. Adding a source without a row is a policy
-violation.
+Each third-party raw file the builders read under
+`src/resecta_data/**/sources/` has a row in the table below, including the
+fetch-on-demand ParaNames corpus, which is not committed; `.sha256` sidecars,
+dated mirrors and self-authored inputs are exempt. Adding a source without a
+row is a policy violation. The rows are maintained by hand and checked in
+review.
 
 ## Columns
 
 | Column | Meaning |
 |---|---|
-| Path | POSIX path relative to the repository root, pointing at the raw file |
-| License | SPDX-style identifier; the allowlist is `common/licensing.py`'s `ALLOWLIST` |
+| Path | POSIX path relative to the repository root, pointing at the raw file (one row describes the derived, uncommitted ParaNames shards) |
+| License | SPDX-style identifier, the allowlist being `common/licensing.py`'s `ALLOWLIST`; the candidate-file rows carry a prose license note instead |
 | URL | The URL the file was fetched from (for reproducibility) |
 | Retrieved | ISO date (`YYYY-MM-DD`) when the file was fetched |
 | SHA-256 | 64-character lowercase hex digest of the raw file |
@@ -116,13 +118,16 @@ violation.
 
 ## Institutions: shipped scope and gated financial fetchers
 
-> The shipped `institutions.json` carries only the `federal_agency` category, sourced from
-> the Federal Register agencies API feed (§105 PD); the legacy GSA Federal
-> Hierarchy Crosswalk is read only to compute the advisory cutover diff and is not
-> folded into the shipped provenance. The financial-institution fetchers
+> The `institutions.json` this pipeline builds carries only the `federal_agency`
+> category, sourced from the Federal Register agencies API feed (§105 PD); the
+> legacy GSA Federal Hierarchy Crosswalk is read only to compute the advisory
+> cutover diff and is not folded into the built file's provenance. The app
+> currently bundles an earlier build of this file, made from the GSA crosswalk
+> alone. The financial-institution fetchers
 > (`scripts/fetch_edgar_companies.sh`, `fetch_fdic_banks.sh`,
-> `fetch_finra_members.sh`) and their parsers are present for a future phase and
-> contribute nothing to the shipped file: SEC EDGAR and FDIC are U.S. federal §105
-> public-domain works, while FINRA member-firm data is a private
+> `fetch_finra_members.sh`) are present for later work and contribute nothing
+> to the built file, since no financial source file is checked in: SEC EDGAR
+> and FDIC are U.S. federal §105 public-domain works, while FINRA member-firm
+> data is a private
 > self-regulatory-organization (SRO) dataset that is NOT license-cleared for
 > redistribution and is excluded from the shipped bundle pending legal review.

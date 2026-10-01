@@ -8,8 +8,9 @@ and what happens when the key is rotated or suspected to be exposed.
 ## What is signed
 
 `make sign-manifest` signs `build/gazetteers/gazetteer_manifest.shipped.json`
-with an Ed25519 key. That manifest lists every detection asset the pipeline
-installs into the app bundle, with each file's SHA-256 and byte count. The
+with an Ed25519 key. That manifest lists every other file the pipeline
+installs into the app bundle — all but the manifest itself, its signature and
+the public key — with each file's SHA-256 and byte count. The
 detached signature (`gazetteer_manifest.sig`) and the public key
 (`manifest_public_key.pem`) are installed with the manifest (as
 `gazetteer-manifest.json`) under the engine's `Resources/Gazetteers/`
@@ -23,22 +24,22 @@ committed to the app repository like any other asset.
 
 At first load, the app verifies the signature over the manifest bytes with the
 public key it bundles, then checks every listed file's size and SHA-256 against
-its manifest entry, once per process. A valid signature means the detection
-data the app reads is the data this pipeline installed and signed —
-pipeline-to-bundle provenance.
+its manifest entry, once per process. A valid signature with every digest
+matching means each listed file the app reads is, byte for byte, the file the
+maintainer's signing run listed — pipeline-to-bundle provenance.
 
 It is not the mechanism that protects an installed app from tampering. That is
 the app-bundle code signature, which seals these same files. A failed
 signature, or a digest failure on a file the five signature-gated loaders
 read, withholds those loaders; a digest failure on any other listed asset is
-reported and its loader keeps its fallback. Either way a banner shows; it
-never fails silently.
+reported under that asset's own diagnostic and its loader is not withheld.
+Either way the app shows a degraded-detection banner; it never fails silently.
 
 ## The current public key
 
-The public key in the app repository since 2026-09-27, and in every app
-release built after that date, has this fingerprint (SHA-256 over the
-DER-encoded SubjectPublicKeyInfo):
+The public key in the app repository since 2026-09-27, and in the app from
+version 1.2.0 on, has this fingerprint (SHA-256 over the DER-encoded
+SubjectPublicKeyInfo):
 
 ```
 2f94b2aecc157d818bbdee34e04d20cbecc4b83e86f8ecbea932fdee07e90bd2
@@ -53,8 +54,9 @@ openssl pkey -pubin \
 ```
 
 The app's test suite pins this fingerprint, and the app repository's
-pre-archive hash check pins the key file itself, so changing the key without
-moving both pins in the same change fails both checks.
+shipped-asset hash check (`Scripts/verify-shipped-asset-hashes.sh`, run by its
+pull-request gate) pins the key file itself, so a key change that leaves
+either pin behind fails that check.
 
 ## How the private key is held
 
@@ -106,10 +108,10 @@ There is no revocation list, by design: replacing the key means shipping a new
 app version, and older versions keep verifying against the key they shipped
 with.
 
-| Public key fingerprint (SHA-256 of the SPKI DER) | In the app since |
-|---|---|
-| `2f94b2aecc157d818bbdee34e04d20cbecc4b83e86f8ecbea932fdee07e90bd2` | 2026-09-27 (current) |
-| `d471e66bb6d3b6682c3ab3e5baf7679d7e58b2059f359da997bbb0cded9d20d1` | 2026-07-11 (retired 2026-09-27, scheduled rotation) |
+| Public key fingerprint (SHA-256 of the SPKI DER) | In the app repository since | App versions |
+|---|---|---|
+| `2f94b2aecc157d818bbdee34e04d20cbecc4b83e86f8ecbea932fdee07e90bd2` | 2026-09-27 (current) | 1.2.0 on |
+| `d471e66bb6d3b6682c3ab3e5baf7679d7e58b2059f359da997bbb0cded9d20d1` | 2026-07-11 (retired 2026-09-27, scheduled rotation) | 1.0.0, 1.1.0 |
 
 ## If the key is suspected to be exposed
 
@@ -121,7 +123,8 @@ with.
 
 As above, an exposed key does not by itself alter an installed app: the app
 bundle's own code signature still seals the files. It would let someone who
-can also replace files inside a bundle produce detection data the app would
+can also alter the asset files on their way into a build — in the app
+repository or on the build machine — produce detection data the app would
 accept, which is why exposure is treated as a rotation trigger.
 
 Report suspected exposure through the channels in `SECURITY.md`.

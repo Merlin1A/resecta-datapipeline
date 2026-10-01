@@ -1,14 +1,15 @@
 # `_fetch_lib.sh` — the shared fetcher library
 
 Shared bash library sourced by the ten `scripts/fetch_*.sh` wrappers that
-append `SOURCES.md` rows; the other five (`fetch_paranames.sh` among them) pin
-their rows by hand and run without it. It distils the patterns those fetchers
+append `SOURCES.md` rows; the other five (`fetch_paranames.sh` among them;
+`fetch_finra_members.sh` is a parked stub that downloads nothing) run without
+it, and their rows are pinned by hand. It distils the patterns those fetchers
 implement:
 
 - live HTTP probe (no silent degraded retrieve)
 - SHA-256 capture-and-commit
 - dated mirror writer (used by `fetch_gsa_agencies.sh` only)
-- `SOURCES.md` row appender (atomic via `flock`)
+- `SOURCES.md` row appender (atomic via `flock`, so these fetchers need Linux)
 - idempotency guard on the `SOURCES.md` row (same-day only — see `append_sources_row`)
 
 ## Source pattern (top of every fetcher built on the library)
@@ -39,17 +40,18 @@ SOURCES.md retrieved-date alone.
 
 ### `fetch_lib::probe_url <url>`
 HEAD-probe `<url>` over HTTPS. Returns 0 on HTTP 200/206/301/302; returns 1 on
-4xx/5xx, a cert error, a DNS failure or the 30-second timeout. The 3xx codes
-pass because the real download follows redirects. The rule is halt and report
-on 4xx/5xx, a cert error or a timeout — no silent degraded retrieve.
+any other status, a cert error, a DNS failure or the 30-second timeout. The
+two 3xx codes pass because the real download follows redirects. The rule is
+halt and report — no silent degraded retrieve.
 
 ### `fetch_lib::download_with_sha <url> <dest> [<ua>]`
 Downloads `<url>` to `<dest>` with `curl --fail --location`, HTTPS only
 including every redirect (`--proto '=https' --proto-redir '=https'`), with a
 600-second cap. Captures SHA-256 into `<dest>.sha256` (single 64-char hex line,
-LF-terminated). Refuses to overwrite `<dest>`: on a cache hit it calls
-`verify_sidecar`, or writes a sidecar if absent, and returns 0. Default UA =
-`Wget/1.21` (the SSA host refuses curl's default).
+LF-terminated). Refuses to overwrite `<dest>`: on a cache hit it returns
+`verify_sidecar`'s result (0 on a match, 1 on a mismatch), or writes a sidecar
+if absent and returns 0. Default UA = `Wget/1.21` (the one checked against the
+SSA host).
 
 ### `fetch_lib::write_dated_mirror <live_path> <mirror_dir> <prefix>`
 Writes a dated copy of `<live_path>` at
@@ -65,21 +67,21 @@ exists and matches byte-for-byte: returns 0 (no-op). The new row carries
 today's UTC date, so a re-fetch is a no-op only on the row's Retrieved date;
 on a later day it reports a mismatch (prints both rows) and returns 1.
 Wraps read-modify-write in `flock SOURCES.md.lock` (30 s timeout) so
-concurrent appenders serialise. The lock file is
-gitignored; if a stale lock blocks the helper, `rm SOURCES.md.lock` clears it.
+concurrent appenders serialise; a held lock times the next appender out and
+frees when its holder exits. The lock file is gitignored.
 Pipes inside `<description>` are escaped to `\|` so the markdown table
 remains well-formed.
 
 ### `fetch_lib::verify_sidecar <path>`
 Recomputes SHA-256 of `<path>`; compares to `<path>.sha256`. Returns 0 on
 match, 1 on mismatch / missing file / missing sidecar / malformed sidecar.
-Used by re-runs to surface on-disk corruption or upstream drift (same-day
-drift) before `append_sources_row`.
+Used on a cache hit to surface on-disk corruption before
+`append_sources_row`; upstream drift shows up there, as a row mismatch.
 
 ## Exit-code conventions
 
 All public helpers return 0 on success and 1 on a recoverable failure with a
-log line on stderr. `_fetch_lib.sh` itself returns 2 if a caller `bash`-runs
+log line on stderr. `_fetch_lib.sh` itself exits 2 if a caller `bash`-runs
 it instead of sourcing it.
 
 ## Citation discipline
@@ -91,6 +93,7 @@ lineages.
 
 ## Manually curated files
 
-This lib never touches `negative_context.json`, `preset_thresholds.json`,
-`doctype_temperature.json`, `calibration/*`, or `asset_hashes.lock`. Those
-are curated by hand and are not in any fetcher's path.
+This lib never touches the reviewed `negative_context.json`, the calibrated
+`preset_thresholds.json` and `doctype_temperature.json`, the Swift dumps under
+`build/calibration/`, or `asset_hashes.lock`. None of them is in any fetcher's
+path.
