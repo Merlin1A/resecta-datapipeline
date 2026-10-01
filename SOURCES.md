@@ -4,8 +4,7 @@ Each third-party raw file the builders read under
 `src/resecta_data/**/sources/` has a row in the table below, including the
 fetch-on-demand ParaNames corpus, which is not committed; `.sha256` sidecars,
 dated mirrors and self-authored inputs are exempt. Adding a source without a
-row is a policy violation. The rows are maintained by hand and checked in
-review.
+row is a policy violation. The rows are checked in review.
 
 ## Columns
 

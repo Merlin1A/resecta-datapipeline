@@ -167,7 +167,8 @@ moves.
   at precision 0.75 produces false positives on this corpus; the `per_cell`
   rows and the `per_doctype` / `per_demographic` slices (pooled over families)
   in `g8_detection_baseline.json` say where, and the context-class tables in
-  `g8_span_outcomes.json` say which ground-truth shapes are missed.
+  `g8_span_outcomes.json` say in which context classes ground-truth spans
+  are missed.
 - **`low_confidence`** marks a slice under 30 supports; its interval is wide
   and its movement is not evidence on its own.
 - **Site B against the detector site.** `g8_site_gap.json` is the product

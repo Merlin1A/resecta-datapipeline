@@ -66,8 +66,9 @@ been addressed and coordinated disclosure has been agreed upon.
   crosswalk and the court glossary) refuse to overwrite an existing file, and
   their rows are added by hand. Outside the
   fetchers, the network is used to install the hash-pinned dependencies
-  (`scripts/bootstrap.sh`), by CI's `uv lock --check` and by the dependency
-  audit.
+  (`scripts/bootstrap.sh`), to regenerate the lockfiles
+  (`scripts/freeze_deps.sh`, `uv lock`), by CI's `uv lock --check` and by the
+  dependency audit.
 - **Hash-locked, deterministic outputs.** `make verify` checks every in-band
   artifact against `asset_hashes.lock` and rebuilds them to compare bytes (the
   rebuild is skipped while its witness shows unchanged inputs;

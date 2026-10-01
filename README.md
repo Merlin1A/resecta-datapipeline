@@ -12,7 +12,7 @@ The pipeline lives in its own repository, apart from the app, for four reasons:
 - **Builds are reproducible.** No builder makes a network call: raw inputs are fetched with `scripts/fetch_*.sh`, a separate step from building. `asset_hashes.lock` pins the SHA-256 of every in-band build artifact, and `make verify` rebuilds them and compares bytes.
 - **What reaches the app is signed.** The manifest that lists the installed files is signed with Ed25519 on the maintainer's machine, and the app checks the signature and each file's digest at first load ([`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md)).
 
-The pipeline touches the app repository through make targets. `make install-assets` (with `manifest-assets` inside it) reads and copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides). `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Some tests also read the sibling checkout when it is present and skip when it is not.
+The pipeline touches the app repository through make targets. `make install-assets` copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides); its `manifest-assets` step also reads the installed copy under `Resources/` of any routed file this host did not build. `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Some tests also read a sibling checkout at a fixed path when it is present and skip when it is not.
 
 Setup, the checks a change must pass and the changes that need an approved plan: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
@@ -144,7 +144,7 @@ Primary targets:
   calibrate-sweep      [Phase 3b] Sweep per-category thresholds against a Swift dump (re-runs the temperature fit; writes the sweep_raw inspection file, never the shipping thresholds)
   calibrate-finalize   [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (under an approved change plan: review the diff first)
   calibrate            [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
-  sources              List the fetch scripts behind the built artifacts (fetching is manual)
+  sources              Print fetch commands for the main raw inputs (fetching is manual)
   lint                 Run ruff check + format check, the planning-id gate, and the README block currency checks
   security-check       Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
   format               Apply ruff formatting and auto-fixes
@@ -298,7 +298,7 @@ Three workflow files run on this repository (GitHub's CodeQL default setup runs 
 
 - **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`.
 - **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
-- **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Findings are reported, never gating.
+- **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Results are reported, never gating.
 
 Locally, `gmake verify` is the gate before anything ships: one build, then, in parallel, `make lint`, `mypy`, `pytest`, schema validation, a check of every in-band artifact against `asset_hashes.lock`, and a determinism rebuild that compares the rebuilt bytes with the first build (skipped while its witness shows unchanged inputs; `RESECTA_FORCE_DETERMINISM=1` forces it). `scripts/ci_verify.sh` runs the weekly workflow's sequence locally — serially, with the determinism rebuild forced.
 

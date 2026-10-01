@@ -22,8 +22,10 @@ routed artifact maps to one schema, and `SCHEMA_ROUTES` is the index; the
 document-level eval and the two Swift calibration dumps are validated by name
 in their own commands, and the compare verdict's schema is exercised by its
 test. The lists below are a selection, not every file. Their headings are the
-Makefile's `[Phase N]` build groups; the eval, calibration and sidecar schemas
-are listed under Phase 3.
+Makefile's `[Phase N]` build groups; the eval and calibration schemas and the
+`nicknames`, `bundle_size` and `cutover_diff` sidecars and probes are listed
+under Phase 3, and `pdf_mutations` (built on demand by
+`build fuzz pdf-mutations`) under Phase 1.
 
 ## The template
 

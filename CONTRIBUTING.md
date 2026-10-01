@@ -61,8 +61,8 @@ enforces the first. The second is enforced for the tests by pytest's socket
 ban; the builders import no network library, which review keeps true. License
 provenance is checked in review. Mechanism language is checked in review as
 well; in addition, the classifier, negative-corpus and eval builders run the
-scanner on the notes they emit, and a test runs it over the schemas and
-modules `tests/test_phase2_mechanism_language.py` names.
+scanner on the free-form strings they emit, and a test runs it over the
+schemas and modules `tests/test_phase2_mechanism_language.py` names.
 
 ## Structure
 

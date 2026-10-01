@@ -773,7 +773,7 @@ calibrate: calibrate-temperature calibrate-sweep ## [Phase 3b] Run both calibrat
 # -----------------------------------------------------------------------------
 
 .PHONY: sources
-sources: bootstrap ## List the fetch scripts behind the built artifacts (fetching is manual)
+sources: bootstrap ## Print fetch commands for the main raw inputs (fetching is manual)
 	@echo "Phase 1+2 ship bootstrap sources in git (no fetch needed)."
 	@echo "For the full HUD crosswalk, run:"
 	@echo "  scripts/fetch_hud_zip_crosswalk.sh <YYYY> <Qn>"
