@@ -8,20 +8,22 @@ Every schema uses JSON Schema Draft 2020-12 and includes:
 - `$id` identifying the schema
 - `title` and `description` for human readers
 - `type`, `required`, `properties` as appropriate
-- `additionalProperties: false` on every fixed-shape object (strict by
-  default); map-shaped objects constrain their values with an
-  `additionalProperties` schema instead. Two `$defs` entries are looser:
-  `tally` in `g8_span_outcomes` omits the keyword, and `clause` in the two
-  compare-verdict schemas sets it `true`
+- `additionalProperties: false` (or `unevaluatedProperties: false` where a
+  schema composes) on every fixed-shape object, strict by default; map-shaped
+  objects constrain their values with an `additionalProperties` schema
+  instead. Two `$defs` entries are looser: `tally` in `g8_span_outcomes` omits
+  the keyword, and `clause` in `g8_compare_verdict` and `g8_compare_documents`
+  sets it `true`
 
 Schemas are consumed by `resecta_data.common.schema.validate_file`. Routing
 from an artifact path in `build/` to a schema name lives in
 `src/resecta_data/routes.py::SCHEMA_ROUTES` (`cli.py` re-exports it). Each
 routed artifact maps to one schema, and `SCHEMA_ROUTES` is the index; the
-document-level eval, the compare verdict and the two Swift calibration dumps
-are validated by name in their own commands. The lists below are a selection,
-not every file, grouped by the `[Phase N]` tags `make help` puts on the
-targets that build them.
+document-level eval and the two Swift calibration dumps are validated by name
+in their own commands, and the compare verdict's schema is exercised by its
+test. The lists below are a selection, not every file. Their headings are the
+Makefile's `[Phase N]` build groups; the eval, calibration and sidecar schemas
+are listed under Phase 3.
 
 ## The template
 

@@ -514,7 +514,7 @@ $(STAMP_DIR)/vectors: $(VECTORS_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,vectors,$(RESECTA_DATA) build vectors all --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
 
 .PHONY: vectors
-vectors: $(STAMP_DIR)/vectors  ## [Phase 1] Build the structural test vectors (one file per PII family)
+vectors: $(STAMP_DIR)/vectors  ## [Phase 1] Build the structural test vectors (one file per vector family)
 
 $(STAMP_DIR)/fuzz: $(FUZZ_PY) $(COMMON_DEPS) | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,fuzz,$(RESECTA_DATA) build fuzz redos --build-dir $(BUILD_DIR) --seed $(RESECTA_SEED))
@@ -1189,7 +1189,7 @@ reap-orphans: ## Send SIGTERM, then SIGKILL after 5 s, to detected orphan worker
 # -----------------------------------------------------------------------------
 
 .PHONY: clean
-clean: ## Remove build/, including its five committed files (git checkout -- build restores them)
+clean: ## Remove build/, including the committed files under it (git checkout -- build restores them)
 	rm -rf $(BUILD_DIR)
 
 .PHONY: distclean

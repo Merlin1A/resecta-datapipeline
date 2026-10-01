@@ -66,7 +66,8 @@ been addressed and coordinated disclosure has been agreed upon.
   crosswalk and the court glossary) refuse to overwrite an existing file, and
   their rows are added by hand. Outside the
   fetchers, the network is used to install the hash-pinned dependencies
-  (`scripts/bootstrap.sh`) and by the dependency audit.
+  (`scripts/bootstrap.sh`), by CI's `uv lock --check` and by the dependency
+  audit.
 - **Hash-locked, deterministic outputs.** `make verify` checks every in-band
   artifact against `asset_hashes.lock` and rebuilds them to compare bytes (the
   rebuild is skipped while its witness shows unchanged inputs;
@@ -77,9 +78,9 @@ been addressed and coordinated disclosure has been agreed upon.
   [`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md).
 
 A third-party raw file the builders read under `src/resecta_data/**/sources/`
-has a row in `SOURCES.md` (license, retrieval URL, retrieval date, SHA-256);
-the ledger is maintained by hand and checked in review. The checks a change
-must pass and the plan-sign-off changes are in `CONTRIBUTING.md`.
+has a row in `SOURCES.md` (license, retrieval URL, retrieval date, SHA-256).
+The checks a change must pass and the plan-sign-off changes are in
+`CONTRIBUTING.md`.
 
 ## Coordinated disclosure
 

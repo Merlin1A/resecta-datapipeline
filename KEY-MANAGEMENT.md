@@ -8,9 +8,9 @@ and what happens when the key is rotated or suspected to be exposed.
 ## What is signed
 
 `make sign-manifest` signs `build/gazetteers/gazetteer_manifest.shipped.json`
-with an Ed25519 key. That manifest lists every other file the pipeline
-installs into the app bundle — all but the manifest itself, its signature and
-the public key — with each file's SHA-256 and byte count. The
+with an Ed25519 key. That manifest lists every other file the pipeline's
+install routes place in the app bundle — all but the manifest itself, its
+signature and the public key — with each file's SHA-256 and byte count. The
 detached signature (`gazetteer_manifest.sig`) and the public key
 (`manifest_public_key.pem`) are installed with the manifest (as
 `gazetteer-manifest.json`) under the engine's `Resources/Gazetteers/`
@@ -55,8 +55,8 @@ openssl pkey -pubin \
 
 The app's test suite pins this fingerprint, and the app repository's
 shipped-asset hash check (`Scripts/verify-shipped-asset-hashes.sh`, run by its
-pull-request gate) pins the key file itself, so a key change that leaves
-either pin behind fails that check.
+pull-request gate) pins the key file itself by its git blob hash, so a key
+change has to move both pins.
 
 ## How the private key is held
 

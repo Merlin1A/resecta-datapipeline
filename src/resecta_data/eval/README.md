@@ -164,9 +164,10 @@ moves.
 - **Corpus-relative, no standards bar.** Precision and recall here are
   properties of the engine *on this synthetic corpus*. A family at recall
   1.0000 has exhausted the corpus's cases for it, not the world's; a family
-  at precision 0.75 says the corpus's decoys fire it; the `per_cell` rows, the
-  `per_doctype` / `per_demographic` slices (pooled over families) and the
-  context-class tables in `g8_span_outcomes.json` say where.
+  at precision 0.75 produces false positives on this corpus; the `per_cell`
+  rows and the `per_doctype` / `per_demographic` slices (pooled over families)
+  in `g8_detection_baseline.json` say where, and the context-class tables in
+  `g8_span_outcomes.json` say which ground-truth shapes are missed.
 - **`low_confidence`** marks a slice under 30 supports; its interval is wide
   and its movement is not evidence on its own.
 - **Site B against the detector site.** `g8_site_gap.json` is the product

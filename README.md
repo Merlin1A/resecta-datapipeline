@@ -7,12 +7,12 @@ Build-time Python tooling that produces the detection data shipped inside the [R
 
 The pipeline lives in its own repository, apart from the app, for four reasons:
 
-- **Its outputs are data, not code.** The app bundles them as resource files. Nothing here is linked into the iOS binary and no Python runs on a device.
+- **Its outputs are data, not code.** The app bundles the detection data as resource files, and its test suite reads the fixtures. Nothing here is linked into the iOS binary and no Python runs on a device.
 - **Third-party inputs stay accounted for.** [`SOURCES.md`](./SOURCES.md) records each raw input's license, URL, retrieval date and SHA-256; [`NOTICE.txt`](./NOTICE.txt) carries the attribution.
-- **Builds are reproducible.** No builder makes a network call: raw inputs are fetched by hand with `scripts/fetch_*.sh`, a separate step from building. `asset_hashes.lock` pins the SHA-256 of every in-band build artifact, and `make verify` rebuilds them and compares bytes.
+- **Builds are reproducible.** No builder makes a network call: raw inputs are fetched with `scripts/fetch_*.sh`, a separate step from building. `asset_hashes.lock` pins the SHA-256 of every in-band build artifact, and `make verify` rebuilds them and compares bytes.
 - **What reaches the app is signed.** The manifest that lists the installed files is signed with Ed25519 on the maintainer's machine, and the app checks the signature and each file's digest at first load ([`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md)).
 
-The couplings to the app repository are two make targets. `make install-assets` copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides). `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Two tests also read the sibling checkout when it is present and skip when it is not.
+The pipeline touches the app repository through make targets. `make install-assets` (with `manifest-assets` inside it) reads and copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides). `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Some tests also read the sibling checkout when it is present and skip when it is not.
 
 Setup, the checks a change must pass and the changes that need an approved plan: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
@@ -24,18 +24,18 @@ Setup, the checks a change must pass and the changes that need an approved plan:
 # One-time setup (Python 3.12; creates .venv/ from the two hash-pinned lockfiles)
 scripts/bootstrap.sh
 
-# What the pull-request gate runs; works on a clean clone, nothing to fetch
+# The pull-request gate's make targets; they work on a clean clone, nothing to fetch
 gmake lint typecheck test
 gmake vectors fuzz adversarial zip-scf corpus classifier gazetteers context rules
 gmake schema-check-only hash-check-built-only
 
-# The full gate, as the weekly workflow runs it: fetch the ParaNames corpus
-# once (about 1 GB), then build every artifact into build/ and verify
+# The full gate: fetch the ParaNames corpus once (about 1 GB), then build
+# every artifact into build/ and verify
 scripts/fetch_paranames.sh
 gmake paranames-shards
 gmake build verify
 
-# Remove build/ (the five committed files under build/ go too; `git checkout -- build` restores them)
+# Remove build/ (the committed files under build/ go too; `git checkout -- build` restores them)
 gmake clean
 
 # Maintainer only: both need the sibling ../resecta checkout and the signing key
@@ -97,7 +97,7 @@ resecta-datapipeline/
 │   ├── instrumentation/     bundle-size probe
 │   └── eval/                the G8 eval derivations — see eval/README.md
 ├── tests/                   pytest suite: unit, determinism, schema and Hypothesis property tests
-└── build/                   generated artifacts (git-ignored except five committed calibration and scorer files)
+└── build/                   generated artifacts (git-ignored except a few committed calibration and scorer files)
 ```
 
 ---
@@ -119,7 +119,7 @@ Primary targets:
   build                Generate all artifacts into build/
   build-fast           Alias — `build` is parallel by default now (BUILD_JOBS=N to override; RAM-capped, see BUILD_JOBS)
   time-build           Run each build phase with per-phase wall-time logging
-  vectors              [Phase 1] Build the structural test vectors (one file per PII family)
+  vectors              [Phase 1] Build the structural test vectors (one file per vector family)
   fuzz                 [Phase 1] Build ReDoS fuzz payloads
   zip-scf              [Phase 1] Build ZIP → SCF → state table (Census ZCTA if present, else HUD bootstrap)
   adversarial          [Phase 1] Build adversarial pattern fixtures
@@ -169,7 +169,7 @@ Primary targets:
   doctor               Print environment health summary (read-only)
   doctor-orphans       List stale resecta-data worker processes (read-only)
   reap-orphans         Send SIGTERM, then SIGKILL after 5 s, to detected orphan workers (with confirmation)
-  clean                Remove build/, including its five committed files (git checkout -- build restores them)
+  clean                Remove build/, including the committed files under it (git checkout -- build restores them)
   distclean            Remove build/, .venv/, caches
   all                  Build, verify, and install into Swift tree
   freeze               Regenerate both pip lockfiles (then `uv lock`; CI checks uv.lock)
@@ -188,7 +188,7 @@ Phase 3b: 'make calibrate' is out-of-band. It requires Swift-side softmax + dete
 
 Generated from the make database by `scripts/etl_graph.py` (`make graph`; `make lint` checks it is current): the phase-tagged build targets and the verify / eval / install chain, with an edge wherever one target, or its stamp, is a prerequisite of another. A phase whose every stamped target feeds `build` is drawn as one edge; Phase 2 stays expanded because the nicknames gazetteer joins `build` only when its fetched source is present.
 
-The `[Phase N]` tags are the Makefile's own grouping of the builders: Phase 1 is the structural test vectors, the fuzz payloads, the adversarial fixtures and the ZIP table; Phase 2 the name filters, the gazetteers, the context keywords, the rule catalog and the coverage report; Phase 3 the classifier assets, the corpus, the bucket-recall report and the bundle-size probe; Phase 3b the calibration steps, which read score dumps produced on the Swift side and run outside `make build`.
+The `[Phase N]` tags are the Makefile's own grouping of the builders: Phase 1 is the structural test vectors, the fuzz payloads, the adversarial fixtures and the ZIP table; Phase 2 the name filters, the gazetteers, the context keywords, the rule catalog and the coverage report; Phase 3 the classifier assets, the corpus, the bucket-recall report and the bundle-size probe; Phase 3b the calibration steps, which start from score dumps produced on the Swift side and run outside `make build`.
 
 <!-- etl-graph:begin -->
 ```mermaid
@@ -296,7 +296,7 @@ The large ParaNames corpus (`paranames_full.tsv.gz`, about 1 GB) is **not commit
 
 Three workflow files run on this repository (GitHub's CodeQL default setup runs beside them):
 
-- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets disabled. Its `gate` job is the required check on `main`.
+- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`.
 - **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
 - **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Findings are reported, never gating.
 
@@ -322,4 +322,4 @@ Invariants that hold over a whole input space are tested with [Hypothesis](https
 
 ## Licensing
 
-Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file the builders read under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED` map; the datasets deferred on legal review are listed in `SOURCES.md`. The ledger is maintained by hand and checked in review; no automated check validates it as a whole.
+Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file the builders read under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED` map; the datasets deferred on legal review are listed in `SOURCES.md`. No automated check validates the ledger as a whole; it is reviewed by hand.

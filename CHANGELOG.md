@@ -40,12 +40,12 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   sources, and a supply-chain workflow (pip-audit, OSV-Scanner, SBOM); the dev
   tools are hash-pinned in `requirements-dev.lock`; `make lint` covers
   `scripts/`.
-- Evaluation: `make eval` and the `build eval-baseline`, `eval-sitegap`,
-  `eval-compare`, `eval-documents` and `eval-compare-documents` commands
-  measure the engine on the G8 corpus and compare two runs; the contract and a
-  sample verdict are in `src/resecta_data/eval/`. The corpus generator gains
-  profiles for evaluation only, and `build fuzz pdf-mutations` writes damaged
-  copies of a PDF for importer testing.
+- Evaluation: `make eval` and the `build eval-sitegap`, `eval-documents` and
+  `eval-compare-documents` commands join `eval-baseline` and `eval-compare`
+  to measure the engine on the G8 corpus and compare two runs; the contract
+  and a sample verdict are in `src/resecta_data/eval/`. The corpus generator
+  gains profiles for evaluation only, and `build fuzz pdf-mutations` writes
+  damaged copies of a PDF for importer testing.
 
 ### Changed
 
@@ -58,10 +58,9 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 - The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
   public-key fingerprint and keeps the retired one in its history table. The shipped manifest and
   every asset it lists are unchanged; only the detached signature and the bundled public key moved.
-- Documentation: shorter code of conduct; README/CONTRIBUTING/SECURITY trimmed and corrected.
-- Documentation: the public documents re-checked line by line against the tree — the quickstart
-  (a clean clone runs the pull-request gate's targets; the full gate needs the ParaNames fetch),
-  the workflow triggers, the key-custody page, the eval contract and eight `make help` lines.
+- Documentation: shorter code of conduct; the public documents trimmed and re-checked against
+  the tree (the quickstart, the workflow triggers, the key-management page, the eval contract,
+  the `make help` lines).
 - Curated context assets change under a written, approved change plan; the
   reviewed negative-context sidecar is re-stamped by the same change.
   Provenance prose in shipped assets no longer cites private planning

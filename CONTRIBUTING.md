@@ -30,8 +30,9 @@ loop only. Beyond that:
 - `tests/test_cli.py` caps `src/resecta_data/cli.py` at 127 lines, never
   raised; `.venv/bin/python tests/test_cli_help_golden.py --write` refreshes
   the pinned `--help` text.
-- The tests run with sockets disabled and need `PYTHONHASHSEED=0`; `gmake test`
-  sets it, and a bare `pytest` exits with a message saying so.
+- The tests run with sockets to anything but loopback disabled and need
+  `PYTHONHASHSEED=0`; `gmake test` sets it, and a bare `pytest` exits with a
+  message saying so.
 - After a dependency change, `scripts/freeze_deps.sh` regenerates the two pip
   lockfiles and `uv lock` refreshes `uv.lock`; CI's `uv lock --check` fails
   when `uv.lock` is stale against `pyproject.toml`.
@@ -43,9 +44,9 @@ loop only. Beyond that:
   seed `20260416`), no wall-clock content, artifact JSON written only through
   `common/io.py::dump_canonical_json`. If `asset_hashes.lock` moves, the
   commit body says why.
-- **No network in builders or tests.** Raw inputs are fetched by hand, a
-  separate step from building; how they are pinned is in `SECURITY.md`,
-  "Supply-chain posture".
+- **No network in builders or tests.** Raw inputs are fetched in a separate
+  step from building; how they are pinned is in `SECURITY.md`, "Supply-chain
+  posture".
 - **License provenance.** A third-party raw file the builders read under
   `src/resecta_data/**/sources/` has a `SOURCES.md` row; the rules are
   `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED`
@@ -55,11 +56,13 @@ loop only. Beyond that:
   describe the mechanism, not an outcome; the banned-phrase list is
   `common/mechanism_language.py`.
 
-`gmake verify` (the `asset_hashes.lock` check and the determinism rebuild) and
-the tests' socket ban enforce the first two. License provenance is checked in
-review. Mechanism language is checked in review as well; in addition, the
-builders run the scanner on the notes they emit, and a test runs it over the
-schemas and modules `tests/test_phase2_mechanism_language.py` names.
+`gmake verify` (the `asset_hashes.lock` check and the determinism rebuild)
+enforces the first. The second is enforced for the tests by pytest's socket
+ban; the builders import no network library, which review keeps true. License
+provenance is checked in review. Mechanism language is checked in review as
+well; in addition, the classifier, negative-corpus and eval builders run the
+scanner on the notes they emit, and a test runs it over the schemas and
+modules `tests/test_phase2_mechanism_language.py` names.
 
 ## Structure
 
@@ -72,8 +75,8 @@ into the package module, where the logic lives beside its siblings.
 Curated context assets change only under a written change plan approved by the
 maintainer before the edit — the asset, the rows or fields, the reason, and
 the regeneration and verification steps. The pull-request review checks that
-the plan was carried out, not each row. The same posture covers (paths under
-`src/resecta_data/`):
+the plan was carried out, not each row. The same posture covers (source paths
+are under `src/resecta_data/`):
 
 - the negative-context scope rules
   (`gazetteers/negative_context/sources/scope_rules_v1.json`) and the reviewed

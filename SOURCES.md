@@ -12,7 +12,7 @@ review.
 | Column | Meaning |
 |---|---|
 | Path | POSIX path relative to the repository root, pointing at the raw file (one row describes the derived, uncommitted ParaNames shards) |
-| License | SPDX-style identifier, the allowlist being `common/licensing.py`'s `ALLOWLIST`; the candidate-file rows carry a prose license note instead |
+| License | SPDX-style identifier, the allowlist being `common/licensing.py`'s `ALLOWLIST`; a few rows carry a prose license note instead |
 | URL | The URL the file was fetched from (for reproducibility) |
 | Retrieved | ISO date (`YYYY-MM-DD`) when the file was fetched |
 | SHA-256 | 64-character lowercase hex digest of the raw file |

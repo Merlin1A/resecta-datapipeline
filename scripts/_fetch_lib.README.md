@@ -1,15 +1,16 @@
 # `_fetch_lib.sh` — the shared fetcher library
 
 Shared bash library sourced by the ten `scripts/fetch_*.sh` wrappers that
-append `SOURCES.md` rows; the other five (`fetch_paranames.sh` among them;
-`fetch_finra_members.sh` is a parked stub that downloads nothing) run without
-it, and their rows are pinned by hand. It distils the patterns those fetchers
+append `SOURCES.md` rows. The other five run without it: `fetch_paranames.sh`
+and the HUD and court-glossary fetchers, whose rows are pinned by hand, and
+two that download nothing (`fetch_census_spanish.sh` prints instructions;
+`fetch_finra_members.sh` is a parked stub). It distils the patterns the ten
 implement:
 
 - live HTTP probe (no silent degraded retrieve)
 - SHA-256 capture-and-commit
 - dated mirror writer (used by `fetch_gsa_agencies.sh` only)
-- `SOURCES.md` row appender (atomic via `flock`, so these fetchers need Linux)
+- `SOURCES.md` row appender (atomic via `flock(1)`, which macOS lacks)
 - idempotency guard on the `SOURCES.md` row (same-day only — see `append_sources_row`)
 
 ## Source pattern (top of every fetcher built on the library)
