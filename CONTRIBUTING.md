@@ -14,28 +14,24 @@ dependencies hash-verified from `requirements.lock` and
 
 ## Checks a change must pass
 
-Changes reach `main` by pull request, and the `gate` job of
+Changes reach `main` by pull request; the `gate` job of
 `.github/workflows/ci.yml` is the required check. What it runs, what the
 weekly workflow adds and what `gmake verify` does locally are described once,
 in the README's "Verification" section. `install-assets` requires the full
-`gmake verify`; `verify-fast` skips the determinism rebuild and is for the dev
-loop only. Beyond that:
+`gmake verify`; `verify-fast` is for the dev loop only. Beyond that:
 
 - `scripts/hygiene_gate.py` fails `make lint` on a planning-identifier shape in
-  a `.py` file under `src/` or `scripts/` (`scripts/hygiene_allowlist.txt`
-  lists the public tokens the shape collides with and the lines exempted by
-  path, each with its reason); other files are reviewed by hand.
+  a `.py` file under `src/` or `scripts/` (exemptions, each with its reason:
+  `scripts/hygiene_allowlist.txt`); other files are reviewed by hand.
 - `gmake readme-targets` and `gmake graph` regenerate the two README blocks
   `make lint` checks for currency.
 - `tests/test_cli.py` caps `src/resecta_data/cli.py` at 127 lines, never
   raised; `.venv/bin/python tests/test_cli_help_golden.py --write` refreshes
   the pinned `--help` text.
-- The tests run with sockets to anything but loopback disabled and need
-  `PYTHONHASHSEED=0`; `gmake test` sets it, and a bare `pytest` exits with a
-  message saying so.
-- After a dependency change, `scripts/freeze_deps.sh` regenerates the two pip
-  lockfiles and `uv lock` refreshes `uv.lock`; CI's `uv lock --check` fails
-  when `uv.lock` is stale against `pyproject.toml`.
+- The tests need `PYTHONHASHSEED=0` (`gmake test` sets it) and run with
+  sockets to anything but loopback disabled.
+- After a dependency change, run `scripts/freeze_deps.sh` and `uv lock`; CI's
+  `uv lock --check` fails when `uv.lock` is stale against `pyproject.toml`.
 
 ## Invariants
 
@@ -43,26 +39,21 @@ loop only. Beyond that:
   is byte-identical across machines and rebuilds: explicit seeds (canonical
   seed `20260416`), no wall-clock content, artifact JSON written only through
   `common/io.py::dump_canonical_json`. If `asset_hashes.lock` moves, the
-  commit body says why.
+  commit body says why. Enforced by `gmake verify`.
 - **No network in builders or tests.** Raw inputs are fetched in a separate
-  step from building; how they are pinned is in `SECURITY.md`, "Supply-chain
-  posture".
+  step (`SECURITY.md`, "Supply-chain posture"). pytest's socket ban enforces
+  it for the tests; the builders import no network library.
 - **License provenance.** A third-party raw file the builders read under
   `src/resecta_data/**/sources/` has a `SOURCES.md` row; the rules are
   `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED`
-  map.
+  map. Checked in review.
 - **Mechanism-description language.** The strings the pipeline emits
   (docstrings, JSON `description` fields, `NOTICE.txt` rows, error messages)
   describe the mechanism, not an outcome; the banned-phrase list is
-  `common/mechanism_language.py`.
-
-`gmake verify` (the `asset_hashes.lock` check and the determinism rebuild)
-enforces the first. The second is enforced for the tests by pytest's socket
-ban; the builders import no network library, which review keeps true. License
-provenance is checked in review. Mechanism language is checked in review as
-well; in addition, the classifier, negative-corpus and eval builders run the
-scanner on the free-form strings they emit, and a test runs it over the
-schemas and modules `tests/test_phase2_mechanism_language.py` names.
+  `common/mechanism_language.py`. Checked in review; the classifier,
+  negative-corpus and eval builders also run the scanner on the free-form
+  strings they emit, and `tests/test_phase2_mechanism_language.py` runs it
+  over the schemas and modules it names.
 
 ## Structure
 
