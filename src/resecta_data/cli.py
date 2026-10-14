@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
+from types import TracebackType
 
 import click
 
@@ -50,12 +52,17 @@ __all__ = [
 DEBUG_VERBOSITY = 2
 """Verbosity level at which we emit DEBUG-level logs."""
 
+Traceback = TracebackType | None
+ExceptHook = Callable[[type[BaseException], BaseException, Traceback], object]
+_LOCK_OR_SCHEMA_ERRORS = (HashMismatchError, DeterminismError, SchemaValidationError)
+
 
 @click.group()
 @click.option("-v", "--verbose", count=True, help="Increase verbosity (-v, -vv).")
 @click.pass_context
 def main(ctx: click.Context, verbose: int) -> None:
     """Resecta DataPipeline CLI."""
+    _install_exception_handler()
     level = logging.WARNING
     if verbose == 1:
         level = logging.INFO
@@ -94,28 +101,23 @@ classifier.register(main, build_group, build_calibrate_group)
 instrumentation.register(main, build_group, build_calibrate_group)
 
 
-# -----------------------------------------------------------------------------
-# Top-level error handler
-# -----------------------------------------------------------------------------
+class _PipelineExcepthook:
+    """PipelineError subclasses exit cleanly; every other exception reaches the replaced hook."""
+
+    def __init__(self, previous: ExceptHook) -> None:
+        self._previous = previous
+
+    def __call__(self, exc_type: type[BaseException], exc: BaseException, tb: Traceback) -> None:
+        if isinstance(exc, PipelineError):
+            click.echo(f"{exc_type.__name__}: {exc}", err=True)
+            sys.exit(1 if isinstance(exc, _LOCK_OR_SCHEMA_ERRORS) else 2)
+        self._previous(exc_type, exc, tb)
 
 
 def _install_exception_handler() -> None:
-    """Convert PipelineError subclasses into clean CLI exits."""
-    original_excepthook = sys.excepthook
-
-    def handler(exc_type: type[BaseException], exc: BaseException, tb: object) -> None:
-        if isinstance(exc, HashMismatchError | DeterminismError | SchemaValidationError):
-            click.echo(f"{exc_type.__name__}: {exc}", err=True)
-            sys.exit(1)
-        if isinstance(exc, PipelineError):
-            click.echo(f"{exc_type.__name__}: {exc}", err=True)
-            sys.exit(2)
-        original_excepthook(exc_type, exc, tb)  # type: ignore[arg-type]
-
-    sys.excepthook = handler
-
-
-_install_exception_handler()
+    """Install the handler once, from ``main``; importing this module installs nothing."""
+    if not isinstance(sys.excepthook, _PipelineExcepthook):
+        sys.excepthook = _PipelineExcepthook(sys.excepthook)
 
 
 if __name__ == "__main__":

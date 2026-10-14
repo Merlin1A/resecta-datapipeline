@@ -7,8 +7,12 @@ from pathlib import Path
 
 import click
 
-from resecta_data.bloom.ingest_cache import _INGEST_CACHE_SUBDIR
-from resecta_data.commands.bloom import _DEFAULT_SOURCES_DIR, _ingest_given_names, _ingest_surnames
+from resecta_data.bloom.name_sources import (
+    DEFAULT_SOURCES_DIR,
+    ingest_cache_dir,
+    ingest_given_names,
+    ingest_surnames,
+)
 from resecta_data.common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
 from resecta_data.common.io import dump_canonical_json, load_json, sha256_file
 from resecta_data.corpus import build_g8_corpus, build_negative_corpus
@@ -49,7 +53,7 @@ def build_rules_cmd(build_dir: Path, seed: int) -> None:
 @click.option(
     "--sources-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=_DEFAULT_SOURCES_DIR,
+    default=DEFAULT_SOURCES_DIR,
     show_default=True,
 )
 @click.option(
@@ -62,9 +66,9 @@ def build_demographics_cmd(build_dir: Path, sources_dir: Path, seed: int) -> Non
     """Build the demographic coverage report from the current name corpora."""
     assert_hash_seed_pinned()
 
-    cache_dir = build_dir / _INGEST_CACHE_SUBDIR
-    surname_ingest, surname_sources = _ingest_surnames(sources_dir, cache_dir=cache_dir)
-    given_ingest, given_sources = _ingest_given_names(sources_dir, cache_dir=cache_dir)
+    cache_dir = ingest_cache_dir(build_dir)
+    surname_ingest, surname_sources = ingest_surnames(sources_dir, cache_dir=cache_dir)
+    given_ingest, given_sources = ingest_given_names(sources_dir, cache_dir=cache_dir)
 
     payload = build_demographics(
         seed,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from resecta_data.commands.bloom import _DEFAULT_SOURCES_DIR
+from resecta_data.bloom.name_sources import DEFAULT_SOURCES_DIR
 from resecta_data.common.cutover import build_cutover_diff
 from resecta_data.common.determinism import CANONICAL_SEED, assert_hash_seed_pinned
 from resecta_data.common.io import dump_canonical_json
@@ -90,7 +90,7 @@ def build_zip_scf_cmd(
 @click.option(
     "--sources-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=_DEFAULT_SOURCES_DIR / "negative_context",
+    default=DEFAULT_SOURCES_DIR / "negative_context",
     show_default=True,
 )
 @click.option(

@@ -11,12 +11,16 @@ from resecta_data.bloom import (
     NAME_FILTERS_CUTOVER,
     BloomFilter,
     FilterBuildResult,
+    IngestResult,
     build_manifest,
     optimal_bits,
 )
-from resecta_data.bloom.corpus_ingest import IngestResult
-from resecta_data.bloom.ingest_cache import _INGEST_CACHE_SUBDIR, _ingest_with_cache
-from resecta_data.bloom.paranames_specs import _given_name_ingest_specs, _surname_ingest_specs
+from resecta_data.bloom.name_sources import (
+    DEFAULT_SOURCES_DIR,
+    ingest_cache_dir,
+    ingest_given_names,
+    ingest_surnames,
+)
 from resecta_data.bloom.spec import (
     FPR_TARGET,
     GIVEN_NAME_FILTER_FILE,
@@ -40,36 +44,6 @@ _BUILD_MONTH = (CANONICAL_SEED // 100) % 100
 _BUILD_DAY = CANONICAL_SEED % 100
 _DEFAULT_BUILD_DATE = f"{_BUILD_YEAR:04d}-{_BUILD_MONTH:02d}-{_BUILD_DAY:02d}T00:00:00Z"
 
-_DEFAULT_SOURCES_DIR = Path("src/resecta_data/gazetteers/sources")
-
-
-def _ingest_surnames(
-    sources_dir: Path,
-    *,
-    workers: int | None = None,
-    cache_dir: Path | None = None,
-) -> tuple[IngestResult, list[str]]:
-    return _ingest_with_cache(
-        specs=_surname_ingest_specs(sources_dir),
-        workers=workers,
-        cache_dir=cache_dir,
-        cache_name="surnames.json",
-    )
-
-
-def _ingest_given_names(
-    sources_dir: Path,
-    *,
-    workers: int | None = None,
-    cache_dir: Path | None = None,
-) -> tuple[IngestResult, list[str]]:
-    return _ingest_with_cache(
-        specs=_given_name_ingest_specs(sources_dir),
-        workers=workers,
-        cache_dir=cache_dir,
-        cache_name="given-names.json",
-    )
-
 
 def _build_one_filter(ingest: IngestResult, seed: int) -> tuple[BloomFilter, int]:
     m = max(optimal_bits(len(ingest.rows), FPR_TARGET), 8)
@@ -86,7 +60,7 @@ def _build_one_filter(ingest: IngestResult, seed: int) -> tuple[BloomFilter, int
 @click.option(
     "--sources-dir",
     type=click.Path(file_okay=False, path_type=Path),
-    default=_DEFAULT_SOURCES_DIR,
+    default=DEFAULT_SOURCES_DIR,
     show_default=True,
     help="Directory containing the name-corpus source subdirectories.",
 )
@@ -106,9 +80,9 @@ def build_bloom_cmd(build_dir: Path, sources_dir: Path, seed: int, build_date: s
     """Build surnames.bloom + given-names.bloom + gazetteer_manifest.json."""
     assert_hash_seed_pinned()
 
-    cache_dir = build_dir / _INGEST_CACHE_SUBDIR
-    surname_ingest, surname_sources = _ingest_surnames(sources_dir, cache_dir=cache_dir)
-    given_ingest, given_sources = _ingest_given_names(sources_dir, cache_dir=cache_dir)
+    cache_dir = ingest_cache_dir(build_dir)
+    surname_ingest, surname_sources = ingest_surnames(sources_dir, cache_dir=cache_dir)
+    given_ingest, given_sources = ingest_given_names(sources_dir, cache_dir=cache_dir)
 
     surname_bf, surname_m = _build_one_filter(surname_ingest, seed)
     given_bf, given_m = _build_one_filter(given_ingest, seed)
