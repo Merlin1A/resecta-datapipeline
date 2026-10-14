@@ -3,12 +3,12 @@
 `test_stamp_key.py` proves the keyer; this file proves the *wiring* — the
 part a quiet Makefile edit could weaken without any Python test noticing:
 
-1. **Closure membership** (real Makefile, via `make -np` database): every
+1. **Closure membership** (real Makefile, via its printed database): every
    stamp rule's prerequisites still cover the input classes the key must
    cover — cli.py, routes.py, commands/ + all of common/ everywhere; per-builder sources on their
-   stamp; the bloom data corpus on bloom; the 17 stamps + asset_hashes.lock
-   on the determinism witness. The key hashes ``$^``, so prereq coverage IS
-   key coverage (reviewer R2's floor for #4).
+   stamp; the bloom data corpus on bloom; every ``BUILD_STAMPS`` stamp +
+   asset_hashes.lock, and nothing else, on the determinism witness. The key
+   hashes ``$^``, so prereq coverage IS key coverage (reviewer R2's floor for #4).
 2. **Recipes consult the keyer over ``$@ $^``** — nobody can drop the
    mechanism or hand it a hand-rolled file list without failing here.
 3. **End-to-end pattern harness** (fixture Makefile in a tmpdir): mtime-only
@@ -66,41 +66,59 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
-@pytest.fixture(scope="module")
-def make_db() -> str:
-    """The real Makefile's parsed database (rules with expanded prereqs)."""
+def _read_make_db(env: dict[str, str]) -> str:
+    """The real Makefile's parsed database (rules with expanded prereqs), recipe-free.
+
+    ``-p`` prints the database; the only goal is an empty rule supplied on the
+    command line, so no recipe runs — ``-n``, ``-q`` and ``-t`` would all still
+    execute recipe lines that call ``$(MAKE)``.
+    """
     assert _MAKE is not None
     result = subprocess.run(  # noqa: S603 — fixed argv against the repo Makefile
-        [_MAKE, "-np", "-f", "Makefile"],
+        [_MAKE, "-p", "-f", "Makefile", "--eval=__make_db__: ;", "__make_db__"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        env=_clean_env(),
+        env=env,
         check=False,
     )
-    assert result.stdout, f"make -np produced no database: {result.stderr[-2000:]}"
+    assert result.stdout, f"make -p produced no database: {result.stderr[-2000:]}"
     return result.stdout
 
 
-STAMPS = [
-    "vectors",
-    "fuzz",
-    "zip-scf",
-    "adversarial",
-    "bloom",
-    "gaz-negctx",
-    "gaz-institutions",
-    "gaz-address",
-    "passport-patterns",
-    "dl-patterns",
-    "context",
-    "rules",
-    "demographics",
-    "classifier",
-    "corpus",
-    "g8-bucket-recall",
-    "bundle-size",
-]
+@pytest.fixture(scope="module")
+def make_db() -> str:
+    return _read_make_db(_clean_env())
+
+
+def _build_stamps_from_makefile() -> list[str]:
+    """The stamp names of the Makefile's ``BUILD_STAMPS =`` assignment, read from
+    the source text with its ``\\`` continuations joined — no make process runs.
+    ``$(GAZ_NICKNAMES_STAMP)`` counts only when the Makefile's own condition
+    holds (a fetched nicknames source under ``gazetteers/nicknames/sources/``)."""
+    lines = (REPO_ROOT / "Makefile").read_text(encoding="utf-8").splitlines()
+    start = next(i for i, line in enumerate(lines) if re.match(r"^BUILD_STAMPS\s*=", line))
+    joined = lines[start].split("=", 1)[1]
+    while joined.rstrip().endswith("\\"):
+        start += 1
+        joined = joined.rstrip()[:-1] + " " + lines[start]
+    nicknames_fetched = any(
+        (REPO_ROOT / "src/resecta_data/gazetteers/nicknames/sources").glob("nicknames_cc0_*.csv")
+    )
+    stamps: list[str] = []
+    for word in joined.split():
+        if (m := re.fullmatch(r"\$\(STAMP_DIR\)/([A-Za-z0-9_-]+)", word)) is not None:
+            stamps.append(m.group(1))
+        elif word == "$(GAZ_NICKNAMES_STAMP)":
+            if nicknames_fetched:
+                stamps.append("gaz-nicknames")
+        else:
+            raise AssertionError(f"unrecognised BUILD_STAMPS word {word!r}")
+    assert stamps, "BUILD_STAMPS parsed empty"
+    return stamps
+
+
+STAMPS = _build_stamps_from_makefile()
 
 
 def _rule(db: str, target: str) -> tuple[list[str], str]:
@@ -201,10 +219,15 @@ def test_builder_sources_stay_in_their_stamp_closure(make_db: str) -> None:
 
 
 def test_witness_covers_all_stamps_and_lock(make_db: str) -> None:
+    """The witness key is exactly every ``BUILD_STAMPS`` stamp plus the lock: a
+    stamp missing here is a builder whose inputs the determinism rebuild
+    would never notice changing."""
     prereqs, _ = _rule(make_db, "build/.stamps/.determinism-witness")
     expected = {f"build/.stamps/{s}" for s in STAMPS} | {"asset_hashes.lock"}
     missing = expected - set(prereqs)
+    extra = set(prereqs) - expected
     assert not missing, f"witness lost closure coverage of: {sorted(missing)}"
+    assert not extra, f"witness keys on files outside BUILD_STAMPS + the lock: {sorted(extra)}"
 
 
 def test_stamp_recipes_consult_the_keyer_over_make_prereqs(make_db: str) -> None:
