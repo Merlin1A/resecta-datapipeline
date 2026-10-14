@@ -692,13 +692,15 @@ g8-bucket-recall: $(STAMP_DIR)/g8-bucket-recall  ## [Phase 3] Build the G8 bucke
 
 # Bundle-size build probe (engineer-facing only).
 # Walks gazetteers / context / rules / calibration / vectors and emits per-
-# artifact byte counts. Depends on the artifact-producing stamps so a clean
-# build orders this step last; calibration/ being absent is handled by the
-# probe itself (empty payload). The Swift cold-start hook is the
-# deferred Mac-side half.
+# artifact byte counts. Depends on EVERY stamp that writes into a walked
+# directory, so the probe lists the same files whether it runs after a full
+# build or on its own (the lock row holds only when the listing is complete);
+# calibration/ being absent is handled by the probe itself (empty payload).
+# The Swift cold-start hook is the deferred Mac-side half.
 $(STAMP_DIR)/bundle-size: $(INSTRUMENTATION_PY) $(COMMON_DEPS) \
     $(STAMP_DIR)/vectors $(STAMP_DIR)/zip-scf $(STAMP_DIR)/bloom \
     $(STAMP_DIR)/gaz-negctx $(STAMP_DIR)/gaz-institutions $(STAMP_DIR)/gaz-address \
+    $(STAMP_DIR)/gaz-common-words $(GAZ_NICKNAMES_STAMP) \
     $(STAMP_DIR)/passport-patterns $(STAMP_DIR)/dl-patterns $(STAMP_DIR)/context \
     $(STAMP_DIR)/rules | $(VENV_DIR)/pyvenv.cfg
 	$(call keyed_stamp,bundle-size,$(RESECTA_DATA) build bundle-size --build-dir $(BUILD_DIR))

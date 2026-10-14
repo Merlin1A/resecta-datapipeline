@@ -246,6 +246,7 @@ graph LR
   n_gazetteers_negative_context --> n_bundle_size
   n_gazetteers_institutions --> n_bundle_size
   n_gazetteers_address_components --> n_bundle_size
+  n_gazetteers_name_common_words --> n_bundle_size
   n_passport_patterns --> n_bundle_size
   n_dl_patterns --> n_bundle_size
   n_context --> n_bundle_size
