@@ -58,3 +58,47 @@ jobs:
         run: make schema-check-only
       - name: Hash check (built artifacts only)
         run: make hash-check-built-only
+
+  # The name Bloom filters and the artifacts built from them need the ParaNames
+  # corpus, which only the weekly verify workflow fetches. This job restores that
+  # workflow's cache (a restore only: it never fetches the corpus and never
+  # saves) and, on a hit, builds the bloom chain and checks it against the lock.
+  # On a miss it prints a warning and ends; the weekly run re-seeds the cache.
+  # Not a required check.
+  bloom-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Read the pinned paranames SHA-256 from SOURCES.md
+        id: paranames
+        run: |
+          sha="$(awk -F'|' '$2 ~ /paranames_full\.tsv\.gz/ { gsub(/ /, "", $6); print $6 }' SOURCES.md)"
+          if [ -z "$sha" ]; then
+            echo "SOURCES.md paranames row not found" >&2
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - name: Restore the paranames corpus and shards (restore only)
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            src/resecta_data/gazetteers/sources/paranames/paranames_full.tsv.gz
+            src/resecta_data/gazetteers/sources/paranames/shards
+          key: paranames-${{ steps.paranames.outputs.sha }}
+      - name: No cached corpus
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: echo "::warning::paranames cache miss (key paranames-${{ steps.paranames.outputs.sha }}); the bloom chain was not built on this run — the weekly verify workflow re-seeds the cache"
+      - name: Bootstrap (hash-verified lockfiles)
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: scripts/bootstrap.sh
+      - name: Bloom chain
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: make bloom demographics g8-bucket-recall bundle-size
+      - name: Hash check (built artifacts only)
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: make hash-check-built-only

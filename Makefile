@@ -858,7 +858,7 @@ schema-check: bootstrap build schema-check-only ## Validate every build/ artifac
 # iter_build_artifacts (common/io.py: bea1904), so the witness file is
 # invisible to schema-check / hash-check / determinism-check's own diff.
 #
-# RESECTA_FORCE_DETERMINISM=1 bypasses the witness and always runs the
+# RESECTA_FORCE_DETERMINISM=1 (the value 1 only) bypasses the witness and always runs the
 # rebuild. CI sets this so a future cache layer cannot silently skip the
 # determinism gate (Patch P, Subagent 4 wires the workflow env).
 DETERMINISM_WITNESS := $(STAMP_DIR)/.determinism-witness
@@ -891,7 +891,7 @@ $(DETERMINISM_WITNESS): $(WITNESS_KEY_INPUTS) | $(VENV_DIR)/pyvenv.cfg
 	@touch $@
 
 .PHONY: determinism-check
-determinism-check: bootstrap $(if $(RESECTA_FORCE_DETERMINISM),determinism-check-force,$(DETERMINISM_WITNESS)) ## Rebuild artifacts and diff (cached via .stamps/.determinism-witness; RESECTA_FORCE_DETERMINISM=1 to bypass)
+determinism-check: bootstrap $(if $(filter 1,$(RESECTA_FORCE_DETERMINISM)),determinism-check-force,$(DETERMINISM_WITNESS)) ## Rebuild artifacts and diff (cached via .stamps/.determinism-witness; RESECTA_FORCE_DETERMINISM=1 to bypass)
 
 .PHONY: determinism-check-force
 determinism-check-force: bootstrap ## Determinism check with the witness cache bypassed (rebuild and diff every artifact)

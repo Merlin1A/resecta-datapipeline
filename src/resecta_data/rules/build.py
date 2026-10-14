@@ -135,7 +135,7 @@ def build(seed: int, *, source_path: Path | None = None) -> dict[str, Any]:
         expected_count=_EXPECTED_TOTAL,
         count_note=(
             ". Catalog is closed at the currently-shipping Swift detectors "
-            "(17 PIIDetector.detect detectors with the MRN 3-way split, plus "
+            "(18 PIIDetector.detect detectors with the MRN 3-way split, plus "
             "the two rect-based visual detectors, plus pii.routing_number.v1). "
             "pii.dd.v1 + pii.audit.v1 + pii.icn.v1 ship separately with their "
             "own chain."
