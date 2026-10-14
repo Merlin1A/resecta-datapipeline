@@ -248,6 +248,19 @@ def test_stamp_recipes_consult_the_keyer_over_make_prereqs(make_db: str) -> None
     assert "verify-determinism" in witness_recipe, "witness no longer runs the rebuild"
 
 
+def test_force_determinism_zero_takes_the_witness_path() -> None:
+    """``RESECTA_FORCE_DETERMINISM=0`` means the witness path (``scripts/ci_verify.sh``
+    says so); only the value ``1`` selects the forced rebuild."""
+    for value, expected, rejected in (
+        ("0", "build/.stamps/.determinism-witness", "determinism-check-force"),
+        ("1", "determinism-check-force", "build/.stamps/.determinism-witness"),
+    ):
+        db = _read_make_db({**_clean_env(), "RESECTA_FORCE_DETERMINISM": value})
+        prereqs, _ = _rule(db, "determinism-check")
+        assert expected in prereqs, f"RESECTA_FORCE_DETERMINISM={value}: {prereqs}"
+        assert rejected not in prereqs, f"RESECTA_FORCE_DETERMINISM={value}: {prereqs}"
+
+
 def test_force_path_never_consults_the_key(make_db: str) -> None:
     """CI's RESECTA_FORCE_DETERMINISM path must stay unconditional: it may
     write the key after a green rebuild but must never *check* one."""
