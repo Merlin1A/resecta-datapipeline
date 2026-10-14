@@ -15,6 +15,7 @@ not tripped.
 
 from __future__ import annotations
 
+import hashlib
 import struct
 import zipfile
 from pathlib import Path
@@ -22,6 +23,7 @@ from pathlib import Path
 import pytest
 
 from resecta_data.common.cutover import build_cutover_diff
+from resecta_data.common.exceptions import HashMismatchError, MissingSourceError
 from resecta_data.common.io import dump_canonical_json
 from resecta_data.common.schema import validate_file
 from resecta_data.gazetteers.address_components import (
@@ -29,6 +31,10 @@ from resecta_data.gazetteers.address_components import (
 )
 from resecta_data.gazetteers.address_components import (
     build as build_address_components,
+)
+from resecta_data.gazetteers.address_components.build import (
+    _TIGER_PLACE_DIR,
+    _tiger_source_rows,
 )
 from resecta_data.gazetteers.address_components.parse_census_counties import (
     parse_census_counties,
@@ -428,6 +434,38 @@ def test_sources_record_matches_raw_sha() -> None:
     assert fips_06 is not None
     assert fips_06["sha256"] == "81b827124043164a93d442f6dc4c088fd56c319da14195e4a14ab0fb39656a42"
     assert fips_06["retrieval_date"] == "2026-04-27"
+
+
+def test_tiger_source_rows_read_the_sidecar_and_check_it(tmp_path: Path) -> None:
+    """The provenance row's sha256 comes from the archive's ``.zip.sha256`` sidecar
+    and is checked against the archive's bytes: a sidecar that disagrees with
+    its zip, or a missing sidecar, stops the build instead of being emitted."""
+    tiger_dir = tmp_path / "tiger"
+    tiger_dir.mkdir()
+    zip_path = _write_synthetic_tiger_zip(tiger_dir, [("Good Hope", "Good Hope city")])
+    digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+    sidecar = tiger_dir / f"{zip_path.name}.sha256"
+    table = (("00", "2026-04-28"),)
+
+    sidecar.write_text(digest + "\n", encoding="ascii")
+    assert _tiger_source_rows(tiger_dir, table) == [
+        {"id": "tiger_place_2024_00", "sha256": digest, "retrieval_date": "2026-04-28"}
+    ]
+
+    sidecar.write_text("0" * 64 + "\n", encoding="ascii")
+    with pytest.raises(HashMismatchError, match=r"tl_2024_00_place\.zip"):
+        _tiger_source_rows(tiger_dir, table)
+
+    sidecar.unlink()
+    with pytest.raises(MissingSourceError):
+        _tiger_source_rows(tiger_dir, table)
+
+
+def test_committed_tiger_sidecars_match_their_archives() -> None:
+    """Every committed TIGER PLACE archive hashes to its sidecar (51 states + DC)."""
+    rows = _tiger_source_rows(_TIGER_PLACE_DIR)
+    assert len(rows) == 51
+    assert [r["id"] for r in rows] == sorted(r["id"] for r in rows)
 
 
 def test_known_cities_and_counties_present() -> None:
