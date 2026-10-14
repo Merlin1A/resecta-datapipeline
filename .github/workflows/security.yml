@@ -40,11 +40,16 @@ jobs:
           python-version: "3.12"
       - name: Audit the locked dependency set
         run: |
-          # pip-audit at the version the dev lock pins, hash-verified with the
-          # rest of the locked set (the copy `make security-check` runs).
-          python -m pip install --quiet --require-hashes -r requirements.lock -r requirements-dev.lock
+          # pip-audit at the version the dev lock pins. The two locks are read
+          # as the pinned rows they are (--no-deps --disable-pip): nothing is
+          # installed to audit them, so an install-time gap cannot stand in
+          # for the audit. (Installing the locked set here failed on every
+          # run under the old continue-on-error: pip-tools depends on
+          # setuptools, which the dev lock does not pin, and pip's hash mode
+          # refuses it on a fresh runner venv; the audit never ran.)
+          python -m pip install --quiet "pip-audit==2.10.1"
           set +e
-          python -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes 2>&1 | tee audit.txt
+          python -m pip_audit -r requirements.lock -r requirements-dev.lock --no-deps --disable-pip --strict 2>&1 | tee audit.txt
           rc="${PIPESTATUS[0]}"
           {
             echo "## pip-audit"
