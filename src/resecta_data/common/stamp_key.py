@@ -10,7 +10,7 @@ closure (``$^``): one ``sha256  path`` line per tracked input, sorted by
 path. A stamp recipe asks ``check`` before running its builder; on a match
 the builder is skipped and the stamp is merely re-touched, on a miss the
 builder runs and ``write`` records the new manifest. The determinism
-witness uses the same mechanism over the 17 stamp files plus
+witness uses the same mechanism over every build stamp plus
 ``asset_hashes.lock``, so its key transitively covers every tracked input
 of every builder.
 
@@ -24,8 +24,8 @@ the determinism gate itself continues to verify on every content change.
 
 Invoked from Makefile recipes as
 ``python -m resecta_data.common.stamp_key {check|write} STAMP FILE...``.
-Imports are kept to stdlib so the ~17 invocations of a full re-key stay
-interpreter-startup-cheap.
+Imports are kept to stdlib so the one-per-stamp invocations of a full re-key
+stay interpreter-startup-cheap.
 """
 
 from __future__ import annotations

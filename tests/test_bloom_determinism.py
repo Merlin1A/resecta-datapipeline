@@ -20,7 +20,7 @@ from resecta_data.bloom.corpus_ingest import (
     parse_popnames_by_type,
     parse_ssa_given_names,
 )
-from resecta_data.commands.bloom import _ingest_surnames
+from resecta_data.bloom.name_sources import ingest_surnames
 from resecta_data.common.determinism import CANONICAL_SEED
 
 _SOURCES = Path(__file__).parent.parent / "src" / "resecta_data" / "gazetteers" / "sources"
@@ -126,7 +126,7 @@ def test_build_is_deterministic_with_parallel_ingest(
 ) -> None:
     """Varying ingest worker count must not change the bloom artifact bytes.
 
-    Uses ``_ingest_surnames`` over a bootstrap-only sources tree so the
+    Uses ``ingest_surnames`` over a bootstrap-only sources tree so the
     parallel ingest code path runs end-to-end under each worker count, and
     the resulting filter serialization is compared against the workers=1
     baseline for byte-equality.
@@ -135,7 +135,7 @@ def test_build_is_deterministic_with_parallel_ingest(
     sources_dir = _build_small_sources_dir(tmp_path)
 
     def _build_artifact(w: int) -> bytes:
-        ingest, _ = _ingest_surnames(sources_dir, workers=w)
+        ingest, _ = ingest_surnames(sources_dir, workers=w)
         m = optimal_bits(len(ingest.rows), 0.001)
         bf = BloomFilter.empty(m=m, k=10, seed=CANONICAL_SEED)
         for key in ingest.rows:

@@ -1,10 +1,10 @@
 """Read multi-source name corpora and emit sorted, normalized insertion lists.
 
-The ingest step is where source formats meet the filter. Each corpus has a
-small parser (row count, column index, optional demographic tags); the merge
-step deduplicates across sources, normalizes via ``nfkc_lower``, sorts, and
-emits a list suitable for both insertion into the Bloom filter and hashing for
-the RSBF header.
+The ingest step is where source formats meet the filter. Each record-per-name
+corpus is one row of a format table read by a single parser (the streaming
+ParaNames dump has its own reader); the merge step deduplicates across sources,
+normalizes via ``nfkc_lower``, sorts, and emits a list suitable for both
+insertion into the Bloom filter and hashing for the RSBF header.
 
 All parsers here are pure: file bytes in, dict out. No network, no caching.
 """
@@ -18,8 +18,9 @@ import io
 import itertools
 import os
 import zipfile
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, TextIO
@@ -93,36 +94,58 @@ class IngestResult:
 
 
 # ---- Per-corpus parsers ----------------------------------------------------
+# Every record-per-name corpus reads through ``_parse_corpus`` under one
+# ``_CorpusFormat`` row; the public ``parse_*`` entries keep their signatures
+# (``bloom/paranames_specs.py`` pickles them into the process pool). The
+# streaming ParaNames dump keeps its own reader, ``parse_paranames_full``.
+
+type _Record = Sequence[str] | Mapping[str, str | None]
+type _Bucket = Callable[[Mapping[str, str | None], int], str]
 
 
-def parse_ssa_given_names(path: Path, source_id: str) -> list[IngestedRow]:
-    """Parse an SSA baby-names file.
+@dataclass(frozen=True, slots=True)
+class _CorpusFormat:
+    """How one record-per-name corpus opens and where the name sits in a record:
+    ``shape`` is ``"fields"`` (``csv.reader`` rows), ``"header"`` (``csv.DictReader``
+    rows, ``required`` columns checked), ``"lines"`` (a name per line) or ``"tsv"``
+    (tab-split lines; a line starting with ``header_prefix`` is the header);
+    ``name`` is the name field (an index, or a column for ``"header"``)."""
 
-    The SSA ships yob<year>.txt in the format ``Name,Sex,Count``; the bootstrap
-    sample uses the same layout. Demographic is always ``unlabeled`` — SSA
-    records do not carry ethnicity.
-    """
-    if not path.is_file():
-        raise MissingSourceError(f"SSA given-names file not found at {path}")
-    rows: list[IngestedRow] = []
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        reader = csv.reader(fh)
-        for lineno, raw in enumerate(reader, start=1):
-            if not raw or raw[0].startswith("#"):
-                continue
-            if len(raw) < 1:
-                raise PipelineError(f"{path}:{lineno}: empty row")
-            name = raw[0].strip()
-            if not name:
-                continue
-            rows.append(IngestedRow(nfkc_lower(name), source_id, "unlabeled"))
-    return rows
+    label: str  # the noun of the not-found error
+    shape: str
+    name: int | str = 0
+    required: tuple[str, ...] = ()
+    encoding: str = "utf-8"
+    demographic: str = "unlabeled"
+    min_fields: int = 1  # fewer on a non-empty record is a PipelineError
+    header_prefix: str | None = None
+    skip_comment_names: bool = True  # a record whose first field starts with "#"
 
+
+_SSA_GIVEN_NAMES: Final = _CorpusFormat("SSA given-names file", "fields")
+_CENSUS_SURNAMES: Final = _CorpusFormat(
+    "Census surname file",
+    "header",
+    "name",
+    ("name", "pctwhite", "pctblack", "pctapi", "pctaian", "pcthispanic"),
+)
+_CENSUS_SPANISH: Final = _CorpusFormat("Census Spanish file", "lines", demographic="hispanic")
+_CENSUS_SPANISH_FULL: Final = _CorpusFormat(
+    "Census Spanish full file", "header", "name", ("name",), "utf-8-sig", "hispanic"
+)
+_CENSUS_SPANISH_FULL_INNER_CSV: Final[str] = "app_c.csv"
+_PARANAMES: Final = _CorpusFormat("ParaNames file", "tsv", 1, min_fields=2, header_prefix="qid\t")
+_POPNAMES: Final = _CorpusFormat(
+    "PopNames file", "header", "name", ("country", "type", "name"), skip_comment_names=False
+)
+_POPNAMES_FULLFILE: Final = _CorpusFormat(
+    "PopNames full file", "header", "Romanized Name", ("Romanized Name",), "utf-8-sig"
+)
 
 _PLURALITY_THRESHOLD: Final[float] = 40.0
 
 
-def _parse_census_share(value: str) -> float:
+def _parse_census_share(value: str | None) -> float:
     # Census publishes "(S)" in the real Surname File where a cell has been
     # suppressed to protect respondent privacy on tiny-count rows. Treat
     # suppressed cells as zero — if the row has no unsuppressed plurality it
@@ -133,85 +156,139 @@ def _parse_census_share(value: str) -> float:
     return float(v)
 
 
-def parse_census_surnames(path: Path, source_id: str) -> list[IngestedRow]:
-    """Parse the Census 2010 Surname File.
+def _census_plurality_bucket(path: Path) -> _Bucket:
+    """The Census surname row's bucket: the race-share column with the highest value,
+    or ``unlabeled`` when the top share is under the 40-percent plurality threshold."""
 
-    Expected columns: ``name,pctwhite,pctblack,pctapi,pctaian,pcthispanic``
-    where the pct columns are race shares in percent (0..100). The row's
-    demographic bucket is the column with the highest share; if the top share
-    is below 40 (no plurality), label as ``unlabeled``.
-    """
-    if not path.is_file():
-        raise MissingSourceError(f"Census surname file not found at {path}")
-    rows: list[IngestedRow] = []
-    with path.open("r", encoding="utf-8", newline="") as fh:
+    def bucket(record: Mapping[str, str | None], lineno: int) -> str:
+        try:
+            shares = {
+                "white": _parse_census_share(record["pctwhite"]),
+                "black": _parse_census_share(record["pctblack"]),
+                "asian": _parse_census_share(record["pctapi"]),
+                "ai_an": _parse_census_share(record["pctaian"]),
+                "hispanic": _parse_census_share(record["pcthispanic"]),
+            }
+        except ValueError as exc:
+            raise PipelineError(f"{path}:{lineno}: non-numeric share: {exc}") from exc
+        top_label = max(shares, key=lambda k: shares[k])
+        # Rows where no bucket reaches the threshold are tagged unlabeled so we
+        # don't overstate coverage for any one demographic.
+        return top_label if shares[top_label] >= _PLURALITY_THRESHOLD else "unlabeled"
+
+    return bucket
+
+
+@contextmanager
+def _open_zip_member(path: Path, member: str, encoding: str) -> Iterator[TextIO]:
+    """The text of ``member`` inside the zip at ``path``, read without extracting to disk."""
+    with zipfile.ZipFile(path) as zf:
+        members = zf.namelist()
+        if member not in members:
+            raise PipelineError(
+                f"{path}: expected inner member {member!r}; archive contains {members!r}"
+            )
+        with zf.open(member) as raw_fh:
+            yield io.TextIOWrapper(raw_fh, encoding=encoding, newline="")
+
+
+def _records(fh: TextIO, fmt: _CorpusFormat, path: Path) -> Iterator[tuple[int, _Record]]:
+    """``(lineno, record)`` pairs of ``fh`` under ``fmt.shape``; an empty record is a blank line."""
+    if fmt.shape == "header":
         reader = csv.DictReader(fh)
         header = reader.fieldnames or []
-        required = {"name", "pctwhite", "pctblack", "pctapi", "pctaian", "pcthispanic"}
-        missing = required - set(header)
+        missing = [column for column in fmt.required if column not in header]
         if missing:
             raise PipelineError(f"{path}: missing columns {sorted(missing)}; header was {header!r}")
-        for lineno, raw in enumerate(reader, start=2):
-            name = (raw["name"] or "").strip()
-            if not name or name.startswith("#"):
+        yield from enumerate(reader, start=2)
+        return
+    if fmt.shape == "fields":
+        yield from enumerate(csv.reader(fh), start=1)
+        return
+    for lineno, raw in enumerate(fh.read().splitlines(), start=1):
+        line = raw.strip()
+        if fmt.shape == "tsv":
+            if fmt.header_prefix is not None and line.startswith(fmt.header_prefix):
                 continue
-            try:
-                shares = {
-                    "white": _parse_census_share(raw["pctwhite"]),
-                    "black": _parse_census_share(raw["pctblack"]),
-                    "asian": _parse_census_share(raw["pctapi"]),
-                    "ai_an": _parse_census_share(raw["pctaian"]),
-                    "hispanic": _parse_census_share(raw["pcthispanic"]),
-                }
-            except ValueError as exc:
-                raise PipelineError(f"{path}:{lineno}: non-numeric share: {exc}") from exc
-            top_label = max(shares, key=lambda k: shares[k])
-            # Census releases rows where no bucket reaches the plurality
-            # threshold. Those are tagged unlabeled so we don't overstate
-            # coverage for any one demographic.
-            demographic = top_label if shares[top_label] >= _PLURALITY_THRESHOLD else "unlabeled"
+            yield lineno, line.split("\t") if line else []
+        else:
+            yield lineno, [line] if line else []
+
+
+def _parse_corpus(
+    path: Path,
+    source_id: str,
+    fmt: _CorpusFormat,
+    *,
+    bucket: _Bucket | None = None,
+    keep: Callable[[Mapping[str, str | None]], bool] | None = None,
+    zip_member: str | None = None,
+) -> list[IngestedRow]:
+    """Read one record-per-name corpus into rows — the body behind the ``parse_*`` entries."""
+    if not path.is_file():
+        raise MissingSourceError(f"{fmt.label} not found at {path}")
+    opened: AbstractContextManager[TextIO] = (
+        _open_zip_member(path, zip_member, fmt.encoding)
+        if zip_member is not None
+        else path.open("r", encoding=fmt.encoding, newline="")
+    )
+    rows: list[IngestedRow] = []
+    with opened as fh:
+        for lineno, record in _records(fh, fmt, path):
+            if not record:
+                continue
+            if isinstance(record, Mapping):
+                if keep is not None and not keep(record):
+                    continue
+                raw_name = record.get(str(fmt.name))
+            else:
+                if fmt.skip_comment_names and record[0].startswith("#"):
+                    continue
+                if len(record) < fmt.min_fields:
+                    raise PipelineError(
+                        f"{path}:{lineno}: expected {fmt.min_fields}+ fields, got {record!r}"
+                    )
+                raw_name = record[int(fmt.name)]
+            name = (raw_name or "").strip()
+            if not name or (fmt.skip_comment_names and name.startswith("#")):
+                continue
+            demographic = fmt.demographic
+            if bucket is not None and isinstance(record, Mapping):
+                demographic = bucket(record, lineno)
             rows.append(IngestedRow(nfkc_lower(name), source_id, demographic))
     return rows
 
 
+def _check_name_type(name_type: str) -> None:
+    if name_type not in {"given", "surname"}:
+        raise PipelineError(f"Unknown name_type {name_type!r}")
+
+
+def parse_ssa_given_names(path: Path, source_id: str) -> list[IngestedRow]:
+    """Parse an SSA baby-names file (yob<year>.txt, ``Name,Sex,Count``; the bootstrap
+    sample uses the same layout). SSA records carry no ethnicity: always ``unlabeled``."""
+    return _parse_corpus(path, source_id, _SSA_GIVEN_NAMES)
+
+
+def parse_census_surnames(path: Path, source_id: str) -> list[IngestedRow]:
+    """Parse the Census 2010 Surname File: the pct columns are race shares in percent
+    (0..100); the bucket is the column with the highest share, ``unlabeled`` under 40."""
+    return _parse_corpus(path, source_id, _CENSUS_SURNAMES, bucket=_census_plurality_bucket(path))
+
+
 def parse_census_spanish(path: Path, source_id: str) -> list[IngestedRow]:
     """Parse the Census Spanish Surname List (one surname per line)."""
-    if not path.is_file():
-        raise MissingSourceError(f"Census Spanish file not found at {path}")
-    rows: list[IngestedRow] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        name = raw.strip()
-        if not name or name.startswith("#"):
-            continue
-        rows.append(IngestedRow(nfkc_lower(name), source_id, "hispanic"))
-    return rows
-
-
-_CENSUS_SPANISH_FULL_INNER_CSV: Final[str] = "app_c.csv"
+    return _parse_corpus(path, source_id, _CENSUS_SPANISH)
 
 
 def parse_census_spanish_full(path: Path, source_id: str) -> list[IngestedRow]:
-    """Parse the full Census 2000 Spanish Surname List (File B, ~151,671 rows).
-
-    The upstream Census publication ships as a zip wrapper containing
-    ``app_c.csv`` (comma-delimited, header ``name,rank,count,prop100k,
-    cum_prop100k,pctwhite,pctblack,pctapi,pctaian,pct2prace,pcthispanic``) and
-    a companion ``app_c.xlsx``. This adapter dispatches on ``path.suffix``:
-
-    - ``.zip``: open the inner ``app_c.csv`` via ``zipfile`` (stdlib) and
-      delegate to the CSV branch.
-    - ``.csv`` / ``.txt``: read directly with ``csv.DictReader``.
-    - ``.xls`` / ``.xlsx``: raise ``PipelineError``. No XLSX reader is in
-      ``pyproject.toml``, and unsupervised dependency additions are not
-      allowed; point the adapter at the companion CSV (or the zip wrapper
-      that ships with it) instead.
-
-    Every emitted row carries ``demographic="hispanic"`` per Census's own
-    labeling of the File B publication.
-    """
+    """Parse the full Census 2000 Spanish Surname List (File B, ~151,671 rows): a zip
+    wrapper holding ``app_c.csv`` beside a companion ``app_c.xlsx``. ``.zip`` reads the
+    inner CSV via ``zipfile``; ``.csv``/``.txt`` read directly; ``.xls``/``.xlsx`` raise
+    (no XLSX reader is in ``pyproject.toml``, and unsupervised dependency additions
+    are not allowed). Every row is ``hispanic`` per Census's labeling of File B."""
     if not path.is_file():
-        raise MissingSourceError(f"Census Spanish full file not found at {path}")
-
+        raise MissingSourceError(f"{_CENSUS_SPANISH_FULL.label} not found at {path}")
     suffix = path.suffix.lower()
     if suffix in {".xls", ".xlsx"}:
         raise PipelineError(
@@ -221,62 +298,38 @@ def parse_census_spanish_full(path: Path, source_id: str) -> list[IngestedRow]:
             "zip wrapper that contains it."
         )
     if suffix == ".zip":
-        with zipfile.ZipFile(path) as zf:
-            members = zf.namelist()
-            if _CENSUS_SPANISH_FULL_INNER_CSV not in members:
-                raise PipelineError(
-                    f"{path}: expected inner member "
-                    f"{_CENSUS_SPANISH_FULL_INNER_CSV!r}; archive contains {members!r}"
-                )
-            with zf.open(_CENSUS_SPANISH_FULL_INNER_CSV) as raw_fh:
-                text_fh = io.TextIOWrapper(raw_fh, encoding="utf-8-sig", newline="")
-                return _read_census_spanish_full_rows(text_fh, path, source_id)
+        return _parse_corpus(
+            path, source_id, _CENSUS_SPANISH_FULL, zip_member=_CENSUS_SPANISH_FULL_INNER_CSV
+        )
     if suffix in {".csv", ".txt"}:
-        with path.open("r", encoding="utf-8-sig", newline="") as fh:
-            return _read_census_spanish_full_rows(fh, path, source_id)
+        return _parse_corpus(path, source_id, _CENSUS_SPANISH_FULL)
     raise PipelineError(
         f"{path}: unsupported suffix {suffix!r} for Census Spanish full file; "
         "expected .zip, .csv, or .txt"
     )
 
 
-def _read_census_spanish_full_rows(fh: TextIO, path: Path, source_id: str) -> list[IngestedRow]:
-    reader = csv.DictReader(fh)
-    header = reader.fieldnames or []
-    if "name" not in header:
-        raise PipelineError(
-            f"{path}: expected column 'name' in Census Spanish full file; header was {header!r}"
-        )
-    rows: list[IngestedRow] = []
-    for raw in reader:
-        name = (raw.get("name") or "").strip()
-        if not name or name.startswith("#"):
-            continue
-        rows.append(IngestedRow(nfkc_lower(name), source_id, "hispanic"))
-    return rows
-
-
 def parse_paranames(path: Path, source_id: str) -> list[IngestedRow]:
-    """Parse the ParaNames TSV dump (PER-filtered, ≥5 sitelinks).
+    """Parse the ParaNames TSV dump (PER-filtered, ≥5 sitelinks): ``qid\\tlabel\\tsitelinks``."""
+    return _parse_corpus(path, source_id, _PARANAMES)
 
-    Expected columns: ``qid\\tlabel\\tsitelinks``; ``label`` is the name.
-    """
-    if not path.is_file():
-        raise MissingSourceError(f"ParaNames file not found at {path}")
-    rows: list[IngestedRow] = []
-    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        line = raw.strip()
-        if not line or line.startswith("#") or line.startswith("qid\t"):
-            continue
-        parts = line.split("\t")
-        min_paranames_cols = 2
-        if len(parts) < min_paranames_cols:
-            raise PipelineError(f"{path}:{lineno}: expected ≥2 TSV columns, got {line!r}")
-        name = parts[1].strip()
-        if not name:
-            continue
-        rows.append(IngestedRow(nfkc_lower(name), source_id, "unlabeled"))
-    return rows
+
+def parse_popnames_by_type(path: Path, source_id: str, name_type: str) -> list[IngestedRow]:
+    """Parse PopNames and keep only rows with the given ``name_type``."""
+    _check_name_type(name_type)
+    return _parse_corpus(
+        path, source_id, _POPNAMES, keep=lambda record: (record["type"] or "").strip() == name_type
+    )
+
+
+def parse_popnames_fullfile(path: Path, source_id: str, name_type: str) -> list[IngestedRow]:
+    """Parse a sigpwned popular-names upstream full-file CSV
+    (github.com/sigpwned/popular-names-by-country-dataset): ``Localized Name`` and
+    ``Romanized Name`` columns and no ``type`` (upstream partitions by filename, so the
+    caller supplies ``name_type``). Only ``Romanized Name`` is ingested (Bloom keys are
+    Latin-normalized); the surnames file is BOM-prefixed, hence ``utf-8-sig``."""
+    _check_name_type(name_type)
+    return _parse_corpus(path, source_id, _POPNAMES_FULLFILE)
 
 
 def parse_paranames_full(
@@ -394,65 +447,6 @@ def _emit_paranames_group(
         # single tokens is the dominant surname-membership collision source,
         # so dropping that emission is designed to lower the membership FPR.
         yield IngestedRow(normalized, source_id, "unlabeled")
-
-
-def parse_popnames_by_type(path: Path, source_id: str, name_type: str) -> list[IngestedRow]:
-    """Parse PopNames and keep only rows with the given ``name_type``."""
-    if name_type not in {"given", "surname"}:
-        raise PipelineError(f"Unknown name_type {name_type!r}")
-    if not path.is_file():
-        raise MissingSourceError(f"PopNames file not found at {path}")
-    rows: list[IngestedRow] = []
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        header = reader.fieldnames or []
-        required = {"country", "type", "name"}
-        missing = required - set(header)
-        if missing:
-            raise PipelineError(f"{path}: missing columns {sorted(missing)}; header was {header!r}")
-        for raw in reader:
-            rtype = (raw["type"] or "").strip()
-            if rtype != name_type:
-                continue
-            name = (raw["name"] or "").strip()
-            if not name:
-                continue
-            rows.append(IngestedRow(nfkc_lower(name), source_id, "unlabeled"))
-    return rows
-
-
-def parse_popnames_fullfile(path: Path, source_id: str, name_type: str) -> list[IngestedRow]:
-    """Parse a sigpwned popular-names upstream full-file CSV.
-
-    Matches the schema shipped at
-    github.com/sigpwned/popular-names-by-country-dataset
-    (``common-forenames-by-country.csv`` / ``common-surnames-by-country.csv``),
-    which differs from the bootstrap layout (``country,type,name``) by carrying
-    multiple name columns (``Localized Name``, ``Romanized Name``) and no
-    ``type`` column — upstream partitions by filename instead of by row, so the
-    caller supplies ``name_type``.
-
-    Only ``Romanized Name`` is ingested (Bloom keys are Latin-normalized via
-    ``nfkc_lower``; mixing scripts would add little discriminative value). All
-    rows are tagged ``demographic='unlabeled'``. The surnames file is
-    BOM-prefixed so the reader uses ``utf-8-sig``.
-    """
-    if name_type not in {"given", "surname"}:
-        raise PipelineError(f"Unknown name_type {name_type!r}")
-    if not path.is_file():
-        raise MissingSourceError(f"PopNames full file not found at {path}")
-    rows: list[IngestedRow] = []
-    with path.open("r", encoding="utf-8-sig", newline="") as fh:
-        reader = csv.DictReader(fh)
-        header = reader.fieldnames or []
-        if "Romanized Name" not in header:
-            raise PipelineError(f"{path}: expected column 'Romanized Name'; header was {header!r}")
-        for raw in reader:
-            name = (raw.get("Romanized Name") or "").strip()
-            if not name or name.startswith("#"):
-                continue
-            rows.append(IngestedRow(nfkc_lower(name), source_id, "unlabeled"))
-    return rows
 
 
 # ---- Merge step ------------------------------------------------------------

@@ -8,7 +8,7 @@ from typing import NotRequired, TypedDict, cast
 from ._common import _require
 
 # ---------------------------------------------------------------------------
-# The Swift G8 trio: raw join cells (``_cells.json``, CONTRACT.md File 1)
+# The Swift G8 trio: raw join cells (``_cells.json``, file 1 in ``eval/README.md``)
 # ---------------------------------------------------------------------------
 
 
@@ -46,7 +46,7 @@ def as_cells_payload(raw: Mapping[str, object]) -> CellsPayload:
 
 
 # ---------------------------------------------------------------------------
-# The raw match scores (``_raw_scores.json``, CONTRACT.md File 2)
+# The raw match scores (``_raw_scores.json``, file 2 in ``eval/README.md``)
 # ---------------------------------------------------------------------------
 
 

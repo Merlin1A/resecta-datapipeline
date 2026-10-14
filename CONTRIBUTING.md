@@ -32,6 +32,12 @@ in the README's "Verification" section. `install-assets` requires the full
   sockets to anything but loopback disabled.
 - After a dependency change, run `scripts/freeze_deps.sh` and `uv lock`; CI's
   `uv lock --check` fails when `uv.lock` is stale against `pyproject.toml`.
+- A new builder gets a keyed stamp rule over `$^` in the Makefile and its name
+  in `BUILD_STAMPS`: the determinism witness's key and
+  `tests/test_stamp_key_makefile.py` both read that list. Its route and lock
+  rows land by a deliberate re-lock. A `## ` help line needs
+  `gmake readme-targets`, a phase tag `gmake graph`. `make -n` is no dry run
+  here: recipe lines that call `$(MAKE)` still execute.
 
 ## Invariants
 

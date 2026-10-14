@@ -7,8 +7,12 @@ lock that contract in.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -35,6 +39,55 @@ def runner() -> CliRunner:
 # raised: a new subcommand lands in its family's module under commands/ and
 # reaches the tree through that module's register call.
 _CLI_LINE_CEILING = 127
+
+
+def _python(code: str) -> str:
+    """Run ``code`` in a fresh interpreter (the import-time state under test is per process)."""
+    result = subprocess.run(  # noqa: S603 — fixed argv, the code is a literal above
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "PYTHONHASHSEED": "0"},
+    )
+    return result.stdout.strip()
+
+
+def test_importing_the_cli_leaves_the_excepthook_alone() -> None:
+    """Importing the module installs nothing; the handler is main()'s to install."""
+    out = _python(
+        "import sys; before = sys.excepthook; import resecta_data.cli; "
+        "print(sys.excepthook is before)"
+    )
+    assert out == "True"
+
+
+def test_main_installs_the_exception_handler_once() -> None:
+    """The install is idempotent: a second call keeps the first handler and does not wrap it."""
+    out = _python(
+        "import sys; from resecta_data import cli; "
+        "cli._install_exception_handler(); first = sys.excepthook; "
+        "cli._install_exception_handler(); "
+        "print(sys.excepthook is first, first is not sys.__excepthook__)"
+    )
+    assert out == "True True"
+
+
+def test_command_modules_import_no_private_names() -> None:
+    """A command module reaches a sibling only through public names: an underscore
+    import is a seam the owning module has not committed to."""
+    commands_dir = Path(cli_module.__file__).resolve().parent / "commands"
+    offenders: list[str] = []
+    for path in sorted(commands_dir.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                private = [alias.name for alias in node.names if alias.name.startswith("_")]
+                if private:
+                    offenders.append(
+                        f"{path.name}:{node.lineno} imports {private} from {node.module}"
+                    )
+    assert not offenders, "\n".join(offenders)
 
 
 def test_cli_line_count_does_not_grow() -> None:

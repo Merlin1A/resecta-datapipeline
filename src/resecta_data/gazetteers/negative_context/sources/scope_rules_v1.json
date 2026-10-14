@@ -2,7 +2,7 @@
   "provenance": {
     "id": "scope_rules_v1",
     "captured_from_commit": "400d2bdbb232bf85fbf02b724068b09631fe0fbb",
-    "note": "Provenance: every rationale below was settled in the 2026-04-27 review of the three bootstrap corpora, which re-curated the pools by adding ``_AUDIT_REMOVE_PER_SOURCE`` to short-circuit keywords with no plausible PII adjacency, modifying ``_KEYWORD_OVERRIDES`` per the Pool A/B exception lists, and re-scoping or re-weighting ``_MANUAL_MEDICAL`` and ``_MANUAL_GENERIC`` entries. The 47-entry ``_MANUAL_AUDIT_PART3`` fills the originally-empty cells with primary-source-backed candidates. Later financial-document and label-phrase additions carry their own dated ``source_id``.",
+    "note": "Provenance: every rationale below was settled in the 2026-04-27 review of the three bootstrap corpora, which re-curated the pools by adding ``_AUDIT_REMOVE_PER_SOURCE`` to short-circuit keywords with no plausible PII adjacency, modifying ``_KEYWORD_OVERRIDES`` per the Pool A/B exception lists, and re-scoping or re-weighting ``_MANUAL_MEDICAL`` and ``_MANUAL_GENERIC`` entries. The 52-entry ``_MANUAL_AUDIT_PART3`` fills the originally-empty cells with primary-source-backed candidates. Later financial-document and label-phrase additions carry their own dated ``source_id``.",
     "source_ids": {
       "MEDICAL": "manual_medical",
       "GENERIC": "manual_generic",
