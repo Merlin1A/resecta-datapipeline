@@ -145,7 +145,7 @@ Primary targets:
   calibrate-finalize   [Phase 3b] Promote sweep_raw to the shipping preset_thresholds.json (under an approved change plan: review the diff first)
   calibrate            [Phase 3b] Run both calibration steps (requires Swift-side dumps; finalize is a separate step under an approved change plan)
   sources              Print fetch commands for the main raw inputs (fetching is manual)
-  lint                 Run ruff check + format check, the planning-id gate, and the README block currency checks
+  lint                 Run ruff check + format check, the planning-id gate, the SOURCES.md ledger check, and the README block currency checks
   security-check       Audit both hash-pinned lockfiles with pip-audit (the security.yml leg, run locally)
   format               Apply ruff formatting and auto-fixes
   graph                Regenerate the ETL stage map in README.md from the make database (Mermaid; stdlib)
@@ -297,7 +297,7 @@ The large ParaNames corpus (`paranames_full.tsv.gz`, about 1 GB) is **not commit
 
 Three workflow files run on this repository (GitHub's CodeQL default setup runs beside them):
 
-- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`. A second job, `bloom-chain`, restores the weekly workflow's ParaNames cache (it never fetches the corpus) and, when the cache is present, builds the name Bloom filters, the demographic report, the G8 recall artifact and the bundle-size probe and checks them against the lock; on a cache miss it prints a warning and ends. It is not a required check.
+- **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the `SOURCES.md` ledger check — every row's license and file, every tracked file under `sources/` rowed or listed — and the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`. A second job, `bloom-chain`, restores the weekly workflow's ParaNames cache (it never fetches the corpus) and, when the cache is present, builds the name Bloom filters, the demographic report, the G8 recall artifact and the bundle-size probe and checks them against the lock; on a cache miss it prints a warning and ends. It is not a required check.
 - **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
 - **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Results are reported, never gating.
 

@@ -52,7 +52,9 @@ in the README's "Verification" section. `install-assets` requires the full
 - **License provenance.** A third-party raw file the builders read under
   `src/resecta_data/**/sources/` has a `SOURCES.md` row; the rules are
   `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED`
-  map. Checked in review.
+  map. Checked by `make lint` (`common/sources_ledger.py`: every row's
+  license and file, and every tracked file under `sources/` has a row or a
+  listed exemption in the ledger section of `SOURCES.md`).
 - **Mechanism-description language.** The strings the pipeline emits
   (docstrings, JSON `description` fields, `NOTICE.txt` rows, error messages)
   describe the mechanism, not an outcome; the banned-phrase list is
