@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # fetch_paranames.sh — fetch the ParaNames multilingual name-entity TSV dump.
-# CC0; on the license allowlist.
+# The ParaNames data is CC BY 4.0 (the bltlab/paranames code is MIT): a gated licence in
+# common/licensing.py, allowed for these paths by the ledger section of SOURCES.md.
 #
 # Part of `make sources` network-permitted flow.
 #
