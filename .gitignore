@@ -48,3 +48,10 @@ g8_corpus_output/
 # Transient lock file created by scripts/_fetch_lib.sh::append_sources_row to
 # serialise concurrent SOURCES.md appenders.
 SOURCES.md.lock
+
+# Never a key, a key wrapper or a local derived-data directory, whatever a
+# tool writes here: the signing key lives outside every repository.
+.dd*/
+*.age
+*private-key*
+*.pem

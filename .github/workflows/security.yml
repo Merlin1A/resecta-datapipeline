@@ -1,6 +1,9 @@
-# Supply-chain surveillance over the locked dependency set. Findings are
-# reported (job summaries, scan artifacts), not gated — a new upstream
-# advisory must not block unrelated pull requests.
+# Supply-chain surveillance over the locked dependency set. The pip-audit
+# job fails on a known vulnerability in the locked set, so the run reads
+# red until the pin moves; `security` is not a required check on main (the
+# `gate` job of ci.yml is), so a new upstream advisory shows on every pull
+# request without blocking one. The OSV scan and the SBOM report only. A
+# failed weekly run is reported by the failure-notice job at the end.
 name: security
 
 on:
@@ -30,17 +33,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Audit the locked dependency set
-        continue-on-error: true
         run: |
-          # pip-audit at the version the dev lock pins, hash-verified with the
-          # rest of the locked set (the copy `make security-check` runs).
-          python -m pip install --quiet --require-hashes -r requirements.lock -r requirements-dev.lock
+          # pip-audit at the version the dev lock pins. The two locks are read
+          # as the pinned rows they are (--no-deps --disable-pip): nothing is
+          # installed to audit them, so an install-time gap cannot stand in
+          # for the audit. (Installing the locked set here failed on every
+          # run under the old continue-on-error: pip-tools depends on
+          # setuptools, which the dev lock does not pin, and pip's hash mode
+          # refuses it on a fresh runner venv; the audit never ran.)
+          python -m pip install --quiet "pip-audit==2.10.1"
           set +e
-          python -m pip_audit -r requirements.lock -r requirements-dev.lock --require-hashes 2>&1 | tee audit.txt
+          python -m pip_audit -r requirements.lock -r requirements-dev.lock --no-deps --disable-pip --strict 2>&1 | tee audit.txt
           rc="${PIPESTATUS[0]}"
           {
             echo "## pip-audit"
@@ -51,6 +60,10 @@ jobs:
           exit "$rc"
 
   osv-scan:
+    # The reusable workflow declares `security-events: write` as a
+    # requirement at startup (it is written for a SARIF upload); a caller
+    # that grants less fails before the scan runs, so the grant stays even
+    # though `upload-sarif` is off below and nothing is uploaded.
     permissions:
       actions: read
       contents: read
@@ -70,9 +83,43 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           path: .
           format: spdx-json
           artifact-name: sbom.spdx.json
           upload-artifact-retention: "30"
+
+  # A scheduled run that fails leaves an error annotation and a step
+  # summary; when the repository variable NTFY_TOPIC is set, the run's URL
+  # is also posted to that ntfy topic. A variable, not a secret: this
+  # repository carries no Actions secrets, and the topic is masked in the
+  # log and never printed. The body names the repository, the workflow and
+  # the run; no finding.
+  failure-notice:
+    needs: [pip-audit, osv-scan, sbom]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - run: |
+          echo "::error::security failed on its schedule: ${RUN_URL}"
+          {
+            echo "## failure notice"
+            echo
+            echo "- security failed on its schedule: ${RUN_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$NTFY_TOPIC" ]; then
+            echo "::add-mask::$NTFY_TOPIC"
+            curl -fsS --max-time 20 \
+              -d "${GITHUB_REPOSITORY} · security failed on its schedule · ${RUN_URL}" \
+              "https://ntfy.sh/${NTFY_TOPIC}" || echo '::warning::the notice was not delivered'
+          else
+            echo "NTFY_TOPIC is not set; the annotation and the step summary are the notice"
+          fi

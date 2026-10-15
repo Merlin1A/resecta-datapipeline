@@ -29,6 +29,8 @@ jobs:
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
@@ -70,6 +72,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      # This checkout keeps the token on purpose: the step below pushes the
+      # ci-keepalive branch with it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Refresh the ci-keepalive branch when main is quiet
         run: |
@@ -86,3 +90,35 @@ jobs:
           git checkout -B ci-keepalive
           git commit --allow-empty -m "Keep scheduled workflows enabled"
           git push --force origin ci-keepalive
+
+  # A scheduled run that fails leaves an error annotation and a step
+  # summary; when the repository variable NTFY_TOPIC is set, the run's URL
+  # is also posted to that ntfy topic. A variable, not a secret: this
+  # repository carries no Actions secrets, and the topic is masked in the
+  # log and never printed. The body names the repository, the workflow and
+  # the run; no finding.
+  failure-notice:
+    needs: [full-verify, keepalive]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - run: |
+          echo "::error::verify failed on its schedule: ${RUN_URL}"
+          {
+            echo "## failure notice"
+            echo
+            echo "- verify failed on its schedule: ${RUN_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$NTFY_TOPIC" ]; then
+            echo "::add-mask::$NTFY_TOPIC"
+            curl -fsS --max-time 20 \
+              -d "${GITHUB_REPOSITORY} · verify failed on its schedule · ${RUN_URL}" \
+              "https://ntfy.sh/${NTFY_TOPIC}" || echo '::warning::the notice was not delivered'
+          else
+            echo "NTFY_TOPIC is not set; the annotation and the step summary are the notice"
+          fi
