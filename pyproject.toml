@@ -39,7 +39,7 @@ dev = [
     # tool version (a newer ruff reports scores of new findings on a clean tree),
     # and CI must see the same verdict as a maintainer's machine.
     "ruff==0.15.12",
-    "mypy==1.20.2",
+    "mypy==2.4.0",
     "pip-tools>=7.4,<8",
     # Local mirror of security.yml's pip-audit leg (`make security-check`).
     "pip-audit>=2.10,<3",
