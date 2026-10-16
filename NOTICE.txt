@@ -3,39 +3,53 @@
 This file contains attribution and acknowledgement for third-party data sources used
 by the resecta-datapipeline build artifacts.
 
-Created 2026-04-26 when the address substrate moved to OpenAddresses CC0 +
-OpenStreetMap ODbL. Rows are carried where a licence calls for attribution
-(ODbL, MIT); the OpenAddresses row is a courtesy row for a CC0 input. A row is
-added under an approved plan.
+Created 2026-04-26. Rows are carried where a licence calls for attribution
+(CC BY 4.0, MIT); the OpenStreetMap and OpenAddresses rows are provenance
+acknowledgements for inputs no build reads. A row changes under a written plan
+agreed with the maintainer (CONTRIBUTING.md, "Plan-sign-off changes").
 
 ---
 
-## OpenStreetMap (ODbL 1.0)
+## OpenStreetMap (ODbL 1.0) — a provenance acknowledgement
 
-This product includes data derived from OpenStreetMap, © OpenStreetMap contributors,
-available under the Open Database License (ODbL) 1.0. See
-https://www.openstreetmap.org/copyright. Per ODbL §4.3, substantial use of
-OSM-derived data is acknowledged here; insubstantial fact-extraction (a US
-street-type vocabulary frequency rank, for the street-type list in
-address_components.json) is not share-alike-encumbered.
+This product includes no data derived from OpenStreetMap. The street-type list in
+address_components.json is a fixed list (gazetteers/address_components/build.py),
+and the street-suffix staging file that cites OpenStreetMap as a source
+(SOURCES.md, street_suffix_candidates.json) is not read by any build. The row is
+kept as a provenance acknowledgement. OpenStreetMap data is © OpenStreetMap
+contributors, available under the Open Database License (ODbL) 1.0; see
+https://www.openstreetmap.org/copyright.
 
 ---
 
-## OpenAddresses (CC0 1.0)
+## OpenAddresses — a provenance acknowledgement
 
-This product includes data derived from OpenAddresses (https://openaddresses.io/),
-licensed under the Creative Commons CC0 1.0 Universal Public Domain Dedication. No
-attribution is required by license, but acknowledgement is provided for provenance
-audit.
+This product includes no data derived from OpenAddresses (https://openaddresses.io/);
+the street-suffix staging file that cites it is not read by any build. The row is
+kept as a provenance acknowledgement. OpenAddresses' source catalogue is CC0 1.0;
+its address data carries each original source's licence.
+
+---
+
+## ParaNames (CC BY 4.0)
+
+The person-name Bloom filters are membership-derived from several inputs,
+ParaNames among them, with public-domain and CC0 name lists (Census, SSA and
+popular-names data). ParaNames, by Jonne Sälevä and Constantine Lignos
+(https://github.com/bltlab/paranames, release v2024.05.07.0), is licensed under
+the Creative Commons Attribution 4.0 International License
+(https://creativecommons.org/licenses/by/4.0/). Changes made: PER-type entries
+were filtered and their names hashed into Bloom filters; no names are
+reproduced. The bltlab/paranames code is MIT-licensed, Copyright (c) 2022 Jonne
+Sälevä and Constantine Lignos.
 
 ---
 
 ## Third-party MIT-licensed inputs
 
-The person-name Bloom filters are membership-derived from the bltlab/paranames
-corpus; Faker generates this project's synthetic evaluation corpus, a test
-fixture that is not shipped. The MIT permission notice is reproduced once and
-applies to each input.
+Faker generates this project's synthetic evaluation corpus, a test fixture that
+is not shipped. The MIT permission notice is reproduced once and applies to each
+input.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +74,3 @@ SOFTWARE.
       (https://github.com/joke2k/faker)
       Spanish-locale lists in use (es_MX, es_ES) preserve the inline
       co-attribution: Source: Álvaro Mondéjar Rubio.
-- [x] bltlab/paranames (MIT) — person-name Bloom / gazetteer inputs.
-      Copyright (c) 2022 Jonne Sälevä and Constantine Lignos
-      (https://github.com/bltlab/paranames)
-      The Wikidata CC0 chain is discharged by this MIT compilation notice.

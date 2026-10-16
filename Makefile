@@ -799,10 +799,11 @@ sources: bootstrap ## Print fetch commands for the main raw inputs (fetching is 
 # -----------------------------------------------------------------------------
 
 .PHONY: lint
-lint: bootstrap ## Run ruff check + format check, the planning-id gate, and the README block currency checks
+lint: bootstrap ## Run ruff check + format check, the planning-id gate, the SOURCES.md ledger check, and the README block currency checks
 	$(RUFF) check src tests scripts
 	$(RUFF) format --check src tests scripts
 	$(PYTHON_VENV) scripts/hygiene_gate.py
+	$(PYTHON_VENV) -m resecta_data.common.sources_ledger
 	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/etl_graph.py --check
 	MAKE="$(MAKE)" $(PYTHON_VENV) scripts/readme_targets.py --check
 
