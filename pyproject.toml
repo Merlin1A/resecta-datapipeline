@@ -38,7 +38,7 @@ dev = [
     # ruff and mypy are exact-pinned: the lint/type gates are byte-sensitive to
     # tool version (a newer ruff reports scores of new findings on a clean tree),
     # and CI must see the same verdict as a maintainer's machine.
-    "ruff==0.15.12",
+    "ruff==0.17.1",
     "mypy==2.4.0",
     "pip-tools>=7.4,<8",
     # Local mirror of security.yml's pip-audit leg (`make security-check`).
