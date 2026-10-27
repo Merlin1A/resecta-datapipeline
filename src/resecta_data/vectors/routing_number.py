@@ -140,20 +140,26 @@ def build(seed: int) -> dict[str, Any]:
         (
             "021000021",
             "routing number",
-            "Design-doc section 4 sanity check: prefix 02 in [01,12], "
-            "checksum 3*0+7*2+1*1+3*0+7*0+1*0+3*0+7*2+1*1=30, 30%10=0.",
+            (
+                "Design-doc section 4 sanity check: prefix 02 in [01,12], "
+                "checksum 3*0+7*2+1*1+3*0+7*0+1*0+3*0+7*2+1*1=30, 30%10=0."
+            ),
         ),
         (
             "322271627",
             "ABA routing",
-            "Design-doc section 4 sanity check: prefix 32 in [21,32], "
-            "checksum 3*3+7*2+1*2+3*2+7*7+1*1+3*6+7*2+1*7=120, 120%10=0.",
+            (
+                "Design-doc section 4 sanity check: prefix 32 in [21,32], "
+                "checksum 3*3+7*2+1*2+3*2+7*7+1*1+3*6+7*2+1*7=120, 120%10=0."
+            ),
         ),
         (
             "124303120",
             "routing/transit",
-            "Design-doc section 4 sanity check: prefix 12 in [01,12], "
-            "checksum 3*1+7*2+1*4+3*3+7*0+1*3+3*1+7*2+1*0=50, 50%10=0.",
+            (
+                "Design-doc section 4 sanity check: prefix 12 in [01,12], "
+                "checksum 3*1+7*2+1*4+3*3+7*0+1*3+3*1+7*2+1*0=50, 50%10=0."
+            ),
         ),
     ]
     for routing_num, keyword, note in design_positives:
