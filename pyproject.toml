@@ -89,6 +89,7 @@ select = [
 ignore = [
     "ANN401",  # Allow Any in explicit positions (JSON deserialization)
     "PLR0913", # Too many arguments (builders often have many)
+    "PLR0917", # Too many positional arguments (the same builders, ruff 0.17)
     "ISC001",  # conflicts with formatter
 ]
 

@@ -106,41 +106,51 @@ DETECTOR_SHAPE_FP: Final[tuple[tuple[str, str, str, str], ...]] = (
 # "flag" when we want the document routed to review rather than redacted.
 KEYWORD_STUFFING_G5: Final[tuple[tuple[str, str, str, str], ...]] = (
     (
-        "docket plaintiff case docket docket docket court filing docket "
-        "docket plaintiff case plaintiff docket motion docket plaintiff "
-        "case docket plaintiff docket plaintiff case docket plaintiff",
+        (
+            "docket plaintiff case docket docket docket court filing docket "
+            "docket plaintiff case plaintiff docket motion docket plaintiff "
+            "case docket plaintiff docket plaintiff case docket plaintiff"
+        ),
         "none",
         "flag",
         "classifier keyword-stuffing stanza: keyword-dense text aimed at one class",
     ),
     (
-        "patient diagnosis mrn patient diagnosis mrn patient diagnosis mrn "
-        "patient diagnosis mrn patient diagnosis mrn patient diagnosis mrn "
-        "patient patient patient diagnosis diagnosis diagnosis mrn mrn mrn",
+        (
+            "patient diagnosis mrn patient diagnosis mrn patient diagnosis mrn "
+            "patient diagnosis mrn patient diagnosis mrn patient diagnosis mrn "
+            "patient patient patient diagnosis diagnosis diagnosis mrn mrn mrn"
+        ),
         "none",
         "flag",
         "classifier keyword-stuffing stanza: keyword-dense text aimed at one class",
     ),
     (
-        "invoice account balance invoice account balance invoice account "
-        "balance invoice account balance invoice account balance invoice "
-        "account balance transaction transaction transaction invoice",
+        (
+            "invoice account balance invoice account balance invoice account "
+            "balance invoice account balance invoice account balance invoice "
+            "account balance transaction transaction transaction invoice"
+        ),
         "none",
         "flag",
         "classifier keyword-stuffing stanza: keyword-dense text aimed at one class",
     ),
     (
-        "foia request foia request foia request foia request foia request "
-        "document released document released document released foia request "
-        "foia request foia request redacted exemption foia request document",
+        (
+            "foia request foia request foia request foia request foia request "
+            "document released document released document released foia request "
+            "foia request foia request redacted exemption foia request document"
+        ),
         "none",
         "flag",
         "classifier keyword-stuffing stanza: keyword-dense text aimed at one class",
     ),
     (
-        "patient docket invoice foia patient docket invoice foia patient "
-        "docket invoice foia patient docket invoice foia patient docket "
-        "invoice foia patient docket invoice foia patient docket invoice",
+        (
+            "patient docket invoice foia patient docket invoice foia patient "
+            "docket invoice foia patient docket invoice foia patient docket "
+            "invoice foia patient docket invoice foia patient docket invoice"
+        ),
         "none",
         "flag",
         "classifier keyword-stuffing stanza: keyword-dense text aimed at one class",
@@ -170,9 +180,11 @@ HOMOGLYPH_ENTRIES: Final[tuple[tuple[str, str, str, str], ...]] = (
     ),
     # Mathematical bold digits (U+1D7CE..U+1D7D7) also NFKD-normalize to ASCII.
     (
-        "Member SSN "
-        "\U0001d7cf\U0001d7d0\U0001d7d1-\U0001d7d2\U0001d7d3"
-        "-\U0001d7d4\U0001d7d5\U0001d7d6\U0001d7d7 on file.",
+        (
+            "Member SSN "
+            "\U0001d7cf\U0001d7d0\U0001d7d1-\U0001d7d2\U0001d7d3"
+            "-\U0001d7d4\U0001d7d5\U0001d7d6\U0001d7d7 on file."
+        ),
         "ssn",
         "redact",
         "homoglyph fragment: label or digits laced with look-alike non-ASCII codepoints",

@@ -49,6 +49,15 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- Dependencies: the two hash-pinned lockfiles and `uv.lock` agree again, pin for pin. Moved in
+  the hash-pinned locks: click 8.3.3 → 8.5.0 and cryptography 50.0.1 → 50.0.2 (both files);
+  ruff 0.15.12 → 0.17.1, mypy 1.20.2 → 2.4.0, pytest 9.0.3 → 9.1.1, hypothesis 6.165.10 →
+  6.169.3, pip-tools 7.6.1 → 7.6.2, types-jsonschema 4.26.0.20260518 → 4.26.0.20261006 and
+  librt 0.15.0 → 0.16.0, with ast-serialize 0.13.1 added for mypy 2 (dev). Raised for published
+  advisories in all three lockfiles: certifi 2026.7.22 → 2026.10.23, filelock 4.0.1 → 4.2.1,
+  msgpack 1.2.2 → 1.2.3; pip-audit over the hash-pinned locks reports no known vulnerability.
+  ruff 0.17's two new findings are handled: the implicit string concatenations inside lists are
+  parenthesized (the parsed code is unchanged), and `PLR0917` joins `PLR0913` in the ignore list.
 - `make lint` checks the `SOURCES.md` ledger: every row's license and file, and every tracked file
   under `sources/`, rowed or listed. The ledger records ParaNames as CC BY 4.0 data and the
   map-data rows as provenance for inputs no build reads.
