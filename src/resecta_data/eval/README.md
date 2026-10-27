@@ -1,6 +1,6 @@
 # The G8 eval contract
 
-`make eval` measures the redaction engine's detection behaviour on G8, the
+`make eval` measures the redaction engine's detection behavior on G8, the
 pipeline's synthetic evaluation corpus: it runs the engine's two G8 emitters over the corpus and
 derives one baseline per surfacing site; `resecta-data build eval-compare`
 turns two such runs into a before/after verdict. This document is the
@@ -145,7 +145,7 @@ to two `documents_eval.json` files (the document-level Site-B eval,
 [`SAMPLE-VERDICT.md`](./SAMPLE-VERDICT.md) is a checked-in transcription of
 one `make eval` run's derived files — the per-family precision / recall / F1
 table for both sites, the grand totals and the adversarial must-not-fire
-count — labelled with the engine commit and the corpus digest it measured.
+count — labeled with the engine commit and the corpus digest it measured.
 It is a worked example of the shape §1 produces, not a bar: the numbers are
 corpus-relative and move whenever the engine, the corpus or the harness join
 moves.

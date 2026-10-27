@@ -49,6 +49,13 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
+- `make lint` checks the `SOURCES.md` ledger: every row's license and file, and every tracked file
+  under `sources/`, rowed or listed. The ledger records ParaNames as CC BY 4.0 data and the
+  map-data rows as provenance for inputs no build reads.
+- CI: the `bloom-chain` job checks the name Bloom filters on every pull request from the weekly
+  workflow's cache; the security workflow's pip-audit fails on a known vulnerability, and
+  Dependabot reads `uv.lock`; a failure notice reports a red weekly verify run, whose full-verify
+  checkout no longer persists the token.
 - Dependencies: pytest 9.0.3 (dev extra, `<10`) in `requirements-dev.lock` and click 8.3.3 in
   both hash-pinned lockfiles (only those rows move). `uv.lock` is regenerated to the same versions as `requirements-dev.lock`
   (it still carried cryptography 42.0.8 and pytest 8.4.2), and the pull-request gate checks it

@@ -71,7 +71,7 @@ resecta-datapipeline/
 │   ├── bootstrap.sh         first-time setup
 │   ├── freeze_deps.sh       regenerate both pip lockfiles
 │   ├── ci_verify.sh         the weekly verify sequence, run serially
-│   ├── check_no_pii.py      pre-public guard against personal e-mail addresses
+│   ├── check_no_pii.py      guard against personal e-mail addresses
 │   ├── hygiene_gate.py      planning-identifier gate (allowlist: hygiene_allowlist.txt)
 │   ├── etl_graph.py         regenerates the README stage map from the make database
 │   ├── readme_targets.py    regenerates the README targets block from `make help`
@@ -299,7 +299,7 @@ Three workflow files run on this repository (GitHub's CodeQL default setup runs 
 
 - **Every pull request and push to `main` (`ci.yml`):** `uv lock --check` · the personal-e-mail guard (`scripts/check_no_pii.py`) · `make lint` (ruff check and format, the planning-id gate, the `SOURCES.md` ledger check — every row's license and file, every tracked file under `sources/` rowed or listed — and the two README-block currency checks) · `make typecheck` · `make test` · the pure-code builders · `make schema-check-only` · `make hash-check-built-only`. No step after the bootstrap fetches anything, and pytest runs with sockets to anything but loopback disabled. Its `gate` job is the required check on `main`. A second job, `bloom-chain`, restores the weekly workflow's ParaNames cache (it never fetches the corpus) and, when the cache is present, builds the name Bloom filters, the demographic report, the G8 recall artifact and the bundle-size probe and checks them against the lock; on a cache miss it prints a warning and ends. It is not a required check.
 - **Weekly, and on dispatch (`verify.yml`):** the ParaNames corpus hydrated (its SHA-256 read from `SOURCES.md`; cached between runs), then the full verify sequence with a forced determinism rebuild.
-- **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles, OSV-Scanner and an SPDX SBOM. Results are reported, never gating.
+- **Weekly, on every pull request and on every push to `main` (`security.yml`):** pip-audit over both lockfiles fails the run on a known vulnerability; OSV-Scanner and the SPDX SBOM report only. `security` is not a required check, so a red run never blocks a merge.
 
 Locally, `gmake verify` is the gate before anything ships: one build, then, in parallel, `make lint`, `mypy`, `pytest`, schema validation, a check of every in-band artifact against `asset_hashes.lock`, and a determinism rebuild that compares the rebuilt bytes with the first build (skipped while its witness shows unchanged inputs; `RESECTA_FORCE_DETERMINISM=1` forces it). `scripts/ci_verify.sh` runs the weekly workflow's sequence locally — serially, with the determinism rebuild forced.
 
@@ -323,4 +323,4 @@ Invariants that hold over a whole input space are tested with [Hypothesis](https
 
 ## Licensing
 
-Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file the builders read under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED` map; the datasets deferred on legal review are listed in `SOURCES.md`. No automated check validates the ledger as a whole; it is reviewed by hand.
+Provenance: [`SOURCES.md`](./SOURCES.md) — one row per third-party raw file the builders read under `src/resecta_data/**/sources/` (license, retrieval URL, retrieval date, SHA-256). Attribution: [`NOTICE.txt`](./NOTICE.txt), hand-maintained; the app repository's root `NOTICE` mirrors it row for row. License rules: `common/licensing.py`'s `ALLOWLIST` and `FORBIDDEN` sets and its `GATED` map; the datasets deferred on legal review are listed in `SOURCES.md`. `make lint` checks the ledger: every row's license and file, and every tracked file under `sources/`.
