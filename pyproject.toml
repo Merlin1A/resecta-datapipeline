@@ -17,7 +17,7 @@ authors = [{ name = "Jesse Brookins" }]
 dependencies = [
     "click>=8.1.7,<9",
     "jsonschema>=4.22,<5",
-    "faker>=25.0,<26",
+    "faker>=25.0,<41",
     "mmh3>=5.0,<6",
     # Ed25519 signing for gazetteer_manifest.json (verified by the iOS engine).
     # Chosen over PyNaCl: cryptography is already on the Apache-2.0-compatible
