@@ -10,7 +10,8 @@ lists the checks a change must pass and the changes that need a written plan.
 Python 3.12 and GNU make ≥ 4 (`brew install make` on macOS; invoke every
 target as `gmake`). `scripts/bootstrap.sh` creates `.venv/` and installs the
 dependencies hash-verified from `requirements.lock` and
-`requirements-dev.lock`.
+`requirements-dev.lock` (pip, setuptools and wheel come by version range,
+without hashes).
 
 ## Checks a change must pass
 

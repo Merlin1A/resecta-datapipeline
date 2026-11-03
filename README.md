@@ -12,7 +12,7 @@ The pipeline lives in its own repository, apart from the app, for four reasons:
 - **Builds are reproducible.** No builder makes a network call: raw inputs are fetched with `scripts/fetch_*.sh`, a separate step from building. `asset_hashes.lock` pins the SHA-256 of every in-band build artifact, and `make verify` rebuilds them and compares bytes.
 - **What reaches the app is signed.** The manifest that lists the installed files is signed with Ed25519 on the maintainer's machine, and the app checks the signature and each file's digest at first load ([`KEY-MANAGEMENT.md`](./KEY-MANAGEMENT.md)).
 
-The pipeline touches the app repository through make targets. `make install-assets` copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides); its `manifest-assets` step also reads the installed copy under `Resources/` of any routed file this host did not build. `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it installs the built artifacts first). Some tests also read a sibling checkout at a fixed path when it is present and skip when it is not.
+The pipeline touches the app repository through make targets. `make install-assets` copies built files into the engine's `Resources/` (shipped) and `Tests/…/Fixtures/` (test-only) trees in the sibling `../resecta` checkout (`RESECTA_IOS_ROOT` overrides); its `manifest-assets` step also reads the installed copy under `Resources/` of any routed file this host did not build. `make eval` runs the engine's G8 tests there (with `EVAL_INSTALL_CORPUS=1` it first runs the `install-assets` CLI command, which copies every routed artifact in `build/` into the engine tree, shipped `Resources/` files included, without the verify and signing steps of `gmake install-assets`; restore the engine tree, or run `gmake install-assets`, before committing there). Some tests also read a sibling checkout at a fixed path when it is present and skip when it is not.
 
 Setup, the checks a change must pass and the changes that need an approved plan: [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
@@ -55,7 +55,7 @@ resecta-datapipeline/
 ├── pyproject.toml           dependency ranges, tool configs
 ├── requirements.lock        pip-compile output, runtime dependencies
 ├── requirements-dev.lock    pip-compile output, runtime + dev tools
-├── uv.lock                  uv's lock of the same set; CI checks it is current, nothing installs from it
+├── uv.lock                  uv's lock of the `pyproject.toml` ranges, which Dependabot reads; CI checks it is current against `pyproject.toml` (not against the pip lockfiles), nothing installs from it
 ├── asset_hashes.lock        sha256 of every in-band `make build` artifact
 ├── SOURCES.md               third-party raw inputs: license, URL, retrieval date, SHA-256
 ├── NOTICE.txt               third-party attribution, hand-maintained; the app repo's root NOTICE mirrors it
