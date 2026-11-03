@@ -49,7 +49,8 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
 
 ### Changed
 
-- Dependencies: the two hash-pinned lockfiles and `uv.lock` agree again, pin for pin. Moved in
+- Dependencies: the two hash-pinned lockfiles and `uv.lock` were brought back into agreement, pin
+  for pin (mmh3 has since moved in `uv.lock` alone; next entry). Moved in
   the hash-pinned locks: click 8.3.3 → 8.5.0 and cryptography 50.0.1 → 50.0.2 (both files);
   ruff 0.15.12 → 0.17.1, mypy 1.20.2 → 2.4.0, pytest 9.0.3 → 9.1.1, hypothesis 6.165.10 →
   6.169.3, pip-tools 7.6.1 → 7.6.2, types-jsonschema 4.26.0.20260518 → 4.26.0.20261006 and
@@ -58,18 +59,26 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   msgpack 1.2.2 → 1.2.3; pip-audit over the hash-pinned locks reports no known vulnerability.
   ruff 0.17's two new findings are handled: the implicit string concatenations inside lists are
   parenthesized (the parsed code is unchanged), and `PLR0917` joins `PLR0913` in the ignore list.
+- Dependencies: mmh3 5.2.1 → 5.3.1 in `uv.lock` only (Dependabot); the hash-pinned locks still
+  pin 5.2.1, which is what the bootstrap installs, until the next `scripts/freeze_deps.sh`. The
+  security workflow's pins move: anchore/sbom-action 0.24.3 and the OSV-Scanner reusable
+  workflow 2.7.0.
 - `make lint` checks the `SOURCES.md` ledger: every row's license and file, and every tracked file
-  under `sources/`, rowed or listed. The ledger records ParaNames as CC BY 4.0 data and the
-  map-data rows as provenance for inputs no build reads.
+  under `sources/`, rowed or listed. The ledger records ParaNames as CC BY 4.0 data; NOTICE.txt
+  keeps the map-data rows as provenance acknowledgements for inputs no build reads.
 - CI: the `bloom-chain` job checks the name Bloom filters on every pull request from the weekly
   workflow's cache; the security workflow's pip-audit fails on a known vulnerability, and
   Dependabot reads `uv.lock`; a failure notice reports a red weekly verify run, whose full-verify
   checkout no longer persists the token.
-- Dependencies: pytest 9.0.3 (dev extra, `<10`) in `requirements-dev.lock` and click 8.3.3 in
-  both hash-pinned lockfiles (only those rows move). `uv.lock` is regenerated to the same versions as `requirements-dev.lock`
-  (it still carried cryptography 42.0.8 and pytest 8.4.2), and the pull-request gate checks it
-  with `uv lock --check` (uv installed hash-pinned for that step). The security workflow's pip-audit is the locked version, installed
-  hash-verified from the lockfiles. `scripts/_fetch_lib.sh` downloads over HTTPS only, the first
+- Dependencies: pytest moves to 9 (9.0.3; dev extra, `<10`) in `requirements-dev.lock` and click
+  to 8.3.3 in both hash-pinned lockfiles (only those rows moved; both have since moved again,
+  above). `uv.lock` was regenerated to the same versions as `requirements-dev.lock` (it still
+  carried cryptography 42.0.8 and pytest 8.4.2), and the pull-request gate runs `uv lock --check`
+  on it, which checks that `uv.lock` is current against the `pyproject.toml` ranges, not that it
+  matches the hash-pinned lockfiles (uv installed hash-pinned for that step). The security
+  workflow's pip-audit is the version the dev lock pins (2.10.1), installed by version without
+  hash verification; it audits both lockfiles as pinned rows (`--no-deps --disable-pip`) without
+  installing them. `scripts/_fetch_lib.sh` downloads over HTTPS only, the first
   request and every redirect.
 - The manifest signing key was rotated on schedule (2026-09-27); `KEY-MANAGEMENT.md` lists the new
   public-key fingerprint and keeps the retired one in its history table. The shipped manifest and
@@ -89,7 +98,7 @@ and this project adheres to [Semantic Versioning 2.0.0](https://semver.org/spec/
   label phrases; the FOIA and generic doctype vocabularies are rebalanced. The
   routing-number builder raises PipelineError instead of asserting.
 
-## 0.1.0 — 2026-07-11
+## 0.1.0 — 2026-07-11 (untagged)
 
 Initial public release.
 

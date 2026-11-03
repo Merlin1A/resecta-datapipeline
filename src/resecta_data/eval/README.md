@@ -27,7 +27,10 @@ Prerequisites: `bootstrap corpus` (the stamped corpus build; the profile is
    (`shasum -a 256` of `build/corpus/g8_corpus.json` equals the engine's
    `Fixtures/corpus/g8_corpus.json`; `EVAL_INSTALL_CORPUS=1` first runs the
    `install-assets` CLI command, which copies every routed artifact in
-   `build/`, not only the corpus). A non-`g8` profile is handed to the harness through
+   `build/`, not only the corpus, into the engine tree, shipped `Resources/`
+   files included, without the verify and signing steps of
+   `gmake install-assets`; restore the engine tree, or run
+   `gmake install-assets`, before committing there). A non-`g8` profile is handed to the harness through
    `RESECTA_G8_CORPUS_PATH` (with its sha) and is never installed;
 2. runs the two G8 emitters of the engine's **test** target on the host, each
    twice (`swift test --package-path <engine> --no-parallel --filter …`; no

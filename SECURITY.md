@@ -65,8 +65,10 @@ been addressed and coordinated disclosure has been agreed upon.
   workflow runs it on a cache miss); the two remaining downloaders (the HUD
   crosswalk and the court glossary) refuse to overwrite an existing file, and
   their rows are added by hand. Outside the
-  fetchers, the network is used to install the hash-pinned dependencies
-  (`scripts/bootstrap.sh`), to regenerate the lockfiles
+  fetchers, the network is used to install the hash-pinned dependencies and,
+  by version range without hashes, pip, setuptools and wheel
+  (`scripts/bootstrap.sh`; setuptools and wheel are also the build requirements
+  the editable install fetches), to regenerate the lockfiles
   (`scripts/freeze_deps.sh`, `uv lock`), by CI's `uv lock --check` and by the
   dependency audit.
 - **Hash-locked, deterministic outputs.** `make verify` checks every in-band
