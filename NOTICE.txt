@@ -5,18 +5,21 @@ by the resecta-datapipeline build artifacts.
 
 Created 2026-04-26. Rows are carried where a licence calls for attribution
 (CC BY 4.0, MIT); the OpenStreetMap and OpenAddresses rows are provenance
-acknowledgements for inputs no build reads. A row changes under a written plan
+acknowledgements for inputs no build reads. The passport pattern table's UK row
+carries number-format facts from HM Passport Office publications and reproduces
+no text from them. A row changes under a written plan
 agreed with the maintainer (CONTRIBUTING.md, "Plan-sign-off changes").
 
 ---
 
 ## OpenStreetMap (ODbL 1.0) — a provenance acknowledgement
 
-This product includes no data derived from OpenStreetMap. The street-type list in
-address_components.json is a fixed list (gazetteers/address_components/build.py),
-and the street-suffix staging file that cites OpenStreetMap as a source
-(SOURCES.md, street_suffix_candidates.json) is not read by any build. The row is
-kept as a provenance acknowledgement. OpenStreetMap data is © OpenStreetMap
+This product includes no data derived from OpenStreetMap, and no build reads
+OpenStreetMap data. The street-type list in address_components.json is a fixed
+list (gazetteers/address_components/build.py), and the street-suffix staging file
+(SOURCES.md, street_suffix_candidates.json, a transcription of the MIT-licensed
+street-address-rb suffix table) is not read by any build. The row is kept as a
+provenance acknowledgement. OpenStreetMap data is © OpenStreetMap
 contributors, available under the Open Database License (ODbL) 1.0; see
 https://www.openstreetmap.org/copyright.
 
@@ -24,9 +27,9 @@ https://www.openstreetmap.org/copyright.
 
 ## OpenAddresses — a provenance acknowledgement
 
-This product includes no data derived from OpenAddresses (https://openaddresses.io/);
-the street-suffix staging file that cites it is not read by any build. The row is
-kept as a provenance acknowledgement. OpenAddresses' source catalogue is CC0 1.0;
+This product includes no data derived from OpenAddresses (https://openaddresses.io/),
+and no build reads OpenAddresses data. The row is kept as a provenance
+acknowledgement. OpenAddresses' source catalogue is CC0 1.0;
 its address data carries each original source's licence.
 
 ---
@@ -39,16 +42,19 @@ popular-names data). ParaNames, by Jonne Sälevä and Constantine Lignos
 (https://github.com/bltlab/paranames, release v2024.05.07.0), is licensed under
 the Creative Commons Attribution 4.0 International License
 (https://creativecommons.org/licenses/by/4.0/). Changes made: PER-type entries
-were filtered and their names hashed into Bloom filters; no names are
-reproduced. The bltlab/paranames code is MIT-licensed, Copyright (c) 2022 Jonne
-Sälevä and Constantine Lignos.
+named in at least five languages were filtered and their names hashed into
+Bloom filters; no names are reproduced. The bltlab/paranames code is
+MIT-licensed, Copyright (c) 2022 Jonne Sälevä and Constantine Lignos; no
+ParaNames code is used.
 
 ---
 
 ## Third-party MIT-licensed inputs
 
 Faker generates this project's synthetic evaluation corpus, a test fixture that
-is not shipped. The MIT permission notice is reproduced once and applies to each
+is not shipped; the classifier parameters the app bundles were fitted on it. The
+usdl-regex format baselines underlie part of the driver's-license pattern table
+the app bundles. The MIT permission notice is reproduced once and applies to each
 input.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -74,3 +80,9 @@ SOFTWARE.
       (https://github.com/joke2k/faker)
       Spanish-locale lists in use (es_MX, es_ES) preserve the inline
       co-attribution: Source: Álvaro Mondéjar Rubio.
+- [x] usdl-regex (MIT) — driver's-license number format baselines for 26 of
+      the 51 state rows in dl_patterns.json; format facts only, no upstream
+      text reproduced. Copyright (c) 2017 GasBuddy
+      (https://github.com/gas-buddy/usdl-regex). The cross-referenced
+      adambullmer/USDLRegex publishes no licence file and is acknowledged as
+      provenance only.
